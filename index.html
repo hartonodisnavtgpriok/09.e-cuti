@@ -249,7 +249,8 @@
           </div>
           <div>
             <label class="lb" for="admin2-test-actor">Identitas uji</label>
-            <select id="admin2-test-actor" class="inp"></select>
+            <input id="admin2-test-actor" class="inp" type="text" list="admin2-test-actor-list" autocomplete="off" placeholder="Ketik 3 huruf nama atau NIP, lalu pilih saran">
+            <datalist id="admin2-test-actor-list"></datalist>
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-3 mt-3">
@@ -408,7 +409,7 @@
 (function () {
   var KEY = 'cuti_requests_v1';
   var currentUser = null;
-  var testUser = null;
+  var testUser = null, testApplicant = null;
   function activeUser() { return testUser || currentUser; }
   var supabaseUrl = 'https://rnrbqkpiqpwfpkhwnjym.supabase.co';
   var supabaseKey = 'sb_publishable_YIBbvK1YNrO6MH-KFT2jQg_WCN6OWsj';
@@ -942,7 +943,8 @@
     e.preventDefault();
     errEl.classList.add('hidden');
     var user = activeUser();
-    var prof = applicantProfile(user);
+    var prof = testUser ? (document.getElementById('f-nip').value ? testApplicant : null) : applicantProfile(user);
+    if (testUser && !prof) { showErr('Mode uji: ketik 3 huruf nama atau NIP pegawai, lalu pilih dari saran.'); return; }
     if (!user || !prof) {
       showErr('Silakan masuk dengan akun yang terdaftar di daftar pegawai sebelum mengajukan cuti.');
       showView(user ? 'employee' : 'login');
@@ -963,13 +965,13 @@
     if (!route.first) { showErr('Rute persetujuan untuk jabatan Anda belum diatur. Hubungi Admin.'); return; }
     list.push({
       id: 'r' + Date.now() + Math.floor(Math.random() * 1000),
-      name: user.name, type: type, start: start, end: end, reason: reason,
-      nip: user.nip, masa: masaKerja(user.nip), jabatan: prof.j, alamat: v('f-alamat'), telp: v('f-telp'),
+      name: prof.n, type: type, start: start, end: end, reason: reason,
+      nip: prof.nip, masa: masaKerja(prof.nip), jabatan: prof.j, alamat: v('f-alamat'), telp: v('f-telp'),
       atasan: route.first, atasanNip: v('f-atasan-nip'), sig: cv.toDataURL('image/png'),
       unit: prof.unit, unitCode: prof.unitCode,
       firstApprover: route.first, firstApproverPosition: route.firstPosition,
       secondApprover: route.second, secondApproverPosition: route.secondPosition,
-      status: 'pending_direct', createdAt: Date.now(), requestedBy: user.nip
+      status: 'pending_direct', createdAt: Date.now(), requestedBy: prof.nip
     });
     if (!save(list)) return;
     form.reset(); clearSig(); fillApplicant();
@@ -1498,23 +1500,38 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     });
   }
   function populateTestActors() {
-    var role = document.getElementById('admin2-test-role').value;
-    var actorSelect = document.getElementById('admin2-test-actor');
-    var previousNip = actorSelect.value;
-    var actors = testActorsForRole(role);
-    actorSelect.innerHTML = actors.map(function (person) {
-      return '<option value="' + esc(person.nip) + '">' + esc(person.name + ' — ' + person.title) + '</option>';
-    }).join('');
-    if (actors.some(function (person) { return person.nip === previousNip; })) actorSelect.value = previousNip;
+    var actorInput = document.getElementById('admin2-test-actor');
+    actorInput.value = '';
+    document.getElementById('admin2-test-actor-list').innerHTML = '';
   }
+  function actorLabel(person) { return person.name + ' - ' + person.nip; }
+  function suggestTestActors() {
+    var role = document.getElementById('admin2-test-role').value;
+    var t = document.getElementById('admin2-test-actor').value.trim().toLowerCase(), tn = t.replace(/\s+/g, '');
+    var list = document.getElementById('admin2-test-actor-list');
+    if (t.length < 3) { list.innerHTML = ''; return; }
+    list.innerHTML = testActorsForRole(role).filter(function (a) {
+      return a.name.toLowerCase().indexOf(t) !== -1 || a.nip.replace(/\s+/g, '').indexOf(tn) === 0;
+    }).slice(0, 10).map(function (a) {
+      return '<option value="' + esc(actorLabel(a)) + '">' + esc(a.title || '') + '</option>';
+    }).join('');
+  }
+  function findTestActor(role, value) {
+    var n = String(value || '').toLowerCase().replace(/\s+/g, '');
+    if (!n) return null;
+    var all = testActorsForRole(role);
+    var hit = all.filter(function (a) { return actorLabel(a).toLowerCase().replace(/\s+/g, '') === n || a.nip.replace(/\s+/g, '') === n; });
+    if (!hit.length) hit = all.filter(function (a) { return a.name.toLowerCase().replace(/\s+/g, '') === n; });
+    return hit.length === 1 ? hit[0] : null;
+  }
+  document.getElementById('admin2-test-actor').addEventListener('input', suggestTestActors);
   document.getElementById('admin2-test-role').addEventListener('change', populateTestActors);
   document.getElementById('btn-start-test').addEventListener('click', function () {
     if (!isAdmin2()) { toast('Mode uji hanya tersedia untuk akun Admin 2.'); return; }
     var role = document.getElementById('admin2-test-role').value;
-    var person = testActorsForRole(role).filter(function (actor) {
-      return actor.nip === document.getElementById('admin2-test-actor').value;
-    })[0];
-    if (!person) { toast('Pilih identitas uji yang valid.'); return; }
+    var person = findTestActor(role, document.getElementById('admin2-test-actor').value);
+    if (!person) { toast('Ketik 3 huruf nama/NIP lalu pilih identitas uji dari saran.'); return; }
+    testApplicant = null;
     person.uid = currentUser.uid;
     person.roleLabel = { employee: 'Pegawai', approver: 'Penyetuju', correspondence: 'Persuratan', admin: 'Admin' }[role];
     testUser = person;
@@ -1525,7 +1542,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
   });
   function stopTestMode() {
     if (!testUser) return;
-    testUser = null;
+    testUser = null; testApplicant = null;
     document.getElementById('admin2-test-status').textContent = '';
     document.getElementById('leave-form').reset();
     clearSig();
@@ -1800,8 +1817,9 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       el.innerHTML = empty('🔒', 'Silakan masuk terlebih dahulu', 'Riwayat cuti hanya tersedia untuk akun pemohon.');
       return;
     }
+    var hn = testUser && testApplicant ? testApplicant.nip : user.nip;
     var own = load().filter(function (r) {
-      return r.requestedBy ? r.requestedBy === user.nip : r.nip === user.nip;
+      return r.requestedBy ? r.requestedBy === hn : r.nip === hn;
     }).sort(function (a, b) { return b.createdAt - a.createdAt; });
     if (!own.length) {
       el.innerHTML = empty('📭', 'Belum ada permohonan cuti', 'Permohonan yang Anda ajukan akan tercatat di sini.');
@@ -1842,6 +1860,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       .filter(function (person) { return person[0] === route.first; })[0];
     document.getElementById('f-atasan-nip').value = approver ? approver[1] : e.anip;
     pickedName = e.n;
+    if (testUser) testApplicant = e;
     sugg.classList.add('hidden');
   }
   function showSugg() {
@@ -1852,7 +1871,8 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     }
     if (q.length < 3) { sugg.classList.add('hidden'); return; }
     var own = applicantProfile(activeUser());
-    sList = own && (own.n.toLowerCase().indexOf(q) !== -1 || own.nip.replace(/\s+/g, '').indexOf(qn) === 0) ? [own] : [];
+    var pool = testUser ? EMP : (own ? [own] : []);
+    sList = pool.filter(function (e) { return e.n.toLowerCase().indexOf(q) !== -1 || e.nip.replace(/\s+/g, '').indexOf(qn) === 0; }).slice(0, 8);
     sIdx = -1;
     if (!sList.length) { sugg.classList.add('hidden'); return; }
     sugg.innerHTML = sList.map(function (e, i) {
@@ -2127,9 +2147,10 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       toast('Masuk ke akun pemohon untuk mengunduh surat.');
       return;
     }
+    var pn = testUser && testApplicant ? testApplicant.nip : user.nip;
     var r = load().filter(function (item) {
       return item.id === id && item.status === 'issued' &&
-        (item.requestedBy === user.nip || (!item.requestedBy && item.nip === user.nip));
+        (item.requestedBy === pn || (!item.requestedBy && item.nip === pn));
     })[0];
     if (!r) { toast('Surat tidak ditemukan pada akun pemohon ini.'); return; }
     if (!window.jspdf || !window.jspdf.jsPDF) {
