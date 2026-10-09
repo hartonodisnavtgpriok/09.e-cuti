@@ -1,0 +1,2519 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aplikasi Pengajuan Cuti Karyawan</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<style>
+  .nav-btn.active{background:#fff;color:#1e3a8a;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  html{overflow-y:scroll;scrollbar-gutter:stable}
+  body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100vh;height:100lvh;transform:translateZ(0);z-index:-1;background-color:#e2e8f0;
+    background-image:linear-gradient(rgba(241,245,249,.30),rgba(241,245,249,.30)),url("https://drive.google.com/thumbnail?id=1hSLwh9aK_DBPUfCbktVL_8M1mLohwLOp&sz=w1920"),url("https://drive.google.com/uc?export=view&id=1hSLwh9aK_DBPUfCbktVL_8M1mLohwLOp");
+    background-position:center center;background-size:cover;background-repeat:no-repeat}
+  .lb{display:block;font-size:.875rem;font-weight:500;margin-bottom:.25rem}
+  .inp{width:100%;border:1px solid #cbd5e1;border-radius:.5rem;padding:.5rem .75rem}
+  .inp:focus{outline:2px solid #3b82f6;outline-offset:-1px}
+  .auth-tab.active{background:#fff;color:#1e3a8a;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .view{display:none}.view.active{display:block}
+  .toast{transition:all .3s;transform:translateY(20px);opacity:0;pointer-events:none}
+  .toast.show{transform:translateY(0);opacity:1}
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+<header class="bg-blue-900 text-white shadow-lg">
+  <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-blue-700 flex items-center justify-center text-xl">🗓️</div>
+      <div>
+        <h1 class="text-lg font-bold leading-tight">Pengajuan Cuti Karyawan</h1>
+        <p class="text-xs text-blue-200">Sistem HR &mdash; Simulasi Alur Persetujuan</p>
+      </div>
+    </div>
+    <nav id="main-nav" class="hidden flex flex-wrap bg-blue-800 rounded-lg p-1 gap-1 text-sm font-medium" aria-label="Navigasi alur cuti">
+      <button data-view="employee" class="nav-btn px-3 py-2 rounded-md text-blue-100 transition">Profil &amp; Pengajuan</button>
+      <button data-view="approver" class="nav-btn px-3 py-2 rounded-md text-blue-100 transition">Halaman Penyetuju</button>
+      <button data-view="correspondence" class="nav-btn px-3 py-2 rounded-md text-blue-100 transition">Persuratan</button>
+      <button data-view="admin" class="nav-btn px-3 py-2 rounded-md text-blue-100 transition">Admin</button>
+      <button type="button" id="btn-push" class="hidden px-3 py-2 rounded-md text-blue-100 hover:bg-blue-700 transition" title="Aktifkan notifikasi push">🔔 Notifikasi</button>
+      <button type="button" id="btn-stop-test" class="hidden px-3 py-2 rounded-md bg-amber-500 hover:bg-amber-600 text-white transition">Akhiri mode uji</button>
+      <button type="button" id="btn-logout" class="px-3 py-2 rounded-md text-blue-100 hover:bg-blue-700 transition">Keluar</button>
+    </nav>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-6">
+  <div id="test-mode-banner" class="hidden mb-5 rounded-xl border-2 border-amber-400 bg-amber-50 p-4 text-sm font-semibold text-amber-950" role="status"></div>
+
+  <!-- HOME VIEW (Halaman 1) -->
+  <section id="view-home" class="view">
+    <div class="bg-white/75 backdrop-blur-sm rounded-2xl shadow min-h-[65vh] flex flex-col justify-between overflow-hidden">
+      <div class="flex-1 flex flex-col items-center justify-center text-center px-6 py-12">
+        <img src="https://drive.google.com/thumbnail?id=1cKfdI8ArVwiPqLr0sN3tsMllCW9u2yWm&sz=w1000" alt="Logo Distrik Navigasi Tipe B Tanjung Priok" class="h-28 md:h-36 w-auto max-w-full object-contain mb-6"
+          onerror="if(!this.dataset.f){this.dataset.f=1;this.src='https://drive.google.com/uc?export=view&id=1cKfdI8ArVwiPqLr0sN3tsMllCW9u2yWm';}else{this.style.display='none';}">
+        <p class="text-sm uppercase tracking-widest text-blue-700 font-semibold mb-2">Kementerian Perhubungan</p>
+        <h2 class="text-2xl md:text-4xl font-bold text-blue-900 leading-tight">Distrik Navigasi Tipe B<br>Tanjung Priok</h2>
+        <div class="w-16 h-1 bg-blue-700 rounded-full my-5"></div>
+        <p class="text-lg font-semibold text-slate-700">Aplikasi Pengajuan Cuti Karyawan</p>
+        <p class="text-sm text-slate-500 mt-2 max-w-md">Ajukan cuti dan pantau proses persetujuan berjenjang hingga surat diterbitkan.</p>
+        <button type="button" data-view="login" class="go-btn mt-6 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-xl px-8 py-3 shadow transition">Masuk ke Aplikasi &rarr;</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOGIN VIEW -->
+  <section id="view-login" class="view">
+    <div class="max-w-xl mx-auto bg-white rounded-2xl shadow p-6 md:p-8">
+      <div class="text-center mb-6">
+        <div class="text-4xl mb-2">🔐</div>
+        <h2 class="text-2xl font-bold text-blue-900">Akun Pengguna</h2>
+        <p class="text-sm text-slate-500 mt-1">Masuk dengan akun Anda, atau daftar sendiri jika belum punya akun.</p>
+      </div>
+      <div class="grid grid-cols-2 gap-1 bg-slate-100 rounded-lg p-1 mb-5 text-sm font-semibold">
+        <button type="button" id="tab-login" class="auth-tab active px-3 py-2 rounded-md text-slate-600 transition">Masuk</button>
+        <button type="button" id="tab-signup" class="auth-tab px-3 py-2 rounded-md text-slate-600 transition">Daftar</button>
+      </div>
+
+      <form id="login-form" class="space-y-4" novalidate>
+        <div>
+          <label class="lb" for="login-email">Email</label>
+          <input id="login-email" class="inp" type="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="nama@email.com" required>
+        </div>
+        <div>
+          <label class="lb" for="login-password">Kata sandi</label>
+          <input id="login-password" class="inp" type="password" autocomplete="current-password" required>
+        </div>
+        <div id="login-link-wrap" class="hidden">
+          <label class="lb" for="login-link">Nama / NIP Pegawai</label>
+          <input id="login-link" class="inp" type="text" list="emp-list" autocomplete="off" placeholder="Ketik nama atau NIP untuk menghubungkan akun">
+        </div>
+        <p id="login-info" class="hidden"></p>
+        <p id="login-error" class="hidden"></p>
+        <button id="login-submit" type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition">Masuk</button>
+        <div class="flex flex-wrap justify-between gap-2 text-sm">
+          <button type="button" id="btn-forgot" class="text-blue-700 hover:underline">Lupa kata sandi?</button>
+          <button type="button" id="btn-resend" class="hidden text-blue-700 hover:underline">Kirim ulang email verifikasi</button>
+        </div>
+      </form>
+
+      <form id="signup-form" class="hidden space-y-4" novalidate>
+        <div>
+          <label class="lb" for="signup-name">Nama / NIP Pegawai</label>
+          <input id="signup-name" class="inp" type="text" list="emp-list" autocomplete="off" placeholder="Ketik nama atau NIP, lalu pilih dari saran">
+          <datalist id="emp-list"></datalist>
+        </div>
+        <div>
+          <label class="lb" for="signup-email">Email</label>
+          <input id="signup-email" class="inp" type="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="email" placeholder="nama@email.com" required>
+        </div>
+        <div>
+          <label class="lb" for="signup-password">Kata sandi (min. 8 karakter)</label>
+          <input id="signup-password" class="inp" type="password" autocomplete="new-password" required>
+        </div>
+        <div>
+          <label class="lb" for="signup-password2">Ulangi kata sandi</label>
+          <input id="signup-password2" class="inp" type="password" autocomplete="new-password" required>
+        </div>
+        <p class="text-xs text-slate-500 bg-blue-50 rounded-lg p-3">Setelah mendaftar, kami mengirim tautan verifikasi ke email Anda. Akun baru bisa dipakai masuk setelah email diverifikasi. Akun penyetuju, admin, dan persuratan dikenali otomatis dari email yang terdaftar.</p>
+        <p id="signup-error" class="hidden"></p>
+        <button id="signup-submit" type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition">Daftar</button>
+      </form>
+
+      <button type="button" data-view="home" class="go-btn mt-4 text-sm text-blue-700 hover:underline">&larr; Kembali ke Beranda</button>
+    </div>
+  </section>
+
+  <!-- EMPLOYEE VIEW -->
+  <section id="view-employee" class="view">
+    <div class="mb-5">
+      <h2 class="text-2xl font-bold">Profil &amp; Pengajuan Pegawai</h2>
+      <p class="text-slate-500 text-sm">Periksa profil Anda, lalu isi formulir untuk memulai pengajuan cuti.</p>
+    </div>
+    <div id="employee-profile" class="bg-white rounded-xl shadow p-4 mb-5 max-w-2xl mx-auto"></div>
+    <div id="emp-menu" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
+      <button data-emp="rules" class="text-left bg-white hover:bg-blue-50 border-2 border-transparent hover:border-blue-300 rounded-2xl shadow p-6 transition">
+        <div class="text-4xl mb-3">📘</div>
+        <div class="text-xl font-bold text-blue-900">Aturan</div>
+        <p class="text-sm text-slate-500 mt-1">Ketentuan cuti pegawai di lingkungan Perhubungan Laut.</p>
+      </button>
+      <button data-emp="form" class="text-left bg-blue-700 hover:bg-blue-800 text-white rounded-2xl shadow p-6 transition">
+        <div class="text-4xl mb-3">📝</div>
+        <div class="text-xl font-bold">Pengajuan Cuti</div>
+        <p class="text-sm text-blue-100 mt-1">Isi formulir permintaan dan pemberian cuti.</p>
+      </button>
+      <button data-emp="history" class="text-left bg-white hover:bg-blue-50 border-2 border-transparent hover:border-blue-300 rounded-2xl shadow p-6 transition">
+        <div class="text-4xl mb-3">📄</div>
+        <div class="text-xl font-bold text-blue-900">Riwayat Permohonan Cuti</div>
+        <p class="text-sm text-slate-500 mt-1">Lihat status dan unduh PDF surat cuti yang sudah diterbitkan.</p>
+      </button>
+    </div>
+
+    <div id="emp-history" class="hidden max-w-5xl mx-auto">
+      <div class="bg-white rounded-xl shadow p-5">
+        <button type="button" data-emp="menu" class="inline-flex w-full sm:w-auto justify-center items-center gap-3 mb-5 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 active:scale-95 text-white font-bold text-base shadow-md hover:shadow-lg transition"><span class="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center text-xl leading-none">&larr;</span>Kembali ke Profil</button>
+        <h3 class="font-bold text-lg text-blue-900 mb-4">Riwayat Permohonan Cuti Saya</h3>
+        <div id="employee-history-table"></div>
+      </div>
+    </div>
+
+    <div id="emp-rules" class="hidden max-w-3xl mx-auto">
+      <div class="bg-white rounded-xl shadow p-5">
+        <button type="button" data-emp="menu" class="inline-flex w-full sm:w-auto justify-center items-center gap-3 mb-5 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 active:scale-95 text-white font-bold text-base shadow-md hover:shadow-lg transition"><span class="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center text-xl leading-none">&larr;</span>Kembali ke Menu</button>
+        <h3 class="font-bold text-lg text-blue-900">KETENTUAN CUTI PEGAWAI DI LINGKUNGAN PERHUBUNGAN LAUT</h3>
+        <div id="rules-tabs" class="flex flex-wrap gap-2 my-4"></div>
+        <div id="rules-body"></div>
+      </div>
+    </div>
+
+    <div id="emp-form" class="hidden">
+      <div class="bg-white rounded-xl shadow p-5 w-full max-w-2xl mx-auto">
+        <button type="button" data-emp="menu" class="inline-flex w-full sm:w-auto justify-center items-center gap-3 mb-5 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 active:scale-95 text-white font-bold text-base shadow-md hover:shadow-lg transition"><span class="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center text-xl leading-none">&larr;</span>Kembali ke Menu</button>
+        <h3 class="font-semibold text-lg mb-4">Form Pengajuan Cuti</h3>
+        <form id="leave-form" class="space-y-4" novalidate>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="f-name">Nama Karyawan</label>
+            <input id="f-name" type="text" required autocomplete="off" placeholder="Ketik nama atau NIP pegawai..." class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="lb" for="f-nip">NIP</label><input id="f-nip" type="text" class="inp" placeholder="19xxxxxx xxxxxx"></div>
+            <div><label class="lb" for="f-masa">Masa Kerja</label><input id="f-masa" type="text" class="inp" placeholder="Contoh: 5 th 3 bln"></div>
+          </div>
+          <div><label class="lb" for="f-jab">Jabatan</label><input id="f-jab" type="text" class="inp"></div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="f-type">Jenis Cuti</label>
+            <select id="f-type" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="Annual">Annual (Tahunan)</option>
+              <option value="Sick">Sick (Sakit)</option>
+              <option value="Personal">Personal (Cuti Karena Alasan Penting)</option>
+              <option value="Besar">Cuti Besar</option>
+              <option value="Melahirkan">Cuti Melahirkan</option>
+              <option value="LuarTanggungan">Cuti di Luar Tanggungan Negara</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium mb-1" for="f-start">Tanggal Mulai</label>
+              <input id="f-start" type="date" required class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1" for="f-end">Tanggal Selesai</label>
+              <input id="f-end" type="date" required class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="f-reason">Alasan</label>
+            <textarea id="f-reason" rows="3" required placeholder="Jelaskan alasan cuti..." class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+          </div>
+          <div><label class="lb" for="f-alamat">Alamat Selama Menjalankan Cuti</label><textarea id="f-alamat" rows="2" class="inp"></textarea></div>
+          <div><label class="lb" for="f-telp">No. Telp</label><input id="f-telp" type="text" class="inp"></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="lb" for="f-atasan">Penyetuju Tahap 1</label><input id="f-atasan" type="text" class="inp" placeholder="Nama penyetuju tahap 1"></div>
+            <div><label class="lb" for="f-atasan-nip">NIP Atasan</label><input id="f-atasan-nip" type="text" class="inp"></div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1"><span class="lb" style="margin:0">Tanda Tangan Pemohon</span><button type="button" id="sig-clear" class="text-xs text-blue-700 hover:underline">Hapus</button></div>
+            <canvas id="sig" width="480" height="180" class="w-full bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg" style="touch-action:none;cursor:crosshair"></canvas>
+            <p class="text-xs text-slate-500 mt-1">Goreskan tanda tangan di dalam kotak (mouse / jari).</p>
+          </div>
+          <p id="form-error" class="hidden text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"></p>
+          <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition">Kirim Pengajuan</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN VIEW -->
+  <section id="view-admin" class="view">
+    <div class="mb-5">
+      <h2 class="text-2xl font-bold">Halaman Admin <span id="admin-person-name"></span></h2>
+      <p class="text-slate-500 text-sm">Terbitkan surat yang sudah disetujui berjenjang dan diberi nomor oleh Persuratan.</p>
+    </div>
+    <div id="admin2-approver-management" class="hidden bg-white rounded-xl shadow p-5 mb-5">
+      <div class="mb-5 rounded-xl border border-amber-300 bg-amber-50 p-4">
+        <h3 class="font-semibold text-lg text-amber-900">Mode Uji Live — Admin 2</h3>
+        <p class="text-sm text-amber-800 mt-1 mb-3">Pilih peran dan identitas untuk menguji alur pada data Supabase bersama. Aksi mengubah data sungguhan dan mencatat nama simulasi, tetapi tetap memakai sesi Admin 2—bukan menguji izin RLS akun peran tersebut—serta tidak mengirim notifikasi sebagai pengguna yang dipilih.</p>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label class="lb" for="admin2-test-role">Peran uji</label>
+            <select id="admin2-test-role" class="inp">
+              <option value="employee">Pegawai</option>
+              <option value="approver">Penyetuju</option>
+              <option value="correspondence">Persuratan</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div>
+            <label class="lb" for="admin2-test-actor">Identitas uji</label>
+            <select id="admin2-test-actor" class="inp"></select>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 mt-3">
+          <button type="button" id="btn-start-test" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">Mulai mode uji</button>
+          <span id="admin2-test-status" class="text-sm text-amber-900"></span>
+        </div>
+      </div>
+      <h3 class="font-semibold text-lg text-blue-900">Data Penyetuju &amp; Akun</h3>
+      <p class="text-sm text-slate-600 mt-1 mb-4">Perbarui nama dan email kontak penyetuju untuk pencocokan peran aplikasi. Email yang dicatat di sini tidak mengubah email login akun Supabase. Email login pengguna tidak dapat diubah dari halaman ini.</p>
+      <p class="text-xs text-amber-700 bg-amber-50 rounded-lg p-3 mb-4">Password tidak dapat dilihat. Gunakan tombol kirim tautan reset password agar pemilik email mengatur password baru sendiri. Alamat email harus cocok dengan akun Supabase.</p>
+      <p class="text-xs text-slate-500 mb-4">Perubahan nama dan email penyetuju tersimpan di browser ini saja; perubahan tidak mengubah akun Auth atau tersinkron antar perangkat.</p>
+      <div id="admin2-approver-table"></div>
+    </div>
+    <div id="admin-stats" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
+    <div class="bg-white rounded-xl shadow p-5">
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button type="button" data-tab="incoming" class="admin-tab px-4 py-2 rounded-lg text-sm font-semibold border transition">Pengajuan Masuk</button>
+        <button type="button" data-tab="pending" class="admin-tab px-4 py-2 rounded-lg text-sm font-semibold border transition">Siap Diterbitkan</button>
+        <button type="button" data-tab="approved" class="admin-tab px-4 py-2 rounded-lg text-sm font-semibold border transition">Surat Diterbitkan</button>
+        <button type="button" data-tab="rejected" class="admin-tab px-4 py-2 rounded-lg text-sm font-semibold border transition">Ditolak</button>
+        <button type="button" id="btn-exp-approved" class="hidden ml-auto px-4 py-2 rounded-lg text-sm font-semibold bg-green-600 hover:bg-green-700 text-white">⬇ Export Surat Terbit</button>
+      </div>
+      <h3 id="admin-title" class="font-semibold text-lg mb-4"></h3>
+      <div id="admin-table"></div>
+    </div>
+  </section>
+
+  <!-- INDIVIDUAL APPROVER VIEW -->
+  <section id="view-approver" class="view">
+    <div class="mb-5">
+      <h2 class="text-2xl font-bold">Halaman Penyetuju <span id="approver-person-name"></span></h2>
+      <p class="text-slate-500 text-sm">Tugas yang tampil hanya pengajuan yang ditujukan kepada Anda pada tahap persetujuan terkait.</p>
+    </div>
+    <div id="approver-stats" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
+    <div class="bg-white rounded-xl shadow p-5 mb-6">
+      <h3 class="font-semibold text-lg mb-4">Menunggu Persetujuan Tahap 1</h3>
+      <div id="approver-first-pending"></div>
+    </div>
+    <div class="bg-white rounded-xl shadow p-5 mb-6">
+      <h3 class="font-semibold text-lg mb-4">Menunggu Persetujuan Tahap 2</h3>
+      <div id="approver-second-pending"></div>
+    </div>
+    <div class="bg-white rounded-xl shadow p-5">
+      <h3 class="font-semibold text-lg mb-4">Riwayat Keputusan Saya</h3>
+      <div id="approver-history"></div>
+    </div>
+  </section>
+
+  <!-- CORRESPONDENCE VIEW -->
+  <section id="view-correspondence" class="view">
+    <div class="mb-5">
+      <h2 class="text-2xl font-bold">Halaman Persuratan</h2>
+      <p class="text-slate-500 text-sm">Terbitkan nomor surat untuk pengajuan yang telah disetujui Kabag/Kabid.</p>
+      <p class="text-xs text-amber-700 mt-1">Nomor awal CUTI/YYYY/NNNN merupakan format simulasi; sesuaikan dengan tata naskah dinas yang berlaku.</p>
+    </div>
+    <div id="correspondence-stats" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5"></div>
+    <div class="bg-white rounded-xl shadow p-5 mb-6">
+      <h3 class="font-semibold text-lg mb-4">Menunggu Nomor Surat</h3>
+      <div id="correspondence-pending"></div>
+    </div>
+    <div class="bg-white rounded-xl shadow p-5">
+      <h3 class="font-semibold text-lg mb-4">Nomor Surat Terbit</h3>
+      <div id="correspondence-history"></div>
+    </div>
+  </section>
+
+  <div id="data-tools" class="mt-8 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+    <span>Data tersimpan di Supabase dan tersinkron antar perangkat.</span>
+    <div class="flex gap-2">
+      <button id="btn-all" class="px-3 py-1.5 rounded-lg border border-blue-300 text-blue-700 bg-white hover:bg-blue-50">⬇ Export Semua ke Excel</button>
+      <button id="btn-reset" class="px-3 py-1.5 rounded-lg border border-red-300 text-red-600 bg-white hover:bg-red-50">Hapus Semua Data</button>
+    </div>
+  </div>
+</main>
+
+<div id="letter-number-modal" class="hidden fixed inset-0 z-50 items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-labelledby="letter-number-title">
+  <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+    <div class="mb-5">
+      <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Bagian Persuratan</p>
+      <h2 id="letter-number-title" class="mt-1 text-xl font-bold text-slate-900">Terbitkan Nomor Surat</h2>
+      <p id="letter-number-requester" class="mt-2 text-sm text-slate-600"></p>
+    </div>
+    <form id="letter-number-form" class="space-y-4">
+      <div>
+        <label for="letter-number-value" class="lb">Nomor Surat</label>
+        <input id="letter-number-value" type="text" required class="inp" autocomplete="off" placeholder="Masukkan nomor surat">
+        <p class="mt-1 text-xs text-slate-500">Nomor ini akan tercantum otomatis pada formulir cuti yang dapat diunduh.</p>
+      </div>
+      <p id="letter-number-error" class="hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"></p>
+      <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button type="button" id="letter-number-cancel" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Batal</button>
+        <button type="submit" class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">Terbitkan &amp; Lanjutkan ke Admin</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="request-edit-modal" class="hidden fixed inset-0 z-50 items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-labelledby="request-edit-title">
+  <div class="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
+    <div class="mb-5">
+      <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Admin 1</p>
+      <h2 id="request-edit-title" class="mt-1 text-xl font-bold text-slate-900">Edit Pengajuan Masuk</h2>
+      <p class="mt-2 text-sm text-slate-600">Perubahan hanya tersedia sebelum pengajuan mendapat keputusan tahap 1.</p>
+    </div>
+    <form id="request-edit-form" class="grid gap-4 sm:grid-cols-2">
+      <input id="request-edit-id" type="hidden">
+      <div><label class="lb" for="request-edit-name">Nama pemohon</label><input id="request-edit-name" class="inp" required></div>
+      <div><label class="lb" for="request-edit-nip">NIP</label><input id="request-edit-nip" class="inp" required></div>
+      <div><label class="lb" for="request-edit-jabatan">Jabatan</label><input id="request-edit-jabatan" class="inp"></div>
+      <div><label class="lb" for="request-edit-masa">Masa kerja</label><input id="request-edit-masa" class="inp"></div>
+      <div><label class="lb" for="request-edit-unit">Unit kerja</label><input id="request-edit-unit" class="inp"></div>
+      <div>
+        <label class="lb" for="request-edit-type">Jenis cuti</label>
+        <select id="request-edit-type" class="inp" required>
+          <option value="Annual">Cuti Tahunan</option><option value="Besar">Cuti Besar</option><option value="Sick">Cuti Sakit</option>
+          <option value="Melahirkan">Cuti Melahirkan</option><option value="Personal">Cuti Alasan Penting</option><option value="LuarTanggungan">Cuti di Luar Tanggungan Negara</option>
+        </select>
+      </div>
+      <div><label class="lb" for="request-edit-start">Tanggal mulai</label><input id="request-edit-start" type="date" class="inp" required></div>
+      <div><label class="lb" for="request-edit-end">Tanggal selesai</label><input id="request-edit-end" type="date" class="inp" required></div>
+      <div><label class="lb" for="request-edit-telp">Telepon</label><input id="request-edit-telp" class="inp"></div>
+      <div><label class="lb" for="request-edit-alamat">Alamat selama cuti</label><input id="request-edit-alamat" class="inp"></div>
+      <div class="sm:col-span-2"><label class="lb" for="request-edit-reason">Alasan cuti</label><textarea id="request-edit-reason" class="inp" rows="3" required></textarea></div>
+      <div><label class="lb" for="request-edit-approver1">Penyetuju Tahap 1</label><select id="request-edit-approver1" class="inp" required></select></div>
+      <div><label class="lb" for="request-edit-approver2">Penyetuju Tahap 2</label><select id="request-edit-approver2" class="inp"></select></div>
+      <p id="request-edit-error" class="hidden sm:col-span-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"></p>
+      <div class="flex flex-col-reverse gap-2 sm:col-span-2 sm:flex-row sm:justify-end">
+        <button type="button" id="request-edit-cancel" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Batal</button>
+        <button type="submit" class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">Simpan Perubahan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast" class="toast fixed bottom-5 right-5 bg-slate-900 text-white text-sm px-4 py-3 rounded-lg shadow-lg z-50"></div>
+
+<script>
+(function () {
+  var KEY = 'cuti_requests_v1';
+  var currentUser = null;
+  var testUser = null;
+  function activeUser() { return testUser || currentUser; }
+  var supabaseUrl = 'https://rnrbqkpiqpwfpkhwnjym.supabase.co';
+  var supabaseKey = 'sb_publishable_YIBbvK1YNrO6MH-KFT2jQg_WCN6OWsj';
+  var supabaseClient = null;
+  var supabaseInitError = '';
+  try {
+    if (!window.supabase || !window.supabase.createClient) {
+      supabaseInitError = 'Supabase tidak dapat dimuat. Periksa koneksi internet lalu muat ulang halaman.';
+    } else {
+      supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+    }
+  } catch (error) {
+    console.error('Supabase gagal diinisialisasi:', error);
+    supabaseInitError = 'Supabase gagal diinisialisasi. Periksa konfigurasi URL dan publishable key.';
+  }
+
+  var STATUS = {
+    pending_direct:        { label: 'Menunggu Persetujuan Tahap 1', cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+    pending_next:          { label: 'Menunggu Persetujuan Tahap 2', cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+    pending_correspondence:{ label: 'Menunggu Persuratan', cls: 'bg-indigo-100 text-indigo-800 border-indigo-300' },
+    pending_admin_issue:   { label: 'Menunggu Penerbitan Admin', cls: 'bg-purple-100 text-purple-800 border-purple-300' },
+    issued:                { label: 'Surat Diterbitkan', cls: 'bg-green-100 text-green-800 border-green-300' },
+    pending:               { label: 'Pengajuan Lama', cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+    admin_approved:        { label: 'Pengajuan Lama - Admin', cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+    approved:              { label: 'Disetujui (data lama)', cls: 'bg-green-100 text-green-800 border-green-300' },
+    rejected:              { label: 'Ditolak', cls: 'bg-red-100 text-red-800 border-red-300' }
+  };
+  var TYPE_LABEL = { Annual: 'Annual (Tahunan)', Sick: 'Sick (Sakit)', Personal: 'Personal (Alasan Penting)', Besar: 'Cuti Besar', Melahirkan: 'Cuti Melahirkan', LuarTanggungan: 'Cuti di Luar Tanggungan Negara' };
+
+  function load() {
+    try {
+      return (JSON.parse(reqJson) || []).map(function (r) {
+        if (r.status === 'pending' || r.status === 'admin_approved') r.status = 'pending_direct';
+        if (r.status === 'approved') {
+          r.status = 'pending_correspondence';
+          r.firstApprovedAt = r.firstApprovedAt || r.createdAt;
+          r.secondApprovedAt = r.secondApprovedAt || r.createdAt;
+        }
+        if (!r.firstApprover || !Object.prototype.hasOwnProperty.call(r, 'secondApprover')) {
+          var employee = EMP.filter(function (person) { return person.nip === r.nip; })[0];
+          if (employee) {
+            var route = resolveRoute(employee);
+            r.firstApprover = r.firstApprover || route.first;
+            if (!Object.prototype.hasOwnProperty.call(r, 'secondApprover')) r.secondApprover = route.second;
+          }
+        }
+        if (!r.firstApproverPosition && r.firstApprover) r.firstApproverPosition = positionForApprover(r.firstApprover);
+        if (!r.secondApproverPosition && r.secondApprover) r.secondApproverPosition = positionForApprover(r.secondApprover);
+        return r;
+      });
+    } catch (e) { return []; }
+  }
+  function save(list) {
+    if (!supabaseClient) { toast(supabaseInitError || 'Supabase tidak tersedia. Muat ulang halaman.'); return false; }
+    try {
+      var next = JSON.parse(JSON.stringify(list));
+      var prevById = {}, seen = {}, writes = 0;
+      reqCache.forEach(function (r) { prevById[r.id] = JSON.stringify(r); });
+      var changed = [];
+      var deleted = [];
+      next.forEach(function (r) {
+        seen[r.id] = true;
+        if (prevById[r.id] !== JSON.stringify(r)) {
+          changed.push({ id: r.id, data: r });
+          writes++;
+        }
+      });
+      reqCache.forEach(function (r) {
+        if (!seen[r.id]) { deleted.push(r.id); writes++; }
+      });
+      reqCache = next;
+      reqJson = JSON.stringify(next);
+      if (writes) {
+        requestWriteQueue = requestWriteQueue.then(async function () {
+          if (changed.length) {
+            var upsertResult = await supabaseClient.from('leave_requests').upsert(changed);
+            if (upsertResult.error) throw upsertResult.error;
+          }
+          if (deleted.length) {
+            var deleteResult = await supabaseClient.from('leave_requests').delete().in('id', deleted);
+            if (deleteResult.error) throw deleteResult.error;
+          }
+        }).catch(function (error) {
+          console.error('Data pengajuan gagal disimpan ke Supabase:', error);
+          toast('Data gagal disimpan ke server (' + (error.code || error.message || 'error') + ').');
+          return false;
+        });
+      }
+      return true;
+    } catch (error) {
+      console.error('Data pengajuan tidak dapat disimpan:', error);
+      toast('Data pengajuan gagal disimpan.');
+      return false;
+    }
+  }
+
+  /* ---------- Sinkronisasi Supabase (data pengajuan dipakai bersama semua akun) ---------- */
+  var reqCache = [], reqJson = '[]', reqUnsub = null, pendingRender = false;
+  var requestWriteQueue = Promise.resolve();
+  function safeRender() {
+    var a = document.activeElement;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) { pendingRender = true; return; }
+    renderAll();
+  }
+  document.addEventListener('focusout', function () {
+    if (!pendingRender) return;
+    setTimeout(function () {
+      var a = document.activeElement;
+      if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+      pendingRender = false; renderAll();
+    }, 300);
+  });
+  function startRequestsSync() {
+    if (!supabaseClient || reqUnsub) return;
+    var channel = supabaseClient.channel('leave-requests')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, function () {
+        loadRequestsFromServer();
+      })
+      .subscribe(function (status, error) {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('Sinkronisasi realtime Supabase gagal:', error || status);
+          toast('Sinkronisasi realtime gagal. Periksa konfigurasi Realtime dan RLS Supabase.');
+        }
+      });
+    reqUnsub = function () { supabaseClient.removeChannel(channel); };
+    loadRequestsFromServer();
+  }
+  async function loadRequestsFromServer() {
+    if (!supabaseClient) return;
+    try {
+      var result = await supabaseClient.from('leave_requests').select('id,data');
+      if (result.error) throw result.error;
+      reqCache = (result.data || []).map(function (row) { return row.data; })
+        .sort(function (a, b) { return (a.createdAt || 0) - (b.createdAt || 0); });
+      reqJson = JSON.stringify(reqCache);
+      safeRender();
+    } catch (error) {
+      console.error('Gagal memuat data pengajuan dari Supabase:', error);
+      toast('Gagal memuat data dari server (' + (error.code || error.message || 'error') + ').');
+    }
+  }
+  function stopRequestsSync() {
+    if (reqUnsub) { reqUnsub(); reqUnsub = null; }
+    reqCache = []; reqJson = '[]';
+  }
+
+  /* ---------- Push notification (OneSignal) ---------- */
+  var oneSignal = null, pushEnabled = false;
+  var oneSignalReady = new Promise(function (resolve, reject) {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async function (OneSignal) {
+      try {
+        await OneSignal.init({ appId: 'bde41396-134d-40e4-bb1c-d51fe967ea5a' });
+        oneSignal = OneSignal;
+        OneSignal.Notifications.addEventListener('foregroundWillDisplay', function (event) {
+          var notification = event.notification || {};
+          toast((notification.title || 'Notifikasi') + ': ' + (notification.body || ''));
+        });
+        updatePushButton();
+        resolve(OneSignal);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  });
+  oneSignalReady.catch(function (error) { console.error('OneSignal gagal diinisialisasi:', error); });
+  function pushSupported() { return !!(oneSignal && supabaseClient && 'serviceWorker' in navigator && 'Notification' in window); }
+  function updatePushButton() {
+    var b = document.getElementById('btn-push');
+    if (!b) return;
+    b.classList.toggle('hidden', !currentUser || !!testUser || !pushSupported());
+    b.textContent = pushEnabled ? '🔔 Notifikasi aktif' : '🔕 Aktifkan notifikasi';
+  }
+  function registerPush(interactive) {
+    if (!currentUser) return Promise.resolve(false);
+    if (!supabaseClient || !('serviceWorker' in navigator) || !('Notification' in window)) {
+      if (interactive) toast('Browser ini belum mendukung notifikasi push.');
+      return Promise.resolve(false);
+    }
+    if (Notification.permission === 'denied') { if (interactive) toast('Notifikasi diblokir. Izinkan lewat pengaturan situs di browser.'); return Promise.resolve(false); }
+    if (Notification.permission !== 'granted' && !interactive) return Promise.resolve(false);
+    var user = currentUser;
+    return oneSignalReady.then(function (client) {
+      var ask = Notification.permission === 'granted'
+        ? Promise.resolve()
+        : client.Notifications.requestPermission();
+      return ask.then(function () {
+        if (Notification.permission !== 'granted') {
+          if (interactive) toast('Izin notifikasi tidak diberikan.');
+          return false;
+        }
+        if (!currentUser || currentUser.uid !== user.uid) return false;
+        return client.login(user.uid).then(function () {
+          if (!currentUser || currentUser.uid !== user.uid) return false;
+          return supabaseClient.from('one_signal_users').upsert({
+            user_id: user.uid, role: user.role, nip: user.nip, name: user.name, updated_at: new Date().toISOString()
+          }).then(function (result) {
+            if (result.error) throw result.error;
+            pushEnabled = true;
+            updatePushButton();
+            if (interactive) toast('Notifikasi aktif untuk akun ini.');
+            return true;
+          });
+        });
+      });
+    }).catch(function (error) {
+      console.error('Registrasi OneSignal gagal:', error);
+      if (interactive) toast('Gagal mengaktifkan notifikasi.');
+      return false;
+    });
+  }
+  function disconnectPush() {
+    pushEnabled = false;
+    updatePushButton();
+    return oneSignalReady.then(function (client) {
+      return client.logout();
+    }).catch(function (error) {
+      console.error('Logout OneSignal gagal:', error);
+      return null;
+    });
+  }
+  document.getElementById('btn-push').addEventListener('click', function () { registerPush(true); });
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function fmtDate(d) {
+    if (!d) return '-';
+    var p = d.split('-');
+    var m = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    return p[2] + ' ' + m[parseInt(p[1], 10) - 1] + ' ' + p[0];
+  }
+  function days(s, e) {
+    return Math.round((new Date(e) - new Date(s)) / 86400000) + 1;
+  }
+  function badge(r) {
+    var s = STATUS[r.status];
+    if (!s) s = STATUS.pending_direct;
+    var label = s.label;
+    if (r.status === 'rejected' && r.rejectedBy) label = 'Ditolak oleh ' + r.rejectedBy;
+    return '<span class="inline-block whitespace-nowrap text-xs font-semibold px-2.5 py-1 rounded-full border ' + s.cls + '">' + esc(label) + '</span>';
+  }
+  function rejectedAtStage(r, stage) {
+    if (r.rejectedStage) return r.rejectedStage === stage;
+    return r.rejectedBy === (stage === 'first' ? 'Penyetuju Tahap 1' : 'Penyetuju Tahap 2');
+  }
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { t.classList.remove('show'); }, 2500);
+  }
+  function empty(icon, title, sub) {
+    return '<div class="text-center py-10 text-slate-500"><div class="text-4xl mb-2">' + icon + '</div>' +
+      '<p class="font-medium text-slate-700">' + title + '</p><p class="text-sm">' + sub + '</p></div>';
+  }
+  function statCard(label, val, color) {
+    return '<div class="bg-white rounded-xl shadow p-4 border-l-4 ' + color + '"><p class="text-xs text-slate-500">' + label +
+      '</p><p class="text-2xl font-bold">' + val + '</p></div>';
+  }
+
+  /* Generic table builder.
+     cols: header strings; rows: array of arrays of html cells. Responsive: horizontal scroll. */
+  function table(headers, rows) {
+    var h = headers.map(function (x) {
+      return '<th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">' + x + '</th>';
+    }).join('');
+    var b = rows.map(function (cells) {
+      return '<tr class="border-t border-slate-100 hover:bg-slate-50">' + cells.map(function (c) {
+        return '<td class="px-3 py-3 align-top text-sm">' + c + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    return '<div class="overflow-x-auto rounded-lg border border-slate-200"><table class="min-w-full"><thead class="bg-slate-50"><tr>' +
+      h + '</tr></thead><tbody>' + b + '</tbody></table></div>';
+  }
+  function periodCell(r) {
+    return fmtDate(r.start) + ' &ndash; ' + fmtDate(r.end) +
+      '<div class="text-xs text-slate-500">' + days(r.start, r.end) + ' hari</div>';
+  }
+  function reasonCell(r) {
+    return '<div class="max-w-xs break-words">' + esc(r.reason) + '</div>';
+  }
+  function btn(action, id, text, kind) {
+    var c = kind === 'ok' ? 'bg-green-600 hover:bg-green-700 text-white' : kind === 'ex' ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300' : 'bg-red-50 hover:bg-red-100 text-red-700 border border-red-200';
+    return '<button data-action="' + action + '" data-id="' + id + '" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition ' + c + '">' + text + '</button>';
+  }
+
+  /* ---------- Renderers ---------- */
+  var adminTab = 'pending';
+  function renderAdmin() {
+    var all = load().sort(function (a, b) { return b.createdAt - a.createdAt; });
+    var user = activeUser();
+    document.getElementById('admin-person-name').textContent = user && user.role === 'admin' ? '— ' + user.name : '';
+    renderAdmin2ApproverManagement();
+    var count = function (s) { return all.filter(function (r) { return r.status === s; }).length; };
+    document.getElementById('admin-stats').innerHTML =
+      statCard('Total Pengajuan', all.length, 'border-slate-500') +
+      statCard('Siap Diterbitkan', count('pending_admin_issue'), 'border-purple-500') +
+      statCard('Surat Diterbitkan', count('issued'), 'border-green-500') +
+      statCard('Ditolak', count('rejected'), 'border-red-500');
+    var list = all.filter(function (r) {
+      if (adminTab === 'incoming') return r.status === 'pending_direct';
+      if (adminTab === 'pending') return r.status === 'pending_admin_issue';
+      if (adminTab === 'approved') return r.status === 'issued';
+      return r.status === 'rejected';
+    });
+    document.querySelectorAll('.admin-tab').forEach(function (b) {
+      var on = b.dataset.tab === adminTab;
+      b.className = 'admin-tab px-4 py-2 rounded-lg text-sm font-semibold border transition ' +
+        (on ? 'bg-blue-700 text-white border-blue-700' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50');
+    });
+    document.getElementById('btn-exp-approved').classList.toggle('hidden', adminTab !== 'approved');
+    document.querySelector('[data-tab="incoming"]').classList.toggle('hidden', !isAdmin1());
+    document.getElementById('admin-title').textContent = { pending: 'Pengajuan Siap Diterbitkan', approved: 'Surat yang Sudah Diterbitkan', rejected: 'Pengajuan yang Ditolak' }[adminTab];
+    if (adminTab === 'incoming') document.getElementById('admin-title').textContent = 'Pengajuan Baru Menunggu Penyetuju Tahap 1';
+    var el = document.getElementById('admin-table');
+    if (!list.length) {
+      el.innerHTML = adminTab === 'incoming' ? empty('📥', 'Tidak ada pengajuan baru', 'Pengajuan baru yang belum diproses tahap 1 akan tampil di sini.')
+        : adminTab === 'pending' ? empty('📂', 'Belum ada surat untuk diterbitkan', 'Pengajuan yang sudah mendapat nomor surat dari Persuratan akan muncul di sini.')
+        : adminTab === 'approved' ? empty('📁', 'Belum ada surat diterbitkan', 'Surat yang telah diterbitkan Admin akan tercatat di sini.')
+        : empty('🚫', 'Belum ada pengajuan yang ditolak', 'Pengajuan yang ditolak pada salah satu tahap akan tercatat di sini.');
+      return;
+    }
+    el.innerHTML = table(['Karyawan', 'Jenis', 'Periode', 'Alasan', 'Status', 'Aksi'], list.map(function (r) {
+      var act = r.status === 'pending_admin_issue'
+        ? btn('admin-issue', r.id, 'Terbitkan Surat', 'ok')
+        : '<span class="text-xs text-slate-400">Sudah diproses</span>';
+      if (adminTab === 'incoming' && currentUser && currentUser.role === 'admin' && currentUser.nip === ADMINS[0].nip) {
+        act = btn('admin-edit-request', r.id, 'Edit Pengajuan', 'ok');
+      }
+      act += '<div class="mt-2">' + btn('export', r.id, '⬇ Formulir Excel', 'ex') + '</div>';
+      return ['<span class="font-medium">' + esc(r.name) + '</span><div class="text-xs text-slate-500">Diajukan ' + new Date(r.createdAt).toLocaleDateString('id-ID') + '</div>',
+        esc(TYPE_LABEL[r.type] || r.type), periodCell(r), reasonCell(r),
+        badge(r) + (r.letterNumber ? '<div class="text-xs mt-1">No. ' + esc(r.letterNumber) + '</div>' : ''), act];
+    }));
+  }
+
+  function renderApprover() {
+    var user = activeUser();
+    var name = user && user.role === 'approver' ? user.name : '';
+    var all = load().sort(function (a, b) { return b.createdAt - a.createdAt; });
+    var firstPending = all.filter(function (r) { return r.status === 'pending_direct' && r.firstApprover === name; });
+    var secondPending = all.filter(function (r) { return r.status === 'pending_next' && r.secondApprover === name; });
+    var firstApproved = all.filter(function (r) { return r.firstApprover === name && !!r.firstApprovedAt; }).length;
+    var secondApproved = all.filter(function (r) { return r.secondApprover === name && !!r.secondApprovedAt; }).length;
+    var rejected = all.filter(function (r) { return r.rejectedBy === name; }).length;
+    document.getElementById('approver-person-name').textContent = name ? '— ' + name : '';
+    document.getElementById('approver-stats').innerHTML =
+      statCard('Menunggu Keputusan', firstPending.length + secondPending.length, 'border-blue-500') +
+      statCard('Disetujui Tahap 1', firstApproved, 'border-green-500') +
+      statCard('Disetujui Tahap 2', secondApproved, 'border-indigo-500') +
+      statCard('Ditolak', rejected, 'border-red-500');
+
+    function renderQueue(targetId, requests, stage) {
+      var stageLabel = stage === 'first' ? 'Tahap 1' : 'Tahap 2';
+      document.getElementById(targetId).innerHTML = requests.length ? table(
+        ['Karyawan / Unit', 'Jenis', 'Periode', 'Alasan', 'Status', 'Aksi'],
+        requests.map(function (r) {
+          return ['<span class="font-medium">' + esc(r.name) + '</span><div class="text-xs text-slate-500">' + esc(r.unit || '-') + '</div>',
+            esc(TYPE_LABEL[r.type] || r.type), periodCell(r), reasonCell(r), badge(r),
+            '<div class="flex flex-wrap gap-2">' + btn(stage + '-approve', r.id, 'Setujui ' + stageLabel, 'ok') +
+              btn(stage + '-reject', r.id, 'Tolak', 'no') + btn('export', r.id, '⬇ Excel', 'ex') + '</div>'];
+        })
+      ) : empty('✅', 'Tidak ada pengajuan menunggu', 'Pengajuan yang ditujukan kepada ' + esc(name || 'Anda') + ' akan tampil di sini.');
+    }
+    renderQueue('approver-first-pending', firstPending, 'first');
+    renderQueue('approver-second-pending', secondPending, 'second');
+
+    var history = all.filter(function (r) {
+      return r.firstApprovedBy === name || r.secondApprovedBy === name || r.rejectedBy === name ||
+        (r.firstApprover === name && r.firstApprovedAt && !r.firstApprovedBy) ||
+        (r.secondApprover === name && r.secondApprovedAt && !r.secondApprovedBy);
+    });
+    document.getElementById('approver-history').innerHTML = history.length ? table(
+      ['Tahap', 'Karyawan', 'Jenis', 'Periode', 'Status', 'Keputusan', 'Formulir'],
+      history.map(function (r) {
+        var stage = r.rejectedStage === 'second' || r.secondApprovedBy === name ? 'Tahap 2' : 'Tahap 1';
+        var decidedAt = stage === 'Tahap 2' ? r.secondApprovedAt : r.firstApprovedAt;
+        return [stage, '<span class="font-medium">' + esc(r.name) + '</span>', esc(TYPE_LABEL[r.type] || r.type),
+          periodCell(r), badge(r), decidedAt ? new Date(decidedAt).toLocaleDateString('id-ID') : '-', btn('export', r.id, '⬇ Excel', 'ex')];
+      })
+    ) : empty('🗂️', 'Belum ada riwayat keputusan', 'Keputusan yang Anda ambil akan tercatat di sini.');
+  }
+
+  function suggestedLetterNumber(request, all) {
+    var year = new Date(request.createdAt).getFullYear();
+    var siblings = all.filter(function (r) { return new Date(r.createdAt).getFullYear() === year; })
+      .sort(function (a, b) { return a.createdAt - b.createdAt; });
+    var seq = siblings.indexOf(request) + 1;
+    return 'CUTI/' + year + '/' + String(seq).padStart(4, '0');
+  }
+
+  var letterNumberRequestId = null;
+  var letterNumberModal = document.getElementById('letter-number-modal');
+  var letterNumberValue = document.getElementById('letter-number-value');
+  function closeLetterNumberModal() {
+    letterNumberModal.classList.add('hidden');
+    letterNumberModal.classList.remove('flex');
+    letterNumberRequestId = null;
+  }
+  function openLetterNumberModal(id) {
+    var user = activeUser();
+    if (!user || user.role !== 'correspondence') {
+      toast('Hanya petugas Persuratan yang dapat menerbitkan nomor surat.');
+      return;
+    }
+    var all = load();
+    var request = all.filter(function (r) { return r.id === id && r.status === 'pending_correspondence'; })[0];
+    if (!request) { toast('Pengajuan tidak ditemukan atau sudah diproses.'); renderAll(); return; }
+    letterNumberRequestId = id;
+    document.getElementById('letter-number-requester').textContent = request.name + ' · ' + (request.unit || 'Unit kerja tidak tersedia');
+    letterNumberValue.value = suggestedLetterNumber(request, all);
+    document.getElementById('letter-number-error').classList.add('hidden');
+    letterNumberModal.classList.remove('hidden');
+    letterNumberModal.classList.add('flex');
+    letterNumberValue.focus();
+    letterNumberValue.select();
+  }
+  document.getElementById('letter-number-cancel').addEventListener('click', closeLetterNumberModal);
+  letterNumberModal.addEventListener('click', function (e) {
+    if (e.target === letterNumberModal) closeLetterNumberModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !letterNumberModal.classList.contains('hidden')) closeLetterNumberModal();
+  });
+  document.getElementById('letter-number-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var user = activeUser();
+    if (!user || user.role !== 'correspondence') {
+      toast('Hanya petugas Persuratan yang dapat menerbitkan nomor surat.');
+      closeLetterNumberModal();
+      return;
+    }
+    var id = letterNumberRequestId;
+    var number = letterNumberValue.value.trim();
+    var error = document.getElementById('letter-number-error');
+    if (!id || !number) {
+      error.textContent = 'Nomor surat wajib diisi.';
+      error.classList.remove('hidden');
+      return;
+    }
+    if (load().some(function (r) { return r.id !== id && r.letterNumber === number; })) {
+      error.textContent = 'Nomor surat tersebut sudah digunakan. Masukkan nomor yang berbeda.';
+      error.classList.remove('hidden');
+      return;
+    }
+    var issued = update(id, 'pending_correspondence', function (r) {
+      r.letterNumber = number;
+      r.letterNumberIssuedAt = Date.now();
+      r.correspondenceOfficer = user && user.role === 'correspondence' ? user.name : 'Persuratan';
+      r.status = 'pending_admin_issue';
+    }, 'Nomor surat diterbitkan. Nomor ini otomatis tercantum di formulir cuti.');
+    if (issued) {
+      closeLetterNumberModal();
+      showView('admin');
+    }
+  });
+
+  function renderCorrespondence() {
+    var all = load().sort(function (a, b) { return b.createdAt - a.createdAt; });
+    var pend = all.filter(function (r) { return r.status === 'pending_correspondence'; });
+    var numbered = all.filter(function (r) { return r.letterNumber; });
+    document.getElementById('correspondence-stats').innerHTML =
+      statCard('Menunggu Nomor', pend.length, 'border-indigo-500') +
+      statCard('Nomor Terbit', numbered.length, 'border-green-500') +
+      statCard('Menunggu Admin', all.filter(function (r) { return r.status === 'pending_admin_issue'; }).length, 'border-purple-500');
+    document.getElementById('correspondence-pending').innerHTML = pend.length ? table(['Karyawan', 'Jenis', 'Periode', 'Status', 'Aksi'], pend.map(function (r) {
+      return ['<span class="font-medium">' + esc(r.name) + '</span>', esc(TYPE_LABEL[r.type] || r.type), periodCell(r), badge(r),
+        btn('correspondence-issue-number', r.id, 'Terbitkan Nomor', 'ok')];
+    })) : empty('📨', 'Tidak ada pengajuan menunggu nomor', 'Pengajuan yang sudah melewati seluruh tahap persetujuan akan tampil di sini.');
+    document.getElementById('correspondence-history').innerHTML = numbered.length ? table(['Karyawan', 'Jenis', 'Nomor Surat', 'Status', 'Tanggal Terbit', 'Surat'], numbered.map(function (r) {
+      return ['<span class="font-medium">' + esc(r.name) + '</span>', esc(TYPE_LABEL[r.type] || r.type),
+        '<span class="font-semibold">' + esc(r.letterNumber) + '</span>', badge(r),
+        r.letterNumberIssuedAt ? new Date(r.letterNumberIssuedAt).toLocaleDateString('id-ID') : '-',
+        btn('export', r.id, '⬇ Unduh Formulir', 'ex')];
+    })) : empty('📭', 'Belum ada nomor surat terbit', 'Nomor yang diterbitkan Persuratan akan tercatat di sini.');
+  }
+
+  function renderAll() {
+    renderAdmin();
+    renderApprover();
+    renderCorrespondence();
+    renderEmployeeProfile();
+    renderEmployeeHistory();
+  }
+
+  /* ---------- Navigation ---------- */
+  function showView(v) {
+    var user = activeUser();
+    if (v !== 'home' && v !== 'login' && !user) v = 'login';
+    var roleView = user && { employee: 'employee', approver: 'approver', correspondence: 'correspondence', admin: 'admin' }[user.role];
+    var allViews = ['employee', 'approver', 'correspondence', 'admin'];
+    if (isAdmin2()) {
+      if (v !== 'home' && v !== 'login' && allViews.indexOf(v) === -1) v = roleView;
+    } else if (roleView && v !== 'home' && v !== 'login' && v !== roleView) v = roleView;
+    document.querySelectorAll('.view').forEach(function (s) { s.classList.toggle('active', s.id === 'view-' + v); });
+    document.querySelectorAll('.nav-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.view === v);
+      b.classList.toggle('hidden', !currentUser || (!isAdmin2() && b.dataset.view !== roleView));
+    });
+    document.querySelectorAll('.nav-btn').forEach(function (b) {
+      if (b.dataset.view === 'approver') b.textContent = user && user.role === 'approver' ? user.name : 'Halaman Penyetuju';
+      if (isAdmin2() && b.dataset.view === 'employee') b.textContent = 'Profil & Pengajuan';
+      if (b.dataset.view === 'admin') b.textContent = user && user.role === 'admin' ? user.name : 'Admin';
+    });
+    document.getElementById('main-nav').classList.toggle('hidden', !currentUser);
+    document.getElementById('btn-stop-test').classList.toggle('hidden', !testUser);
+    var testBanner = document.getElementById('test-mode-banner');
+    testBanner.classList.toggle('hidden', !testUser);
+    testBanner.textContent = testUser
+      ? 'MODE UJI LIVE sebagai ' + testUser.roleLabel + ' — ' + testUser.name + ' (' + testUser.nip + '). Perubahan tersimpan pada data bersama. Akhiri mode uji untuk kembali ke akun Admin 2.'
+      : '';
+    document.getElementById('data-tools').style.display = isAdmin1() ? '' : 'none';
+    if (v === 'employee') empShow('menu');
+    renderAll();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  document.querySelectorAll('.nav-btn, .go-btn').forEach(function (b) {
+    b.addEventListener('click', function () { showView(b.dataset.view); });
+  });
+
+  /* ---------- Form ---------- */
+  var form = document.getElementById('leave-form');
+  var errEl = document.getElementById('form-error');
+  function showErr(m) { errEl.textContent = m; errEl.classList.remove('hidden'); }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    errEl.classList.add('hidden');
+    var user = activeUser();
+    if (!user || user.role !== 'employee') {
+      showErr('Silakan masuk menggunakan akun Pegawai sebelum mengajukan cuti.');
+      showView('login');
+      return;
+    }
+    var name = document.getElementById('f-name').value.trim();
+    var type = document.getElementById('f-type').value;
+    var start = document.getElementById('f-start').value;
+    var end = document.getElementById('f-end').value;
+    var reason = document.getElementById('f-reason').value.trim();
+    var v = function (id) { return document.getElementById(id).value.trim(); };
+    if (!name || !start || !end || !reason) { showErr('Nama, tanggal, dan alasan wajib diisi.'); return; }
+    if (!inked) { showErr('Tanda tangan pemohon wajib diisi.'); return; }
+    if (end < start) { showErr('Tanggal selesai tidak boleh sebelum tanggal mulai.'); return; }
+    var list = load();
+    var route = resolveRoute(user.profile);
+    list.push({
+      id: 'r' + Date.now() + Math.floor(Math.random() * 1000),
+      name: user.name, type: type, start: start, end: end, reason: reason,
+      nip: user.nip, masa: masaKerja(user.nip), jabatan: user.profile.j, alamat: v('f-alamat'), telp: v('f-telp'),
+      atasan: route.first, atasanNip: v('f-atasan-nip'), sig: cv.toDataURL('image/png'),
+      unit: user.profile.unit, unitCode: user.profile.unitCode,
+      firstApprover: route.first, firstApproverPosition: route.firstPosition,
+      secondApprover: route.second, secondApproverPosition: route.secondPosition,
+      status: 'pending_direct', createdAt: Date.now(), requestedBy: user.nip
+    });
+    if (!save(list)) return;
+    form.reset(); clearSig();
+    renderAll();
+    toast('Pengajuan terkirim kepada ' + (route.first || 'penyetuju tahap 1') + '.');
+    showView('employee');
+    empShow('history');
+  });
+
+/* ---------- Data pegawai & autofill ---------- */
+  var HEAD = {
+    K: ['Dr. Capt. MUGEN S. SARTOTO, M.Sc.', '19731121 200212 1 001'], B: ['NI WIDANINGSIH, S.E', '19730730 199803 2 001'],
+    H: ['HENDAVINY KARTOMO, SE, M.Kom', '19730731 199302 2 001'], L: ['LUSI ANDAYANI, S.T., M.MTr', '19740601 200212 2 001'],
+    A: ['R. ACHMAD ANDRIAZ PRAMUDYA W, ST, M.Si', '19720918 199903 1 003'], R: ['ROHANI ALMUTMAINAH, S.SI, M.M.Tr', '19770801 200502 2 001'],
+    P: ['PADLANI, ST., M.MTr', '19680915 199803 1 002'], M: ['Capt. MARDIANTIKA SANGGUR, M.M.Tr.', '19700323 200212 2 002'],
+    S: ['JUNI TARULIASI HUTAPEA, S.Psi, M.MTr', '19750626 199703 2 001'], E: ['EVRINA HERMAWATI, S.E., M.B.A.', '19790111 200212 2 001'],
+    T: ['TAUFIK CHAHYADI, SH, M.H', '19820906 200604 1 005'], I: ['ILMIYAWAN SYAF AGUS, S.T, M.MTr', '19790817 199903 1 002']
+  };
+  var UP = { S: 'B', E: 'B', T: 'B', I: 'K', P: 'H', M: 'H', R: 'L', A: 'L', H: 'K', L: 'K', B: 'K' };
+  var JC = { a: 'Penelaah Teknis Kebijakan', b: 'Petugas Telkompel', c: 'Penguji Peralatan Keselamatan Pelayaran', d: 'Teknisi Menara Suar (TMS)',
+    e: 'Pengawas Keselamatan Pelayaran Penyelia', f: 'Pengawas Sarana dan Prasarana Kenavigasian', g: 'Penilik Kenavigasian',
+    h: 'Surveyor Kenavigasian', i: 'Operator VTS', j: 'Penjaga Menara Suar' };
+  /* format baris: NAMA;NIP;kode jabatan (atau teks jabatan);kode atasan (opsional) */
+  var RAW = [
+    ['B', `Dr. Capt. MUGEN S. SARTOTO, M.Sc.;19731121 200212 1 001;Kepala Distrik Navigasi Tipe B Tanjung Priok;K
+NI WIDANINGSIH, S.E;19730730 199803 2 001;Kepala Bagian Keuangan dan Umum;B
+HENDAVINY KARTOMO, SE, M.Kom;19730731 199302 2 001;Kepala Bidang Layanan Alur Pelayaran dan Telkompel;H
+LUSI ANDAYANI, S.T., M.MTr;19740601 200212 2 001;Kepala Bidang Layanan SBNP dan Armada;L
+R. ACHMAD ANDRIAZ PRAMUDYA W, ST, M.Si;19720918 199903 1 003;Kepala Seksi Layanan Armada;A
+ROHANI ALMUTMAINAH, S.SI, M.M.Tr;19770801 200502 2 001;Kepala Seksi Layanan Sarana Bantu Navigasi Pelayaran;R
+PADLANI, ST., M.MTr;19680915 199803 1 002;Kepala Seksi Layanan Alur Pelayaran;P
+Capt. MARDIANTIKA SANGGUR, M.M.Tr.;19700323 200212 2 002;Kepala Seksi Layanan Telkompel;M
+JUNI TARULIASI HUTAPEA, S.Psi, M.MTr;19750626 199703 2 001;Kepala Sub Bagian Sumber Daya Manusia dan Umum;S
+EVRINA HERMAWATI, S.E., M.B.A.;19790111 200212 2 001;Kepala Sub Bagian Perencanaan dan Keuangan;E`],
+    ['S', `INTAN MULIA, SE;19740118 199303 2 001;a
+EKO TUGAS TRIONO, SE;19700707 199303 1 001;a
+SUDIBYO, SE;19770512 200604 1 001;a
+PARIYADI, SH;19740705 199703 1 002;a
+ADIH;19691107 199303 1 003;a
+EKA MARTINI, S.E;19820327 200502 2 002;a
+MUHAMAD SOBRI, S.AP;19850723 200604 1 002;a
+EDHART HARRY EDO SAMAD, S.Sos.;19780706 200312 1 002;a
+RAHMATIA, SE;19870526 201012 2 007;a
+HERDIAN, S. Kom;19860527 200604 1 003;a
+ADITIA MAHESA, S.I.P.;19880618 201402 1 005;a
+SLAMET RIYADI;19770214 199803 1 001;a
+NANDANG SUHENDAR;19880414 201012 1 006;a
+MIKE CARLY PERMATASARI;19901118 201012 2 001;a
+HERMANSYAH;19800204 201503 1 001;a
+MUHAMMAD IQBAL NAWAFI;19900226 201507 1 002;a
+SITI MAWADDAH;19940528 201402 2 001;a
+AHMAD HAFIZ;19940628 201503 1 001;a
+MOHAMMAD HASBI AKBAR, S.E;19870313 201801 1 002;a
+SIGIT SANTOSO PUTRA;19950516 201902 1 001;a
+DEFI MARLINA, S.Tr.Pel;20001212 202310 2 001;a`],
+    ['T', `TAUFIK CHAHYADI, SH, M.H;19820906 200604 1 005;Kepala Unit Pengembangan Usaha dan Kerja Sama;T
+DARMAWAN, S.AP;19811119 200604 1 002;a
+FITARA EMBUN RAMADHAN, S.I.Kom;19940303 201503 2 001;a
+NARDIYANTO, S.E;19780526 200604 1 001;c`],
+    ['E', `SITI HAERIYAH, S.Mn;19720126 199303 2 001;a
+LINY RUNTUWENE, SE;19730208 199303 2 001;a
+BACHRUDDIN, S.AP;19700724 199009 1 001;a
+KHOIRUL BAZAR, S. AP.;19720611 199703 1 004;a
+AJI AGUNG PERMADI, S.AP.;19880716 200712 1 001;a
+PUTUT PUDJANTORO, A.Md;19711011 199203 1 002;a
+PUTRI PRADNYA PARAMITA, S.AP;19870526 200912 2 002;a
+ROMI FAJRI ALQADRI, S.AP;19860909 200712 1 001;a
+HENDRAWAN, S.A.P.;19940329 201503 1 001;a
+MUHAMMAD FAIZAL FEBRIANTO;19860225 200812 1 001;a
+KUKUH ANGGORO, S.E;19950919 201801 1 002;a`],
+    ['I', `ILMIYAWAN SYAF AGUS, S.T, M.MTr;19790817 199903 1 002;Kepala SPI
+MOHAMAD YUSUF, S.AP;19781027 200912 1 001;a`],
+    ['P', `FITRIYANTI, S.PEL.;19840610 200812 2 002;h
+ANDI ARYANDI, S.IP;19750615 200212 1 005;g
+RONNY TANJUNG, S.E;19730209 200212 1001;f
+MULYANINGSIH, SE;19740330 199803 2 001;f
+ANNY FEBRIANINGSIH, SE;19720222 199303 2 002;g
+PARSAORAN AGUNG NUGRAHA, S.T;19880516 201402 1 005;g
+OKTAVIANI;19851013 200502 2 001;f
+HAYU MOHAMAD FATLIH, A.Md;19801126 200712 1 002;h
+HERMANTO SORMIN;19800722 200712 1 001;h
+BAYU KURNIAWAN;19850302 200712 1 002;h
+DEVI MITANINGRUM, S.Tr.Pel;20010518 202310 2 001;h
+DEWANTARI PANGESTIKA, S.Tr.Pel;19990809 202412 2 001;h`],
+    ['M', `ISRON, ST, MM;19890705 201403 1 001;g
+PRITA LESTARI, SE;19851216 200502 2 001;g
+FEBYANTI KUSUMA DEWI SOFYAN;19820223 200912 2 001;f
+SUPRAYITNO, A.Md;19741214 200604 1 001;g
+HIJRAH KHAQO, S.Kom;19870814 201402 1 006;Manager VTS
+TITIS EKA SUCIATY, S.SI;19910314 200912 2 001;i
+RUSDIYANTO;19691225 199703 1 001;b
+RENDY TRIO PRIHAMSYAH, S.AP;19900621 201012 1 003;i
+GINANJAR WARYANA, AMD;19861204 201801 1 002;Teknisi VTS
+VALCO JAMPI PARADONGAN HUTAURUK;19830520 201801 1 001;i
+DHANI RACHMAD JULIAN, A.Md.T.;19990725 202112 1 001;Teknisi VTS
+NUR AZIS;19790526 200604 1 002;b
+NABILLA ANDIKA PUTRI, S.Tr.Pel;20020318 202412 2 002;i
+RAFLY ADI YAHYA, A.Md.T;20020517 202412 1 001;b
+YAN BINTANG PRASETYO, A.Md.T;20020109 202412 1 001;b
+WAHYU HIDAYAT;19790505 200604 1 001;b
+RINTO ARIYANTO;19820406 200604 1 002;b
+TEGUH SUYATNO;19830312 200604 1 001;b
+RISKA PUTRI JAYANTI;19890112 200812 2 001;b
+RADEN MOHAMAD BARDAN GUNAWAN (HERI);19791111 201503 1 003;b
+ARYADI;19681001 198903 1 001;e
+SUMARNI, S. PEL;19750116 199803 2 001;e
+ROMASI LUMBANTORUAN, S.SOS;19790916 199903 2 001;b
+MUHANTO ADI RACHMAN;19710519 199103 1 001;e
+MARNI DWI YUDITA USPESSY, SE;19820926 200604 2 001;b
+HASUDUNGAN SIMAMORA;19721114 199303 1 003;e
+DIAN NURCHOLIDA HANAFIA, S.AP;19860214 200502 2 001;b
+RIANA YULSISCA SORONTO, SH;19760710 201012 2 002;b
+SUYATIK;19760320 200712 2 001;b
+NA DEWI IDHA HERYANI;19870805 200812 2 003;b
+SUHARNI;19800628 200812 2 001;b
+ACHMAD FAUZI;19870611 200712 1 001;b
+MUHAMMAD DARSONI;19711009 199103 1 001;e
+IBNU PRAKOSO AJI;19890806 200812 1 001;b
+ANISA DHABITAH MAULIDYA, A.Md.T;20010607 202412 2 001;i
+MUHAMMAD HARIS RENDIANSYAH, A.Md.T;20020629 202412 1 001;i
+DANANG ANGGRIH SETIAWAN, A.Md;19950305 202203 1 008;b
+ADI PURNOMO, A.Md;19971222 202203 1 005;b
+DWIKI INDRA PANGESTU, A.Md.Tra;19980104 202203 1 011;b
+PUTRI NIA ADELIA, A.Md.Tra;20000216 202210 2 001;b
+FAJAR ROSANDI, A.Md;20000401 202203 1 005;b
+DEA SAFUTRI ARYANI, A.Md.Tra;20000828 202210 2 001;b
+DAUD WIRANTO PURBA, A.Md.Tra;20011029 202210 1 002;b
+RIGEL NAUFAL AKRAM WICAKSANA, A.Md.Tra;20011107 202210 1 002;b
+WITNES WILY, A.Md.T;20020909 202412 1 002;i
+SUDIMAN;19701106 199103 1 001;e
+RAMSI NUKUHALY;19720103 199312 2 001;e
+NUR KHAYATI;19750415 199903 2 001;e
+ANANDA FIRSTA TEA RELEVANIA PURNAMA, S.Kom, M. T;19920927 201402 2 001;Manager VTS
+SUYADI;19750811 200812 1 002;b
+SUHADA;19780716 199903 1 003;e
+ELEN GUSFITA, SE;19810408 200812 2 002;i
+NADYA TRIS ANGGRAENI, A.MD;19850821 200812 2 002;i
+SULIASYONO, SE;19890807 201801 1 001;i
+YUSNITA;19851225 200909 2 001;b
+YOANNA VIRGIN LENZ;19951007 201503 2 001;b
+SUPRIADI;19790815 200212 1 001;b
+MUJIB ROHMAN FADHOLI;19741125 199703 1 001;b
+SOBARI;19790128 200604 1 001;Pengawas Keselamatan Pelayaran Pelaksana Lanjutan
+SUHERMANTO ERLAMBANG;19780907 201012 1 002;b
+NGALIMAN, SE;19750710 199703 1 002;e
+ELIN ZANERI;19700929 199103 2 002;e
+ZUBAIR NURSALIM;19860204 200812 1 001;b`],
+    ['R', `FEBBY SUHADI;19770225 199803 1 003;f
+RADEN HUNDRY NUGROHO, S.M;19761125 199803 1 001;g
+AUGUST MUVREDI SYAFRI;19810806 200502 1 001;g
+GUNAWAN BAGUS PANGIMPUN;19891210 200912 1 001;j
+M HAIKAL FADHLURRAHMAN, A.Md.T;20010606 202310 1 002;f
+AHMAD ROMDAN;19681218 199103 1 001;d
+MAD SOLEH;19690702 199011 1 001;d
+SUNDOYO EDI;19691215 199103 1 003;d
+ZAINAL ARIFIN;19690129 199012 1 001;d
+BAMBANG SETIAWARNO;19700307 199112 1 001;d
+ADANG KUSNADI;19701221 199103 1 003;d
+ERIYADI;19850618 200604 1 001;d
+SUKARI;19760601 200604 1 001;d
+WAHYU SULISTYO;19801121 200604 1 001;d
+JONO;19801225 200604 1 001;d
+SLAMET;19840309 200604 1 001;d
+KUSTO ROHADI;19850116 200604 1 001;d
+DODY ROSADY;19830514 200604 1 001;d
+RUDI HARTONO;19760825 200604 1 001;d
+JULIYONO;19740701 200604 1 001;d
+YOYOK SUGIANTO;19830329 200712 1 002;d
+GANGSAR TRI HANDOYO;19870612 200712 1 001;d
+ADHITYA NUGROHO;19820122 200604 1 002;d
+MUHAMMAD RADIFAN;19960814 202505 1 002;j
+ALPAN ROBBY ISANI;20030614 202505 1 001;j
+ALKNA BAGAS FACHREZY;20031229 202505 1 001;j
+KURNIA SURYA UTAMA;20040512 202505 1 001;j
+FAISAL FAROSA;20050529 202505 1 001;j`],
+    ['A', `YAN YAN KLISTIAN, S. AB;19730331 199803 1 001;f
+AGUS SUPRIYADI, SE, MH;19700902 199011 1 001;g
+SELAMAT ANAKOTTA, A.Md;19730912 199803 1 002;f
+BACHTIAR ARIFIN;19800522 200604 1 003;f
+HARJITO, S.Sos;19800830 200604 1 001;f
+CHANDA JUNIARIO, ST;19880603 200912 1 001;g
+LISCA NOPRIANTI, S.Sos;19891128 201801 2 001;g
+RUSDIANTO KALA LENDE, S.Tr.Pel;20011112 202412 1 001;c
+SATRIA ARIF PERMANA, A.Md.T;20010224 202412 1 001;f
+SINGGIH PURWANTO, A.Md;19750409 200604 1 001;Kepala Kamar Mesin Kapal Kelas 1
+JAMMY OKTAVIANUS, S.E;19811022 200712 1 001;Nakhoda Kapal Kelas 1
+ZULFET;19690301 199303 1 001;Juru Minyak Kapal Kelas 1
+ISWANTO;19700307 199310 1 001;Mandor Kamar Mesin Kapal Kelas 1
+NURCHOLIS;19700415 199303 1 001;Masinis III Kapal Kelas 1
+ARBIN ADI BUNGA SIMBOLON;19851125 200502 1 001;Juru Mudi Kapal Kelas 1
+ADENG ROJUDIN;19810826 200502 1 001;Mualim III Kapal Kelas 1
+YUNI SURURIYAH RATNA FAHMI, SE;19770624 200912 2 001;Kerani Kapal Kelas 1
+MOHAN MUHAMMAD;19781128 200604 1 001;Serang Kapal Kelas 1
+DANIEL MAQHFIRAH. S, S.E.;19910422 201801 1 001;Masinis I Kapal Kelas 1
+ARIF ADHI PRAMANA MULYA DINATA, S.H;19970531 201801 1 003;Mualim II Kapal Kelas 1
+IKHSAN SLAMET RIADI, A.Md.T;20010617 202412 1 001;Masinis II Kapal Kelas 1
+AGE SETIA BUDI, S.PEL;19750224 200312 1 002;Mualim I Kapal Kelas 1
+DEDE ZAENAL ARIPIN, A.Md;19770615 200604 1 001;Nakhoda Kapal Kelas 1
+MISWANTO;19770922 199903 1 001;Kerani Kapal Kelas 1
+NASWANDI;19700526 199303 1 001;Mualim II Kapal Kelas 1
+SUGITO;19721217 199303 1 001;Serang Kapal Kelas 1
+AGUS PURWANTO;19740414 199803 1 002;Jenang Kapal Kelas 1
+AKHMAD SUBKI, SE;19741226 200912 1 003;Kepala Kamar Mesin Kapal Kelas 1
+MUSTAKIM;19820904 200502 1 001;Mandor Mesin Kapal Kelas 1
+MALAN;19751108 200604 1 001;Mualim III Kapal Kelas 1
+PANJI PERSADA NUSWANTORO;19891020 200712 1 001;Juru Mudi Kapal Kelas 1
+DODY ARIEF ISMANTO;19770607 200812 1 001;Masinis III Kapal Kelas 1
+TRI HARDIYANTO;19860602 200812 1 002;Masinis II Kapal Kelas 1
+AZIS MUDHOFAR;19810219 200502 1 001;Juru Mudi Kapal Kelas 1
+AWAL ALIFIAN, A.Md.T;20020916 202310 1 002;Masinis I Kapal Kelas 1
+LEONARDHO SONNY PARSAORAN, A.Md;19801103 200812 1 001;Nakhoda Kapal Kelas III
+EKO SETIADI;19690928 199303 1 001;Masinis II Kapal Kelas III
+ABDUL GANI;19690104 199303 1 001;Kepala Kamar Mesin Kapal Kelas III
+HERI SETIAWAN;19700808 199309 1 001;Mualim I Kapal Kelas III
+RIAWAN TRI SULISTYO;19861110 200812 1 001;Mualim II Kapal Kelas III
+BAMBANG HARYONO;19770923 199803 1 001;Juru Mudi Kapal Kelas III
+SESWANTO;19760315 200812 1 001;Masinis I Kapal Kelas III
+ROJIKI;19701021 199303 1 001;Masinis I Kapal Kelas IV
+LUKMAN SAMIJAN;19740526 199310 1 001;Kepala Kamar Mesin Kapal Kelas IV
+TARNO;19710813 199103 1 002;Mualim I Kapal Kelas IV
+RONNY SURYADI, S.T.;19760718 200604 1 001;c
+HAIDIR, SE;19750904 199703 1 001;c
+SUPARNO;19690715 199103 1 001;c
+GOKME PAULUS HAMONANGAN;19690831 199103 1 002;c
+PRAYOGI;19740514 199803 1 003;Pengawas Keselamatan Pelayaran Pelaksana Lanjutan
+DADANG ARDIYANTO, ST;19801122 200604 1 001;c
+JOKO SANTOSO;19770629 199803 1 001;c
+IMAN SUPRIATNO, S.E.;19740825 200712 1 001;c
+MARDIANTO;19741227 200712 1 001;c
+FERDI AGUSTIANSYAH;19870822 200712 1 001;c
+WINDU SASONGKO;19770729 199803 1 003;c
+AGUS PRISUHARTONO;19690818 199103 1 003;c
+BERNARD;19850313 201503 1 002;c
+SUTARMAN;19920606 201801 1 002;c`],
+    ['S', `DANIEL IRFAN;19871108 202521 1 018;Pengadministrasi Kehumasan
+CHINTYA PUTRI ARTHA;19911018 202521 2 039;Pengadministrasi Perkantoran
+OKTARIA NINDYA CHANDRA;19951012 202521 2 027;Pengadministrasi Perkantoran
+RIDWAN SALAWI;19871203 202521 1 023;Pengadministrasi Umum
+WINI LESTARI;19970128 202521 2 018;Pengadministrasi Kepegawaian
+HARTONO;19791228 202521 1 018;Pengadministrasi Perkantoran
+TARDI;19801126 202521 1 016;Pengelola Umum Operasional`],
+    ['E', `PUPUT YULITA ANDRIA PRABOWO;19960702 202521 2 020;Pengadministrasi Keuangan
+MUHAMMAD NUHAN NAHIDL;19980401 202521 1 026;Pengelola Umum Operasional`],
+    ['R', `MILDA ANGGRAINI;19991003 202521 2 012;Pengadministrasi Umum
+ABDUL ROHIM HAFID;19900920 202521 1 053;Pengadministrasi Perkantoran
+FEBRI WAHYU HIDAYAT;19990214 202521 1 015;Pengelola Layanan Operasional
+HAFIZHAN KASYFIL AZIS;19970910 202521 1 082;Pengelola Layanan Operasional
+ANUGRAH;19880711 202521 1 026;Penjaga Menara Suar
+ARIFAL FIRMANSYAH;19890424 202521 1 035;Penjaga Menara Suar
+DENNY PRATAMA;20000525 202521 1 008;Penjaga Menara Suar
+DONA PUTRA;19821128 202521 1 010;Penjaga Menara Suar
+FAJRI;19850728 202521 1 018;Penjaga Menara Suar
+HAMDI;19861011 202521 1 030;Penjaga Menara Suar
+IMAM MAHDI NURZACTONO;19800108 202521 1 008;Penjaga Menara Suar
+JOKO PURNOMO SIDIK;19921007 202521 1 027;Penjaga Menara Suar
+KHANAFI RAHMAN;19870906 202521 1 020;Penjaga Menara Suar
+M. FAJRI;19930807 202521 1 025;Penjaga Menara Suar
+MUHAMMAD IRWAN;19780707 202521 1 022;Penjaga Menara Suar
+MUSLIM;19810531 202521 1 007;Penjaga Menara Suar
+PRASENO ALHAQ;19950518 202521 1 019;Penjaga Menara Suar
+REPI SURYADI;19961028 202521 1 017;Penjaga Menara Suar
+RODIANSYAH;19910623 202521 1 022;Penjaga Menara Suar
+SAIPUL BAHRI;19880313 202521 1 027;Penjaga Menara Suar
+SIDIK SOBARUDIN;19830110 202521 1 019;Penjaga Menara Suar
+SULAIMAN;19790118 202521 1 018;Penjaga Menara Suar
+TARYONO;19820119 202521 1 016;Penjaga Menara Suar`],
+    ['P', `FAHYU MARESHA NIVELA;19960226 202521 2 020;Penata Layanan Operasional
+LILI AL HASIM;19840608 202521 1 052;Pengadministrasi Perkantoran`],
+    ['A', `AHRIZA FADLI;19840219 202521 1 017;Anak Buah Kapal
+MUHAMMAT FADLY MALAWAT;19960813 202521 1 008;Anak Buah Kapal
+BAGUS SENO AJI;19930729 202521 1 015;Anak Buah Kapal
+EKO MARGIONO SAPUTRO;19910304 202521 1 025;Anak Buah Kapal
+FAHMI HARLIANSYAH;19820410 202521 1 028;Anak Buah Kapal
+FAUZI MALAWAT;19800714 202521 1 021;Anak Buah Kapal
+HERI EBIN EJER SIAHAAN;19900807 202521 1 019;Anak Buah Kapal
+BAGUS WISNU AJI;19930729 202521 1 017;Anak Buah Kapal
+FIRMANSYAH;19950306 202521 1 018;Anak Buah Kapal
+GITA ANDRI SAPUTRA;19930306 202521 1 018;Anak Buah Kapal`],
+    ['M', `A. SANI;19700812 202521 1 018;Operator Radio Pelayaran
+RAFI SUWANDI;19991031 202521 1 005;Operator Radio Pelayaran
+MUHAMMAD FADLI SAOQANI;19941029 202521 1 014;Operator Radio Pelayaran
+ADE AYU ANGGRIANI RIYANTI DEWI, S.Tr. Pel;19950820 202421 2 010;Pengawas Keselamatan Pelayaran Ahli Pertama
+ADE KURNIAWAN;19881202 202521 1 021;Operator Radio Pelayaran
+IRA RYANI;19970502 202521 2 019;Operator Radio Pelayaran
+RISKY H NASUTION;19931209 202521 1 019;Operator Radio Pelayaran
+SITI ZUBAEDAH;19970707 202521 2 032;Operator Radio Pelayaran
+UDIN MURDANI;19970725 202521 1 015;Operator Radio Pelayaran
+HIDAYAH BEKTI NINGSIH;19960113 202521 2 020;Operator Radio Pelayaran
+DONI KURNIAWAN;19950228 202521 1 016;Operator Radio Pelayaran
+ASEP FIRMANSYAH;19940910 202521 1 026;Operator Radio Pelayaran
+TIO PAKUSADEWO;19990501 202521 1 011;Operator Radio Pelayaran
+ZEN PUTRA;19970423 202521 1 017;Operator Radio Pelayaran
+EDO SANJAYA;19821216 202521 1 016;Operator Radio Pelayaran
+GALIH CRISDIANTO;19881014 202521 1 021;Operator Radio Pelayaran
+EVA MARLIANA PRAMUDITA NASUTION;19900525 202521 2 033;Operator Radio Pelayaran
+YASSER OKTAVIAN ARAFAT;19971104 202521 1 014;Operator Radio Pelayaran
+NOVAL FADILAH;19990724 202521 1 015;Operator Radio Pelayaran
+ROMY SASONGKO, A.Md;19910407 202421 1 013;Pengawas Keselamatan Pelayaran Terampil (PPPK)
+NANANG FEBRIYANSAH;19910215 202521 1 021;Operator Radio Pelayaran
+LUKY RIANTO;19910506 202521 1 028;Operator Radio Pelayaran
+TABRITS MAULANI;20010804 202521 2 011;Operator Radio Pelayaran
+TEDDY GUNAWAN;19820331 202521 1 011;Operator Radio Pelayaran
+ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
+  ];
+  var EMP = [];
+  var UNIT_LABEL = {
+    S: 'SUBBAGIAN SDM DAN UMUM',
+    T: 'UNIT PENGEMBANGAN USAHA',
+    E: 'SUBBAGIAN PERENCANAAN DAN KEUANGAN',
+    I: 'SATUAN PEMERIKSAAN INTERN',
+    P: 'SEKSI LAYANAN ALUR PELAYARAN',
+    M: 'SEKSI LAYANAN TELKOMPEL',
+    R: 'SEKSI LAYANAN SBNP',
+    A: 'SEKSI LAYANAN ARMADA',
+    B: 'BAGIAN KEUANGAN DAN UMUM',
+    H: 'BIDANG LAYANAN ALUR PELAYARAN DAN TELKOMPEL',
+    L: 'BIDANG LAYANAN SBNP DAN ARMADA',
+    K: 'DISTRIK NAVIGASI TIPE B TANJUNG PRIOK'
+  };
+  function unitCodeFor(nip, groupCode) {
+    for (var code in HEAD) if (HEAD[code][1] === nip) return code;
+    return groupCode;
+  }
+  function resolveRoute(employee) {
+    var code = employee.unitCode, head = HEAD[code], first = '', second = '';
+    if (/^Nakhoda Kapal Kelas 1$/i.test(employee.j)) return { first: HEAD.K[0], second: '' };
+    if (employee.nip === HEAD.K[1]) return { first: '', second: '' };
+    if (employee.nip === HEAD.B[1] || employee.nip === HEAD.H[1] || employee.nip === HEAD.L[1] ||
+      employee.nip === HEAD.T[1] || employee.nip === HEAD.I[1]) {
+      first = HEAD.K[0];
+    } else if (code === 'S' || code === 'E') {
+      first = employee.nip === head[1] ? HEAD.B[0] : head[0];
+      second = employee.nip === head[1] ? HEAD.K[0] : HEAD.B[0];
+    } else if (code === 'T' || code === 'I') {
+      first = head[0];
+      second = HEAD.K[0];
+    } else if (code === 'P' || code === 'M') {
+      first = employee.nip === head[1] ? HEAD.H[0] : head[0];
+      second = employee.nip === head[1] ? HEAD.K[0] : HEAD.H[0];
+    } else if (code === 'R' || code === 'A') {
+      first = employee.nip === head[1] ? HEAD.L[0] : head[0];
+      second = employee.nip === head[1] ? HEAD.K[0] : HEAD.L[0];
+    } else if (code === 'B' || code === 'H' || code === 'L') {
+      first = head[0];
+      second = HEAD.K[0];
+    } else {
+      first = employee.an || '';
+    }
+    return {
+      first: first,
+      second: second,
+      firstPosition: positionForApprover(first),
+      secondPosition: positionForApprover(second)
+    };
+  }
+  function positionForApprover(name) {
+    var person = EMP.filter(function (e) { return e.n === name; })[0];
+    return person ? person.j : '';
+  }
+  RAW.forEach(function (g) {
+    g[1].split('\n').forEach(function (l) {
+      var f = l.trim().split(';');
+      if (f.length < 3) return;
+      var code = f[3] || g[0], at = null;
+      if (code !== '-') {
+        var h = HEAD[code];
+        if (h && h[1] === f[1]) { code = UP[code]; h = code ? HEAD[code] : null; }
+        at = h || null;
+      }
+      var job = JC[f[2]] || f[2];
+      var unitCode = unitCodeFor(f[1], g[0]);
+      EMP.push({ n: f[0], nip: f[1], j: job, an: at ? at[0] : '', anip: at ? at[1] : '',
+        unitCode: unitCode, unit: UNIT_LABEL[unitCode] || g[0] });
+    });
+  });
+  var APPROVERS = [
+    { name: 'Dr. Capt. MUGEN S. SARTOTO, M.Sc.', nip: '19731121 200212 1 001', title: 'Kepala Distrik Navigasi Tipe B Tanjung Priok', email: 'mugen_suprihatin@dephub.co.id' },
+    { name: 'NI WIDANINGSIH, S.E', nip: '19730730 199803 2 001', title: 'Kepala Bagian Keuangan dan Umum', email: 'ni_widaningsih@dephub.co.id' },
+    { name: 'HENDAVINY KARTOMO, SE, M.Kom', nip: '19730731 199302 2 001', title: 'Kepala Bidang Layanan Alur Pelayaran dan Telkompel', email: 'hendavani_kartomo@dephub.co.id' },
+    { name: 'LUSI ANDAYANI, S.T., M.MTr', nip: '19740601 200212 2 001', title: 'Kepala Bidang Layanan SBNP dan Armada', email: 'lusi_andayani@dephub.co.id' },
+    { name: 'R. ACHMAD ANDRIAZ PRAMUDYA W, ST, M.Si', nip: '19720918 199903 1 003', title: 'Kepala Seksi Layanan Armada', email: 'r_achmad1809@dephub.co.id' },
+    { name: 'ROHANI ALMUTMAINAH, S.SI, M.M.Tr', nip: '19770801 200502 2 001', title: 'Kepala Seksi Layanan Sarana Bantu Navigasi Pelayaran', email: 'rohani_almutmainah@dephub.co.id' },
+    { name: 'PADLANI, ST., M.MTr', nip: '19680915 199803 1 002', title: 'Kepala Seksi Layanan Alur Pelayaran', email: '' },
+    { name: 'Capt. MARDIANTIKA SANGGUR, M.M.Tr.', nip: '19700323 200212 2 002', title: 'Kepala Seksi Layanan Telkompel', email: 'Mardiantika_sanggur@dephub.co.id' },
+    { name: 'JUNI TARULIASI HUTAPEA, S.Psi, M.MTr', nip: '19750626 199703 2 001', title: 'Kepala Sub Bagian Sumber Daya Manusia dan Umum', email: 'Juni_tarulasi@dephub.co.id' },
+    { name: 'EVRINA HERMAWATI, S.E., M.B.A.', nip: '19790111 200212 2 001', title: 'Kepala Sub Bagian Perencanaan dan Keuangan', email: 'Evrina_hermawati@dephub.co.id' },
+    { name: 'ILMIYAWAN SYAF AGUS, S.T, M.MTr', nip: '19790817 199903 1 002', title: 'Kepala SPI', email: 'Ilmiyawan_syaf@dephub.co.id' },
+    { name: 'TAUFIK CHAHYADI, SH, M.H', nip: '19820906 200604 1 005', title: 'Kepala Unit Pengembangan Usaha dan Kerja Sama', email: 'Taufik_chahyadi@dephub.co.id' }
+  ];
+  var ADMINS = [
+    { name: 'HERMANSYAH', nip: '19800204 201503 1 001', title: 'Admin', email: 'Hermansyah0402@kemenhub.go.id' },
+    { name: 'HARTONO', nip: '19791228 202521 1 018', title: 'Admin', email: 'hartonodisnavtgpriok@gmail.com' }
+  ];
+  var CORRESPONDENCE = [
+    { name: 'INTAN MULIA, SE', nip: '19740118 199303 2 001', title: 'Persuratan', email: 'Intan_mulia@kemenhub.go.id' },
+    { name: 'EKA MARTINI, S.E', nip: '19820327 200502 2 002', title: 'Persuratan', email: 'Eka_martini@kemenhub.go.id' },
+    { name: 'OKTARIA NINDYA CHANDRA', nip: '19951012 202521 2 027', title: 'Persuratan', email: 'nindyachandraoktaria@gmail.com' },
+    { name: 'CHINTYA PUTRI ARTHA', nip: '19911018 202521 2 039', title: 'Persuratan', email: 'Chyntya_puti@kemenhub.go.id' },
+    { name: 'MIKE CARLY PERMATASARI', nip: '19901118 201012 2 001', title: 'Persuratan', email: 'Mike_carly@kemenhub.go.id' }
+  ];
+  var STAFF_CONFIG_KEY = 'cuti_staff_config_v1';
+  function loadStaffConfig() {
+    try {
+      return JSON.parse(localStorage.getItem(STAFF_CONFIG_KEY)) || {};
+    } catch (error) {
+      console.error('Data akun petugas tidak dapat dibaca:', error);
+      return {};
+    }
+  }
+  var staffConfig = loadStaffConfig();
+  APPROVERS.forEach(function (person) {
+    var saved = staffConfig[person.nip];
+    if (!saved) return;
+    if (saved.name) person.name = saved.name;
+    if (Object.prototype.hasOwnProperty.call(saved, 'email')) person.email = saved.email;
+    Object.keys(HEAD).forEach(function (code) {
+      if (HEAD[code][1] === person.nip) HEAD[code][0] = person.name;
+    });
+    EMP.forEach(function (employee) {
+      if (employee.nip === person.nip) employee.n = person.name;
+    });
+  });
+  function staffAccountByEmail(email) {
+    var normalizedEmail = String(email || '').trim().toLowerCase();
+    if (!normalizedEmail) return null;
+    var accounts = [];
+    APPROVERS.forEach(function (person) { if (person.email) accounts.push({ role: 'approver', person: person }); });
+    ADMINS.forEach(function (person) { if (person.email) accounts.push({ role: 'admin', person: person }); });
+    CORRESPONDENCE.forEach(function (person) { if (person.email) accounts.push({ role: 'correspondence', person: person }); });
+    return accounts.filter(function (account) {
+      return account.person.email.trim().toLowerCase() === normalizedEmail;
+    })[0] || null;
+  }
+  function staffEmailAlreadyAssigned(email, nip) {
+    var normalizedEmail = String(email || '').trim().toLowerCase();
+    if (!normalizedEmail) return false;
+    var lists = [APPROVERS, ADMINS, CORRESPONDENCE];
+    return lists.some(function (list) {
+      return list.some(function (person) {
+        return person.nip !== nip && person.email && person.email.trim().toLowerCase() === normalizedEmail;
+      });
+    });
+  }
+  function saveStaffConfig() {
+    try {
+      localStorage.setItem(STAFF_CONFIG_KEY, JSON.stringify(staffConfig));
+      return true;
+    } catch (error) {
+      console.error('Data akun petugas tidak dapat disimpan:', error);
+      toast('Perubahan data penyetuju gagal disimpan di browser ini.');
+      return false;
+    }
+  }
+  function updateApproverNameReferences(oldName, newName, nip) {
+    Object.keys(HEAD).forEach(function (code) {
+      if (HEAD[code][1] === nip) HEAD[code][0] = newName;
+    });
+    EMP.forEach(function (person) {
+      if (person.nip === nip) person.n = newName;
+      if (person.an === oldName) person.an = newName;
+    });
+    var requests = load();
+    var changed = false;
+    requests.forEach(function (request) {
+      if (request.status !== 'pending_direct' && request.status !== 'pending_next') return;
+      if (request.firstApprover === oldName) { request.firstApprover = newName; changed = true; }
+      if (request.secondApprover === oldName) { request.secondApprover = newName; changed = true; }
+    });
+    return !changed || save(requests);
+  }
+  function approverByNip(nip) {
+    return APPROVERS.filter(function (person) { return person.nip === nip; })[0] || null;
+  }
+  function renderAdmin2ApproverManagement() {
+    var panel = document.getElementById('admin2-approver-management');
+    var isAdmin2 = currentUser && currentUser.role === 'admin' && currentUser.nip === ADMINS[1].nip;
+    panel.classList.toggle('hidden', !isAdmin2);
+    if (!isAdmin2) return;
+    document.getElementById('admin2-approver-table').innerHTML = table(
+      ['Nama Penyetuju', 'NIP', 'Email akun (diisi Admin 2)', 'Pengaturan'],
+      APPROVERS.map(function (person) {
+        var email = person.email || '';
+        return [
+          '<input type="text" class="approver-name inp min-w-56" data-nip="' + esc(person.nip) + '" value="' + esc(person.name) + '" required><div class="text-xs text-slate-500 mt-1">' + esc(person.title) + '</div>',
+          esc(person.nip),
+          '<input type="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off" class="approver-email inp min-w-48" data-nip="' + esc(person.nip) + '" value="' + esc(email) + '" placeholder="email penyetuju">',
+          '<div class="flex flex-wrap gap-2"><button type="button" data-action="save-approver" data-nip="' + esc(person.nip) + '" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-700 text-white hover:bg-blue-800">Ubah nama/email</button>' +
+          (email ? btn('password-reset', person.nip, 'Kirim tautan reset sandi', 'ex') : '<span class="text-xs text-slate-500">Isi email dulu untuk reset sandi</span>') + '</div>'
+        ];
+      })
+    );
+  }
+  function isAdmin1() {
+    return currentUser && currentUser.role === 'admin' && currentUser.nip === ADMINS[0].nip;
+  }
+  function isAdmin2() {
+    return currentUser && currentUser.role === 'admin' && currentUser.nip === ADMINS[1].nip;
+  }
+  function testActorsForRole(role) {
+    if (role === 'employee') return EMP.map(function (person) {
+      return { role: role, name: person.n, nip: person.nip, title: person.j, profile: person, email: '' };
+    });
+    if (role === 'approver') return APPROVERS.map(function (person) {
+      return { role: role, name: person.name, nip: person.nip, title: person.title, email: person.email };
+    });
+    if (role === 'correspondence') return CORRESPONDENCE.map(function (person) {
+      return { role: role, name: person.name, nip: person.nip, title: person.title, email: person.email };
+    });
+    return ADMINS.map(function (person) {
+      return { role: 'admin', name: person.name, nip: person.nip, title: person.title, email: person.email };
+    });
+  }
+  function populateTestActors() {
+    var role = document.getElementById('admin2-test-role').value;
+    var actorSelect = document.getElementById('admin2-test-actor');
+    var previousNip = actorSelect.value;
+    var actors = testActorsForRole(role);
+    actorSelect.innerHTML = actors.map(function (person) {
+      return '<option value="' + esc(person.nip) + '">' + esc(person.name + ' — ' + person.title) + '</option>';
+    }).join('');
+    if (actors.some(function (person) { return person.nip === previousNip; })) actorSelect.value = previousNip;
+  }
+  document.getElementById('admin2-test-role').addEventListener('change', populateTestActors);
+  document.getElementById('btn-start-test').addEventListener('click', function () {
+    if (!isAdmin2()) { toast('Mode uji hanya tersedia untuk akun Admin 2.'); return; }
+    var role = document.getElementById('admin2-test-role').value;
+    var person = testActorsForRole(role).filter(function (actor) {
+      return actor.nip === document.getElementById('admin2-test-actor').value;
+    })[0];
+    if (!person) { toast('Pilih identitas uji yang valid.'); return; }
+    person.uid = currentUser.uid;
+    person.roleLabel = { employee: 'Pegawai', approver: 'Penyetuju', correspondence: 'Persuratan', admin: 'Admin' }[role];
+    testUser = person;
+    document.getElementById('admin2-test-status').textContent = 'Mode uji berjalan sebagai ' + person.name + '.';
+    updatePushButton();
+    if (role === 'employee') pick(person.profile);
+    showView(role);
+  });
+  function stopTestMode() {
+    if (!testUser) return;
+    testUser = null;
+    document.getElementById('admin2-test-status').textContent = '';
+    document.getElementById('leave-form').reset();
+    clearSig();
+    updatePushButton();
+    showView('admin');
+  }
+  document.getElementById('btn-stop-test').addEventListener('click', stopTestMode);
+  populateTestActors();
+  /* ---------- Login & pendaftaran mandiri (Supabase Auth) ---------- */
+  var pendingUser = null, authRestored = false;
+  var empList = document.getElementById('emp-list');
+  empList.innerHTML = EMP.map(function (e) {
+    return '<option value="' + esc(e.n + ' - ' + e.nip) + '"></option>';
+  }).join('');
+  function normId(v) { return String(v || '').toLowerCase().replace(/\s+/g, ''); }
+  function findEmployee(q) {
+    var n = normId(q);
+    if (!n) return null;
+    var hit = EMP.filter(function (e) { return normId(e.n + '-' + e.nip) === n || normId(e.nip) === n; });
+    if (!hit.length) hit = EMP.filter(function (e) { return normId(e.n) === n; });
+    return hit.length === 1 ? hit[0] : null;
+  }
+  function authMsg(id, text, ok) {
+    var el = document.getElementById(id);
+    if (!text) { el.className = 'hidden'; el.textContent = ''; return; }
+    el.textContent = text;
+    el.className = 'text-sm rounded-lg px-3 py-2 border ' + (ok
+      ? 'text-green-700 bg-green-50 border-green-200'
+      : 'text-red-600 bg-red-50 border-red-200');
+  }
+  function setAuthTab(tab) {
+    var isLogin = tab === 'login';
+    document.getElementById('login-form').classList.toggle('hidden', !isLogin);
+    document.getElementById('signup-form').classList.toggle('hidden', isLogin);
+    document.getElementById('tab-login').classList.toggle('active', isLogin);
+    document.getElementById('tab-signup').classList.toggle('active', !isLogin);
+    ['login-error', 'login-info', 'signup-error'].forEach(function (id) { authMsg(id, ''); });
+  }
+  document.getElementById('tab-login').addEventListener('click', function () { setAuthTab('login'); });
+  document.getElementById('tab-signup').addEventListener('click', function () { setAuthTab('signup'); });
+
+  function authErrorMessage(error) {
+    var messages = {
+      'invalid_credentials': 'Email atau kata sandi tidak sesuai.',
+      'email_not_confirmed': 'Email belum diverifikasi. Periksa kotak masuk Anda.',
+      'user_already_exists': 'Email ini sudah terdaftar. Silakan masuk, atau gunakan "Lupa kata sandi?".',
+      'weak_password': 'Kata sandi terlalu lemah. Gunakan minimal 8 karakter.',
+      'over_request_rate_limit': 'Terlalu banyak percobaan. Coba lagi beberapa saat.',
+      'email_address_invalid': 'Format email tidak valid.',
+      'signup_disabled': 'Pendaftaran akun belum diaktifkan di Supabase Authentication.',
+      'unexpected_failure': 'Tidak dapat terhubung ke Supabase. Periksa koneksi internet dan konfigurasi proyek.'
+    };
+    if (error.message && /failed to fetch/i.test(error.message)) {
+      return 'Tidak dapat terhubung ke Supabase. Periksa koneksi internet dan URL proyek.';
+    }
+    return messages[error.code] || 'Terjadi kesalahan (' + (error.code || 'unknown') + ').';
+  }
+
+  /* Email petugas terdaftar menentukan peran; metadata NIP menghubungkan pegawai. */
+  function buildUser(user) {
+    var staff = staffAccountByEmail(user.email);
+    if (staff) {
+      return { role: staff.role, name: staff.person.name, nip: staff.person.nip, title: staff.person.title,
+               uid: user.id, email: user.email };
+    }
+    var profile = findEmployee(user.user_metadata && user.user_metadata.nip);
+    if (profile) {
+      return { role: 'employee', name: profile.n, nip: profile.nip, profile: profile, uid: user.id, email: user.email };
+    }
+    return null;
+  }
+  function finishLogin(user, silent) {
+    var resendBtn = document.getElementById('btn-resend');
+    var linkWrap = document.getElementById('login-link-wrap');
+    if (!user.email_confirmed_at) {
+      pendingUser = { email: user.email };
+      resendBtn.classList.remove('hidden');
+      if (!silent) authMsg('login-error', 'Email belum diverifikasi. Buka tautan verifikasi di email Anda, lalu klik Masuk lagi.');
+      return Promise.resolve(false);
+    }
+    var u = buildUser(user);
+    if (!u) {
+      pendingUser = { email: user.email };
+      if (!silent) {
+        linkWrap.classList.remove('hidden');
+        authMsg('login-error', 'Akun ini belum terhubung ke data pegawai. Isi Nama / NIP Pegawai di bawah, lalu klik Masuk lagi.');
+      }
+      return Promise.resolve(false);
+    }
+    pendingUser = null;
+    currentUser = u;
+    startRequestsSync();
+    registerPush(false);
+    updatePushButton();
+    if (u.role === 'employee') pick(u.profile);
+    resendBtn.classList.add('hidden');
+    linkWrap.classList.add('hidden');
+    document.getElementById('login-form').reset();
+    ['login-error', 'login-info'].forEach(function (id) { authMsg(id, ''); });
+    renderAll();
+    showView(u.role);
+    return Promise.resolve(true);
+  }
+
+  document.getElementById('login-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    authMsg('login-error', ''); authMsg('login-info', '');
+    if (!supabaseClient) { authMsg('login-error', supabaseInitError || 'Supabase Authentication tidak tersedia.'); return; }
+    var email = document.getElementById('login-email').value.trim();
+    var password = document.getElementById('login-password').value;
+    var linkInput = document.getElementById('login-link');
+    var linkVisible = !document.getElementById('login-link-wrap').classList.contains('hidden');
+    if (!email || !password) { authMsg('login-error', 'Email dan kata sandi wajib diisi.'); return; }
+    var btn = document.getElementById('login-submit');
+    btn.disabled = true; btn.textContent = 'Memeriksa...';
+    supabaseClient.auth.signInWithPassword({ email: email, password: password }).then(function (result) {
+      if (result.error) throw result.error;
+      var user = result.data.user;
+      if (linkVisible && linkInput.value.trim() && !staffAccountByEmail(user.email)) {
+        var p = findEmployee(linkInput.value);
+        if (!p) { authMsg('login-error', 'Nama/NIP tidak ditemukan. Pilih dari saran yang muncul atau ketik NIP lengkap.'); return; }
+        return supabaseClient.auth.updateUser({ data: { nip: p.nip } }).then(function (updateResult) {
+          if (updateResult.error) throw updateResult.error;
+          return finishLogin(updateResult.data.user);
+        });
+      }
+      return finishLogin(user);
+    }).catch(function (error) {
+      console.error('Login gagal:', error);
+      if (error.code === 'email_not_confirmed') {
+        pendingUser = { email: email };
+        document.getElementById('btn-resend').classList.remove('hidden');
+        authMsg('login-error', 'Email belum diverifikasi. Kirim ulang tautan verifikasi, lalu masuk kembali.');
+      } else {
+        authMsg('login-error', authErrorMessage(error));
+      }
+    }).finally(function () {
+      btn.disabled = false; btn.textContent = 'Masuk';
+    });
+  });
+
+  document.getElementById('signup-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    authMsg('signup-error', '');
+    if (!supabaseClient) { authMsg('signup-error', supabaseInitError || 'Supabase Authentication tidak tersedia.'); return; }
+    var email = document.getElementById('signup-email').value.trim();
+    var pw = document.getElementById('signup-password').value;
+    var pw2 = document.getElementById('signup-password2').value;
+    var nameVal = document.getElementById('signup-name').value;
+    if (!email) { authMsg('signup-error', 'Email wajib diisi.'); return; }
+    var staff = staffAccountByEmail(email), nip;
+    if (staff) {
+      nip = staff.person.nip;
+    } else {
+      var emp = findEmployee(nameVal);
+      if (!emp) { authMsg('signup-error', 'Nama/NIP tidak ditemukan di daftar pegawai. Pilih dari saran yang muncul atau ketik NIP lengkap.'); return; }
+      nip = emp.nip;
+    }
+    if (pw.length < 8) { authMsg('signup-error', 'Kata sandi minimal 8 karakter.'); return; }
+    if (pw !== pw2) { authMsg('signup-error', 'Kata sandi dan pengulangannya tidak sama.'); return; }
+    var btn = document.getElementById('signup-submit');
+    btn.disabled = true; btn.textContent = 'Mendaftarkan...';
+    var signupHadSession = false;
+    supabaseClient.auth.signUp({
+      email: email,
+      password: pw,
+      options: { data: { nip: nip }, emailRedirectTo: window.location.href.split('#')[0] }
+    }).then(function (result) {
+      if (result.error) throw result.error;
+      signupHadSession = !!result.data.session;
+      return signupHadSession ? supabaseClient.auth.signOut() : null;
+    }).then(function (result) {
+      if (result && result.error) throw result.error;
+      document.getElementById('signup-form').reset();
+      setAuthTab('login');
+      document.getElementById('login-email').value = email;
+      authMsg('login-info', signupHadSession
+        ? 'Pendaftaran berhasil. Silakan masuk dengan akun baru.'
+        : 'Pendaftaran berhasil. Kami mengirim tautan verifikasi ke ' + email + '. Verifikasi dulu, lalu masuk.', true);
+    }).catch(function (error) {
+      console.error('Pendaftaran gagal:', error);
+      authMsg('signup-error', authErrorMessage(error));
+    }).finally(function () {
+      btn.disabled = false; btn.textContent = 'Daftar';
+    });
+  });
+
+  document.getElementById('btn-forgot').addEventListener('click', function () {
+    authMsg('login-error', ''); authMsg('login-info', '');
+    var email = document.getElementById('login-email').value.trim();
+    if (!supabaseClient) { authMsg('login-error', supabaseInitError || 'Supabase Authentication tidak tersedia.'); return; }
+    if (!email) { authMsg('login-error', 'Isi email dulu, lalu klik "Lupa kata sandi?".'); return; }
+    supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.href.split('#')[0] }).then(function (result) {
+      if (result.error) throw result.error;
+      authMsg('login-info', 'Jika email terdaftar, tautan untuk mengatur ulang kata sandi sudah dikirim.', true);
+    }).catch(function (error) {
+      console.error('Permintaan reset password gagal:', error);
+      authMsg('login-error', authErrorMessage(error));
+    });
+  });
+  document.getElementById('btn-resend').addEventListener('click', function () {
+    authMsg('login-error', ''); authMsg('login-info', '');
+    if (!pendingUser) { authMsg('login-error', 'Masukkan email dan kata sandi, lalu klik Masuk terlebih dahulu.'); return; }
+    supabaseClient.auth.resend({ type: 'signup', email: pendingUser.email }).then(function (result) {
+      if (result.error) throw result.error;
+      authMsg('login-info', 'Email verifikasi dikirim ulang. Cek kotak masuk atau folder spam.', true);
+    }).catch(function (error) {
+      console.error('Pengiriman ulang email verifikasi gagal:', error);
+      authMsg('login-error', authErrorMessage(error));
+    });
+  });
+
+  document.getElementById('btn-logout').addEventListener('click', function () {
+    if (!supabaseClient) {
+      currentUser = null;
+      testUser = null;
+      showView('home');
+      return;
+    }
+    Promise.resolve(disconnectPush()).then(function () {
+      stopRequestsSync();
+      return supabaseClient.auth.signOut();
+    }).then(function (result) {
+      if (result && result.error) throw result.error;
+      currentUser = null; testUser = null; pendingUser = null;
+      updatePushButton();
+      showView('home');
+    }).catch(function (error) {
+      console.error('Supabase sign-out gagal:', error);
+      toast('Gagal keluar dari Supabase Authentication. Coba lagi.');
+    });
+  });
+  /* Pulihkan sesi setelah halaman dimuat ulang. */
+  if (supabaseClient) {
+    supabaseClient.auth.onAuthStateChange(function (event, session) {
+      if (event !== 'INITIAL_SESSION' || authRestored) return;
+      authRestored = true;
+      if (session && session.user) setTimeout(function () { finishLogin(session.user, true); }, 0);
+    });
+  }
+  function renderEmployeeProfile() {
+    var el = document.getElementById('employee-profile');
+    if (!el) return;
+    var user = activeUser();
+    if (!user || user.role !== 'employee') {
+      el.innerHTML = '<p class="text-sm text-slate-500">' + (isAdmin2()
+        ? 'Pilih peran Pegawai di Mode Uji Live Admin 2 untuk menguji pengajuan cuti.'
+        : 'Masuk sebagai pegawai untuk melihat profil dan membuat pengajuan.') + '</p>';
+      return;
+    }
+    var p = user.profile;
+    el.innerHTML = '<div class="flex items-start gap-3"><div class="w-11 h-11 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-xl">👤</div>' +
+      '<div><h3 class="font-semibold text-blue-900">' + esc(user.name) + '</h3><p class="text-sm text-slate-600">NIP ' + esc(user.nip) + '</p>' +
+      '<p class="text-sm text-slate-500">' + esc(p.j || 'Jabatan belum tercatat') + ' · ' + esc(p.unit || 'Unit kerja belum tercatat') + '</p></div></div>';
+  }
+  function renderEmployeeHistory() {
+    var el = document.getElementById('employee-history-table');
+    if (!el) return;
+    var user = activeUser();
+    if (!user || user.role !== 'employee') {
+      el.innerHTML = empty('🔒', 'Silakan masuk sebagai pegawai', 'Riwayat cuti hanya tersedia untuk akun pemohon.');
+      return;
+    }
+    var own = load().filter(function (r) {
+      return r.requestedBy ? r.requestedBy === user.nip : r.nip === user.nip;
+    }).sort(function (a, b) { return b.createdAt - a.createdAt; });
+    if (!own.length) {
+      el.innerHTML = empty('📭', 'Belum ada permohonan cuti', 'Permohonan yang Anda ajukan akan tercatat di sini.');
+      return;
+    }
+    el.innerHTML = table(['Tanggal Pengajuan', 'Jenis Cuti', 'Periode', 'Status', 'Surat'], own.map(function (r) {
+      var letter = r.status === 'issued'
+        ? '<div class="font-semibold text-slate-800">' + esc(r.letterNumber || 'Nomor belum tersedia') + '</div>' +
+          '<div class="text-xs text-green-700 mb-2">Surat PDF telah tersedia di akun Anda sejak ' +
+          (r.letterDeliveredAt ? new Date(r.letterDeliveredAt).toLocaleDateString('id-ID') : 'surat diterbitkan') + '</div>' +
+          btn('employee-pdf', r.id, '⬇ Unduh PDF', 'ok')
+        : '<span class="text-xs text-slate-500">PDF tersedia setelah Admin menerbitkan surat.</span>';
+      return [new Date(r.createdAt).toLocaleDateString('id-ID'), esc(TYPE_LABEL[r.type] || r.type),
+        periodCell(r), badge(r), letter];
+    }));
+  }
+  function masaKerja(nip) {
+    var d = nip.replace(/\s+/g, '');
+    var y = parseInt(d.substr(8, 4), 10), m = parseInt(d.substr(12, 2), 10);
+    if (!y || !m) return '';
+    var now = new Date(), t = (now.getFullYear() - y) * 12 + (now.getMonth() + 1 - m);
+    if (t < 0) return '';
+    return Math.floor(t / 12) + ' th ' + (t % 12) + ' bln';
+  }
+  var nameIn = document.getElementById('f-name'), sugg = document.createElement('div'), sIdx = -1, sList = [];
+  sugg.className = 'hidden absolute left-0 right-0 top-full mt-1 z-20 bg-white border border-slate-300 rounded-lg shadow-lg max-h-64 overflow-auto';
+  nameIn.parentNode.style.position = 'relative';
+  nameIn.parentNode.appendChild(sugg);
+  function pick(e) {
+    var route = resolveRoute(e);
+    nameIn.value = e.n;
+    document.getElementById('f-nip').value = e.nip;
+    document.getElementById('f-jab').value = e.j;
+    document.getElementById('f-masa').value = masaKerja(e.nip);
+    document.getElementById('f-atasan').value = route.first;
+    var approver = Object.keys(HEAD).map(function (code) { return HEAD[code]; })
+      .filter(function (person) { return person[0] === route.first; })[0];
+    document.getElementById('f-atasan-nip').value = approver ? approver[1] : e.anip;
+    ['f-name', 'f-nip', 'f-jab', 'f-masa', 'f-atasan', 'f-atasan-nip'].forEach(function (id) {
+      document.getElementById(id).readOnly = activeUser() && activeUser().role === 'employee';
+    });
+    sugg.classList.add('hidden');
+  }
+  function showSugg() {
+    var q = nameIn.value.trim().toLowerCase().replace(/\s+/g, ' '), qn = q.replace(/\s+/g, '');
+    if (q.length < 2) { sugg.classList.add('hidden'); return; }
+    sList = EMP.filter(function (e) { return e.n.toLowerCase().indexOf(q) !== -1 || e.nip.replace(/\s+/g, '').indexOf(qn) === 0; }).slice(0, 8);
+    sIdx = -1;
+    if (!sList.length) { sugg.classList.add('hidden'); return; }
+    sugg.innerHTML = sList.map(function (e, i) {
+      return '<div data-i="' + i + '" class="sg px-3 py-2 cursor-pointer hover:bg-blue-50 border-b border-slate-100 last:border-0"><div class="text-sm font-medium">' + esc(e.n) +
+        '</div><div class="text-xs text-slate-500">' + esc(e.nip) + ' &middot; ' + esc(e.j) + '</div></div>';
+    }).join('');
+    sugg.classList.remove('hidden');
+  }
+  function hilite() {
+    sugg.querySelectorAll('.sg').forEach(function (el, i) { el.classList.toggle('bg-blue-50', i === sIdx); });
+  }
+  nameIn.addEventListener('input', showSugg);
+  nameIn.addEventListener('focus', showSugg);
+  nameIn.addEventListener('keydown', function (e) {
+    if (sugg.classList.contains('hidden')) return;
+    if (e.key === 'ArrowDown') { sIdx = Math.min(sIdx + 1, sList.length - 1); hilite(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { sIdx = Math.max(sIdx - 1, 0); hilite(); e.preventDefault(); }
+    else if (e.key === 'Enter' && sIdx >= 0) { pick(sList[sIdx]); e.preventDefault(); }
+    else if (e.key === 'Escape') { sugg.classList.add('hidden'); }
+  });
+  sugg.addEventListener('mousedown', function (e) {
+    var el = e.target.closest('.sg');
+    if (el) { e.preventDefault(); pick(sList[+el.dataset.i]); }
+  });
+  nameIn.addEventListener('blur', function () { setTimeout(function () { sugg.classList.add('hidden'); }, 120); });
+
+  /* ---------- Halaman Karyawan: menu, aturan, form ---------- */
+  var RULES = {
+    A: { t: 'A. Dasar Hukum', list: [
+      'Undang-Undang No. 20 Tahun 2023 tentang Aparatur Sipil Negara',
+      'Peraturan Pemerintah No. 11 Tahun 2017 jo. PP No. 17 Tahun 2020 tentang Manajemen PNS',
+      'Peraturan BKN No. 7 Tahun 2021 tentang Prosedur Pemberian Cuti',
+      'SKB 3 Menteri No. 1205/2026, No. 3/2026, No. 2/2026 tentang Hari Libur Nasional dan Cuti Bersama Tahun 2027',
+      'Surat Edaran Dirjen Perhubungan Laut tentang Pelaksanaan Piket pada Masa Angkutan Lebaran dan Nataru'] },
+    B: { t: 'B. Jenis-Jenis Cuti', types: [
+      { t: '1. Cuti Tahunan', pts: [
+        'Hak 12 (dua belas) hari kerja setiap tahun bagi PNS yang telah bekerja minimal 1 tahun secara terus-menerus.',
+        'Permohonan diajukan minimal 5 hari kerja sebelum pelaksanaan.',
+        'Sisa cuti yang tidak diambil maksimal 18 hari dapat ditangguhkan untuk tahun berikutnya.'] },
+      { t: '2. Cuti Besar', pts: [
+        'Diberikan 3 (tiga) bulan bagi PNS dengan masa kerja 5 tahun terus-menerus.',
+        'Diperuntukkan untuk ibadah keagamaan dan persalinan anak ke-4 dan seterusnya.',
+        'Selama cuti besar, hak gaji penuh tetap diberikan.'] },
+      { t: '3. Cuti Sakit', pts: [
+        '1-14 hari: dengan surat keterangan dokter.',
+        'Lebih dari 14 hari: wajib surat keterangan dari Rumah Sakit Pemerintah.',
+        'Surat keterangan wajib mencantumkan diagnosa dan lama istirahat yang diperlukan.'] },
+      { t: '4. Cuti Melahirkan', pts: [
+        'Diberikan selama 3 (tiga) bulan untuk kelahiran anak pertama sampai ketiga.',
+        'Rincian: 1 bulan sebelum dan 2 bulan sesudah persalinan.',
+        'Wajib melampirkan surat keterangan dokter/bidan.'] },
+      { t: '5. Cuti Alasan Penting', pts: [
+        'Diberikan maksimal 2 (dua) bulan.',
+        'Alasan: menikah, istri melahirkan, keluarga inti sakit keras/meninggal, atau terkena bencana alam.',
+        'Wajib melampirkan bukti pendukung (surat nikah, surat rawat inap, dll).'] },
+      { t: '6. Cuti Bersama', pts: [
+        'Ditetapkan oleh Pemerintah setiap tahun dan memotong hak cuti tahunan.',
+        'Bagi unit pelayanan Perhubungan Laut (KSOP, UPP, Distrik Navigasi, Pangkalan PLP), cuti bersama TIDAK meliburkan operasional. Tetap dilaksanakan piket pelayanan.'] },
+      { t: '7. Cuti di Luar Tanggungan Negara (CLTN)', pts: [
+        'Diberikan maksimal 3 tahun dan dapat diperpanjang 1 tahun.',
+        'Alasan pribadi dan mendesak (mendampingi suami/istri tugas negara/belajar).',
+        'Bukan merupakan hak, dapat ditolak oleh Pejabat Pembina Kepegawaian (PPK).'] }] },
+    C: { t: 'C. Ketentuan Khusus', items: [
+      ['Kewajiban Pelayanan', 'Seluruh Unit Pelaksana Teknis (UPT) di lingkungan Direktorat Jenderal Perhubungan Laut yang memberikan pelayanan langsung kepada masyarakat (kepelabuhanan, kesyahbandaran, kenavigasian) WAJIB mengatur penugasan pegawai pada hari libur nasional dan cuti bersama.'],
+      ['Larangan Cuti Operasional', 'Pengajuan cuti tahunan ditutup pada H-7 sampai H+7 Masa Angkutan Lebaran dan Natal-Tahun Baru (Nataru), kecuali cuti sakit dan cuti melahirkan.'],
+      ['Pelimpahan Tugas', 'Setiap pengajuan cuti wajib melampirkan Surat Pelimpahan Tugas kepada rekan kerja untuk menjamin kelancaran pelayanan.'],
+      ['Persetujuan Berjenjang', 'Alur persetujuan: Staf Pelaksana \u2192 Kepala Seksi/Bidang \u2192 Kepala Bagian Tata Usaha \u2192 Kepala UPT (Kepala KSOP/UPP).']] },
+    D: { t: 'D. Persyaratan Administrasi', list: [
+      'Blanko permohonan cuti (Form F-01)',
+      'Surat izin sementara pelaksanaan cuti dari atasan langsung',
+      'Surat pelimpahan tugas',
+      'Fotocopy SK Pangkat terakhir',
+      'Dokumen pendukung sesuai jenis cuti'] }
+  };
+  var rTab = 'A', rSub = 0;
+  function chip(attr, val, label, on, cls) {
+    return '<button type="button" ' + attr + '="' + val + '" class="' + (cls || '') + ' px-3 py-2 rounded-lg text-sm font-semibold border transition ' +
+      (on ? 'bg-blue-700 text-white border-blue-700' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50') + '">' + label + '</button>';
+  }
+  function renderRules() {
+    document.getElementById('rules-tabs').innerHTML = Object.keys(RULES).map(function (k) {
+      return chip('data-rtab', k, RULES[k].t, k === rTab);
+    }).join('');
+    var r = RULES[rTab], h = '';
+    var ol = function (a) { return '<ol class="list-decimal pl-5 space-y-2 text-sm text-slate-700">' + a.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ol>'; };
+    if (r.list) h = ol(r.list);
+    else if (r.items) {
+      h = '<div class="space-y-3">' + r.items.map(function (x) {
+        return '<div class="border border-slate-200 rounded-lg p-3"><p class="font-semibold text-blue-900 text-sm">' + x[0] + '</p><p class="text-sm text-slate-700 mt-1">' + x[1] + '</p></div>';
+      }).join('') + '</div>';
+    } else {
+      var t = r.types[rSub];
+      h = '<div class="flex flex-wrap gap-2 mb-4">' + r.types.map(function (x, i) { return chip('data-rsub', i, x.t, i === rSub); }).join('') + '</div>' +
+        '<div class="border border-slate-200 rounded-lg p-4"><p class="font-semibold text-blue-900 mb-2">' + t.t + '</p>' +
+        '<ol class="list-[lower-alpha] pl-5 space-y-2 text-sm text-slate-700">' + t.pts.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ol></div>';
+    }
+    document.getElementById('rules-body').innerHTML = '<h4 class="font-semibold mb-3">' + r.t + '</h4>' + h;
+  }
+  function empShow(p) {
+    ['menu', 'rules', 'form', 'history'].forEach(function (x) { document.getElementById('emp-' + x).classList.toggle('hidden', x !== p); });
+    if (p === 'rules') renderRules();
+    if (p === 'history') renderEmployeeHistory();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('[data-emp]');
+    if (a) { empShow(a.dataset.emp); return; }
+    var t = e.target.closest('[data-rtab]');
+    if (t) { rTab = t.dataset.rtab; rSub = 0; renderRules(); return; }
+    var u = e.target.closest('[data-rsub]');
+    if (u) { rSub = +u.dataset.rsub; renderRules(); }
+  });
+
+  /* ---------- Signature pad ---------- */
+  var cv = document.getElementById('sig'), cx = cv.getContext('2d'), drawing = false, inked = false;
+  cx.lineWidth = 2.5; cx.lineCap = 'round'; cx.lineJoin = 'round'; cx.strokeStyle = '#111';
+  function pos(e) {
+    var r = cv.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height };
+  }
+  cv.addEventListener('pointerdown', function (e) {
+    drawing = true; inked = true; cv.setPointerCapture(e.pointerId);
+    var p = pos(e); cx.beginPath(); cx.moveTo(p.x, p.y); cx.lineTo(p.x + 0.1, p.y + 0.1); cx.stroke();
+    e.preventDefault();
+  });
+  cv.addEventListener('pointermove', function (e) {
+    if (!drawing) return;
+    var p = pos(e); cx.lineTo(p.x, p.y); cx.stroke(); cx.beginPath(); cx.moveTo(p.x, p.y);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (n) {
+    cv.addEventListener(n, function () { drawing = false; });
+  });
+  function clearSig() { cx.clearRect(0, 0, cv.width, cv.height); inked = false; }
+  document.getElementById('sig-clear').addEventListener('click', clearSig);
+
+  /* ---------- Export Excel (format Formulir Cuti) ---------- */
+  function buildSheet(wb, sn, r) {
+    var ws = wb.addWorksheet(sn, {
+      views: [{ showGridLines: false }],
+      pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 1,
+        horizontalCentered: true, verticalCentered: true, printArea: 'A1:H61', margins: { left: 0.6, right: 0.6, top: 0.6, bottom: 0.6, header: 0.2, footer: 0.2 } }
+    });
+    for (var c = 1; c <= 8; c++) ws.getColumn(c).width = 13;
+    var thin = { style: 'thin' }, GREY = 'FFE7E6E6';
+    function addr(a) { var m = /^([A-Z])(\d+)$/.exec(a); return { c: m[1].charCodeAt(0) - 64, r: +m[2] }; }
+    function put(range, val, o) {
+      o = o || {};
+      var p = range.split(':'), a = addr(p[0]), b = addr(p[1] || p[0]);
+      if (a.c !== b.c || a.r !== b.r) ws.mergeCells(a.r, a.c, b.r, b.c);
+      var cell = ws.getCell(a.r, a.c);
+      cell.value = val;
+      cell.alignment = { vertical: o.v || 'middle', horizontal: o.h || 'left', wrapText: true };
+      cell.font = { name: 'Arial', size: o.size || 10, bold: !!o.b, italic: !!o.i, underline: !!o.u };
+      if (o.fill) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: o.fill } };
+      if (o.box !== false) {
+        for (var rr = a.r; rr <= b.r; rr++) for (var cc = a.c; cc <= b.c; cc++) {
+          ws.getCell(rr, cc).border = { top: thin, left: thin, bottom: thin, right: thin };
+        }
+      }
+    }
+    function head(row, t) { put('A' + row + ':H' + row, t, { b: true, fill: GREY }); }
+    var NB = { box: false };
+    var typeIdx = { Annual: 1, Besar: 2, Sick: 3, Melahirkan: 4, Personal: 5, LuarTanggungan: 6 }[r.type] || 0;
+    var tk = function (n) { return typeIdx === n ? '√' : ''; };
+    var n = days(r.start, r.end);
+    var tgl = new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    var f = function (x) { return x || ''; };
+
+    put('E1:H1', 'Kepada', NB); put('E2:H2', 'Yth. Kepala Distrik Navigasi Tipe B Tg. Priok', NB);
+    put('E3:H3', 'di', NB); put('E4:H4', 'Jakarta', NB);
+    put('A6:H6', 'FORMULIR PERMINTAAN DAN PEMBERIAN CUTI', { b: true, size: 12, h: 'center', box: false });
+    put('A7:D7', 'NOMOR : ' + f(r.letterNumber), NB); put('E7:H7', 'TANGGAL : ' + tgl, NB);
+
+    head(9, 'I. DATA PEGAWAI');
+    put('A10', 'Nama', { b: true }); put('B10:D10', r.name); put('E10', 'NIP', { b: true }); put('F10:H10', f(r.nip));
+    put('A11', 'Jabatan', { b: true }); put('B11:D11', f(r.jabatan)); put('E11', 'Masa Kerja', { b: true }); put('F11:H11', f(r.masa));
+    put('A12', 'Unit Kerja', { b: true }); put('B12:H12', 'Distrik Navigasi Tipe B Tanjung Priok');
+
+    head(14, 'II. JENIS CUTI YANG DIAMBIL**');
+    put('A15:C15', '1. Cuti Tahunan'); put('D15', tk(1), { h: 'center', b: true }); put('E15:G15', '2. Cuti Besar'); put('H15', tk(2), { h: 'center', b: true });
+    put('A16:C16', '3. Cuti Sakit'); put('D16', tk(3), { h: 'center', b: true }); put('E16:G16', '4. Cuti Melahirkan'); put('H16', tk(4), { h: 'center', b: true });
+    put('A17:C17', '5. Cuti Karena Alasan Penting'); put('D17', tk(5), { h: 'center', b: true });
+    put('E17:G17', '6. Cuti di Luar Tanggungan Negara'); put('H17', tk(6), { h: 'center', b: true });
+
+    head(19, 'III. ALASAN CUTI');
+    put('A20:H20', r.reason, { v: 'top' });
+
+    head(22, 'IV. LAMANYA CUTI***');
+    put('A23:C23', 'Selama  ' + n + '  (hari)*');
+    put('D23:H23', 'Tanggal  ' + fmtDate(r.start) + '  s.d.  ' + fmtDate(r.end));
+
+    head(25, 'V. CATATAN CUTI');
+    put('A26:D26', '1. CUTI TAHUNAN 2025/2026', { b: true }); put('E26:G26', 'CUTI BESAR'); put('H26', '');
+    put('A27', 'Tahun', { b: true, h: 'center' }); put('B27', 'Sisa', { b: true, h: 'center' }); put('C27:D27', 'Keterangan', { b: true, h: 'center' });
+    put('E27:G27', 'CUTI SAKIT'); put('H27', '');
+    var yrs = ['N-2', 'N-1', 'N'], rt = ['CUTI MELAHIRKAN', 'CUTI KARENA ALASAN PENTING', 'CUTI DILUAR TANGGUNGAN NEGARA'];
+    for (var i = 0; i < 3; i++) {
+      var rw = 28 + i;
+      put('A' + rw, yrs[i], { h: 'center' }); put('B' + rw, ''); put('C' + rw + ':D' + rw, '');
+      put('E' + rw + ':G' + rw, rt[i]); put('H' + rw, '');
+    }
+
+    head(32, 'VI. ALAMAT SELAMA MENJALANKAN CUTI');
+    put('A33:E39', f(r.alamat), { v: 'top' });
+    put('F33:H33', 'TELP : ' + f(r.telp));
+    put('F34:H34', 'HORMAT SAYA,', { h: 'center', b: true });
+    put('F35:H37', '');
+    put('F38:H38', r.name, { h: 'center', b: true, u: true });
+    put('F39:H39', 'NIP. ' + f(r.nip), { h: 'center' });
+    if (r.sig) {
+      var img = wb.addImage({ base64: r.sig, extension: 'png' });
+      ws.addImage(img, { tl: { col: 5.4, row: 34.1 }, ext: { width: 200, height: 75 } });
+    }
+
+    function decision(top, title, ticks, role, nm, nip) {
+      head(top, title);
+      var lab = ['DISETUJUI', 'PERUBAHAN****', 'DITANGGUHKAN****', 'TIDAK DISETUJUI****'], cols = ['A:B', 'C:D', 'E:F', 'G:H'];
+      for (var k = 0; k < 4; k++) {
+        var cs = cols[k].split(':');
+        put(cs[0] + (top + 1) + ':' + cs[1] + (top + 1), lab[k], { b: true, h: 'center' });
+        put(cs[0] + (top + 2) + ':' + cs[1] + (top + 2), ticks[k] ? '√' : '', { b: true, h: 'center', size: 14 });
+      }
+      put('A' + (top + 3) + ':D' + (top + 8), '');
+      put('E' + (top + 3) + ':H' + (top + 3), role, { h: 'center' });
+      put('E' + (top + 4) + ':H' + (top + 6), '');
+      put('E' + (top + 7) + ':H' + (top + 7), nm, { h: 'center', b: true, u: true });
+      put('E' + (top + 8) + ':H' + (top + 8), nip, { h: 'center' });
+    }
+    decision(41, 'VII. PERSETUJUAN TAHAP 1**', [!!r.firstApprovedAt, false, false, rejectedAtStage(r, 'first')],
+      f(r.firstApproverPosition) || 'Penyetuju Tahap 1', f(r.firstApprover), 'NIP. ' + f(r.atasanNip));
+    decision(51, 'VIII. PERSETUJUAN TAHAP 2**', [!!r.secondApprovedAt, false, false, rejectedAtStage(r, 'second')],
+      f(r.secondApproverPosition) || 'Penyetuju Tahap 2', f(r.secondApprover), '');
+    put('A61:H61', 'Keterangan: tanda √ pada kotak menunjukkan pilihan.', { i: true, size: 8, box: false });
+
+    [5, 8, 13, 18, 21, 24, 31, 40, 50].forEach(function (x) { ws.getRow(x).height = 5; });
+    ws.getRow(17).height = 26; ws.getRow(20).height = 40;
+    [35, 36, 37].forEach(function (x) { ws.getRow(x).height = 22; });
+    [43, 53].forEach(function (x) { ws.getRow(x).height = 22; });
+    [45, 46, 47, 55, 56, 57].forEach(function (x) { ws.getRow(x).height = 16; });
+    /* Samakan rasio isi dengan area cetak A4 (margin 0.6" di semua sisi) agar pas penuh & simetris */
+    var hs = [], cur = 0, i;
+    for (i = 1; i <= 61; i++) { hs[i] = ws.getRow(i).height || 14; cur += hs[i]; }
+    var widthPt = 8 * 72, target = widthPt * ((11.69 - 1.2) / (8.27 - 1.2)), k = target / cur;
+    for (i = 1; i <= 61; i++) ws.getRow(i).height = Math.round(hs[i] * k * 100) / 100;
+  }
+
+  function exportBook(items) {
+    if (!items.length) { toast('Tidak ada data untuk diekspor.'); return; }
+    if (typeof ExcelJS === 'undefined') { toast('Library Excel gagal dimuat. Periksa koneksi internet.'); return; }
+    var wb = new ExcelJS.Workbook(), used = {};
+    items.forEach(function (r) {
+      var nm = String(r.name || 'Cuti').replace(/[\\\/\?\*\[\]:]/g, '').slice(0, 24) || 'Cuti';
+      var sn = nm, k = 2;
+      while (used[sn]) { sn = nm + ' ' + k++; }
+      used[sn] = 1;
+      buildSheet(wb, sn, r);
+    });
+    wb.xlsx.writeBuffer().then(function (buf) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      a.download = items.length === 1 ? 'Formulir_Cuti_' + String(items[0].name).replace(/\s+/g, '_') + '.xlsx' : 'Formulir_Cuti_Semua.xlsx';
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('File Excel berhasil dibuat.');
+    });
+  }
+  function downloadEmployeePdf(id) {
+    var user = activeUser();
+    if (!user || user.role !== 'employee') {
+      toast('Masuk ke akun pemohon untuk mengunduh surat.');
+      return;
+    }
+    var r = load().filter(function (item) {
+      return item.id === id && item.status === 'issued' &&
+        (item.requestedBy === user.nip || (!item.requestedBy && item.nip === user.nip));
+    })[0];
+    if (!r) { toast('Surat tidak ditemukan pada akun pemohon ini.'); return; }
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      toast('Library PDF gagal dimuat. Periksa koneksi internet lalu coba lagi.');
+      return;
+    }
+
+    var doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    var pageWidth = 210, margin = 12, width = pageWidth - margin * 2, y = 10;
+    var lineColor = [71, 85, 105], band = [231, 230, 230];
+    function cell(x, top, w, h, text, options) {
+      options = options || {};
+      doc.setDrawColor.apply(doc, lineColor);
+      doc.setLineWidth(0.2);
+      doc.rect(x, top, w, h);
+      if (options.fill) {
+        doc.setFillColor.apply(doc, options.fill);
+        doc.rect(x, top, w, h, 'F');
+        doc.rect(x, top, w, h);
+      }
+      if (text === '' || text === null || text === undefined) return;
+      doc.setFont('helvetica', options.bold ? 'bold' : 'normal');
+      doc.setFontSize(options.size || 8);
+      doc.setTextColor(15, 23, 42);
+      var lines = doc.splitTextToSize(String(text), Math.max(4, w - 3));
+      var lineHeight = (options.size || 8) * 0.42;
+      var textY = options.valign === 'top' ? top + 4 : top + Math.max(3, (h - lines.length * lineHeight) / 2 + 2);
+      doc.text(lines, x + 1.5, textY);
+    }
+    function section(title) {
+      cell(margin, y, width, 6, title, { bold: true, fill: band, size: 8 });
+      y += 6;
+    }
+    function signatureBlock(x, top, w, h, title, name, nip) {
+      cell(x, top, w, h, '', {});
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(15, 23, 42);
+      doc.text(title, x + w / 2, top + 4, { align: 'center' });
+      doc.setDrawColor(148, 163, 184);
+      doc.setLineDashPattern([1, 1], 0);
+      doc.rect(x + 3, top + 6, w - 6, Math.max(8, h - 16));
+      doc.setLineDashPattern([], 0);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.text(String(name || ' '), x + w / 2, top + h - 7, { align: 'center', maxWidth: w - 4 });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
+      if (nip) doc.text(String(nip), x + w / 2, top + h - 3, { align: 'center' });
+    }
+    function decisionSection(top, title, labels, selected, role, name, nip, signature) {
+      var sectionHeight = 48, col = width / 4;
+      if (top + sectionHeight > 285) {
+        doc.addPage();
+        top = 12;
+      }
+      cell(margin, top, width, 6, title, { bold: true, fill: band, size: 8 });
+      for (var i = 0; i < 4; i++) {
+        var x = margin + i * col;
+        cell(x, top + 6, col, 7, labels[i], { bold: true, size: 6 });
+        cell(x, top + 13, col, 6, selected[i] ? 'X' : '', { bold: true, size: 10 });
+      }
+      cell(margin, top + 19, width / 2, sectionHeight - 19, 'CATATAN / PERTIMBANGAN', { size: 7, valign: 'top' });
+      signatureBlock(margin + width / 2, top + 19, width / 2, sectionHeight - 19, role, name, nip);
+      if (signature) {
+        doc.addImage(signature, 'PNG', margin + width / 2 + 12, top + 21, 36, 11);
+      }
+      return top + sectionHeight;
+    }
+    var typeIdx = { Annual: 1, Besar: 2, Sick: 3, Melahirkan: 4, Personal: 5, LuarTanggungan: 6 }[r.type] || 0;
+    var typeLabels = ['Cuti Tahunan', 'Cuti Besar', 'Cuti Sakit', 'Cuti Melahirkan', 'Cuti Karena Alasan Penting', 'Cuti di Luar Tanggungan Negara'];
+    var dayCount = days(r.start, r.end);
+    var createdDate = new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    var cols = [width / 8, width * 3 / 8, width / 8, width * 3 / 8];
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('Kepada', margin + width * 0.62, y);
+    y += 4;
+    doc.text('Yth. Kepala Distrik Navigasi Tipe B Tg. Priok', margin + width * 0.62, y);
+    y += 4;
+    doc.text('di Jakarta', margin + width * 0.62, y);
+    y += 5;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('FORMULIR PERMINTAAN DAN PEMBERIAN CUTI', pageWidth / 2, y, { align: 'center' });
+    y += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('NOMOR : ' + (r.letterNumber || ''), margin, y);
+    doc.text('TANGGAL : ' + createdDate, margin + width / 2, y);
+    y += 5;
+
+    section('I. DATA PEGAWAI');
+    var fields = [
+      ['Nama', r.name, 'NIP', r.nip],
+      ['Jabatan', r.jabatan, 'Masa Kerja', r.masa],
+      ['Unit Kerja', r.unit || 'Distrik Navigasi Tipe B Tanjung Priok', '', '']
+    ];
+    fields.forEach(function (row) {
+      var rowHeight = 6;
+      cell(margin, y, cols[0], rowHeight, row[0], { bold: true });
+      cell(margin + cols[0], y, cols[1], rowHeight, row[1]);
+      cell(margin + cols[0] + cols[1], y, cols[2], rowHeight, row[2], { bold: true });
+      cell(margin + cols[0] + cols[1] + cols[2], y, cols[3], rowHeight, row[3]);
+      y += rowHeight;
+    });
+
+    section('II. JENIS CUTI YANG DIAMBIL**');
+    for (var tr = 0; tr < 3; tr++) {
+      var leftIdx = tr * 2, rightIdx = leftIdx + 1, rowTop = y;
+      cell(margin, rowTop, width * 0.42, 6, (leftIdx + 1) + '. ' + typeLabels[leftIdx], { size: 7 });
+      cell(margin + width * 0.42, rowTop, width * 0.08, 6, typeIdx === leftIdx + 1 ? 'X' : '', { bold: true, size: 8 });
+      cell(margin + width * 0.5, rowTop, width * 0.42, 6, (rightIdx + 1) + '. ' + typeLabels[rightIdx], { size: 7 });
+      cell(margin + width * 0.92, rowTop, width * 0.08, 6, typeIdx === rightIdx + 1 ? 'X' : '', { bold: true, size: 8 });
+      y += 6;
+    }
+
+    section('III. ALASAN CUTI');
+    var reasonLines = doc.splitTextToSize(String(r.reason || '-'), width - 4);
+    var reasonHeight = Math.max(10, reasonLines.length * 3.5 + 3);
+    cell(margin, y, width, reasonHeight, '', {});
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(reasonLines, margin + 2, y + 4);
+    y += reasonHeight;
+
+    section('IV. LAMANYA CUTI***');
+    cell(margin, y, width * 0.32, 7, 'Selama ' + dayCount + ' (hari)*');
+    cell(margin + width * 0.32, y, width * 0.68, 7, 'Tanggal ' + fmtDate(r.start) + ' s.d. ' + fmtDate(r.end));
+    y += 7;
+
+    section('V. CATATAN CUTI');
+    var half = width / 2;
+    cell(margin, y, half, 5, '1. CUTI TAHUNAN 2025/2026', { bold: true, size: 7 });
+    cell(margin + half, y, half, 5, 'CUTI LAINNYA', { bold: true, size: 7 });
+    y += 5;
+    cell(margin, y, half / 4, 5, 'Tahun', { bold: true, size: 7 });
+    cell(margin + half / 4, y, half / 4, 5, 'Sisa', { bold: true, size: 7 });
+    cell(margin + half / 2, y, half / 2, 5, 'Keterangan', { bold: true, size: 7 });
+    cell(margin + half, y, half, 5, 'Jenis cuti / keterangan', { bold: true, size: 7 });
+    y += 5;
+    ['N-2', 'N-1', 'N'].forEach(function (year) {
+      cell(margin, y, half / 4, 5, year, { size: 7 });
+      cell(margin + half / 4, y, half / 4, 5, '');
+      cell(margin + half / 2, y, half / 2, 5, '');
+      cell(margin + half, y, half, 5, typeIdx > 1 ? typeLabels[typeIdx - 1] : '', { size: 7 });
+      y += 5;
+    });
+
+    section('VI. ALAMAT SELAMA MENJALANKAN CUTI');
+    var addressHeight = 34;
+    cell(margin, y, width * 0.62, addressHeight, r.alamat || '', { valign: 'top' });
+    cell(margin + width * 0.62, y, width * 0.38, 7, 'TELP : ' + (r.telp || ''));
+    signatureBlock(margin + width * 0.62, y + 7, width * 0.38, addressHeight - 7,
+      'HORMAT SAYA,', r.name, 'NIP. ' + (r.nip || ''));
+    if (r.sig) doc.addImage(r.sig, 'PNG', margin + width * 0.62 + 13, y + 14, 34, 6);
+    y += addressHeight;
+
+    var decisionLabels = ['DISETUJUI', 'PERUBAHAN****', 'DITANGGUHKAN****', 'TIDAK DISETUJUI****'];
+    y = decisionSection(y, 'VII. PERSETUJUAN TAHAP 1**', decisionLabels,
+      [!!r.firstApprovedAt, false, false, rejectedAtStage(r, 'first')],
+      r.firstApproverPosition || 'Penyetuju Tahap 1', r.firstApprover, 'NIP. ' + (r.atasanNip || ''), null);
+    y = decisionSection(y, 'VIII. PERSETUJUAN TAHAP 2**', decisionLabels,
+      [!!r.secondApprovedAt, false, false, rejectedAtStage(r, 'second')],
+      r.secondApproverPosition || 'Penyetuju Tahap 2', r.secondApprover, '', null);
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7);
+    doc.text('Keterangan: tanda X pada kotak menunjukkan pilihan. Area bertanda garis putus-putus disediakan untuk tanda tangan basah.', margin, Math.min(y + 4, 288));
+    var filename = String(r.name || 'Pemohon').replace(/[\\\/:*?"<>|]/g, '').trim().replace(/\s+/g, '_') || 'Pemohon';
+    var pdfUrl = URL.createObjectURL(doc.output('blob'));
+    var link = document.createElement('a');
+    link.href = pdfUrl;
+    link.download = 'Surat_Cuti_' + filename + '.pdf';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(function () { URL.revokeObjectURL(pdfUrl); }, 60000);
+    toast('PDF surat cuti berhasil diunduh.');
+  }
+  document.getElementById('btn-all').addEventListener('click', function () {
+    if (!isAdmin1()) { toast('Hanya Admin 1 yang dapat mengekspor seluruh data.'); return; }
+    exportBook(load());
+  });
+
+  /* ---------- Actions (event delegation) ---------- */
+  function update(id, expectedStatus, fn, msg, authorize) {
+    var list = load();
+    var found = false;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) {
+        found = true;
+        if (list[i].status !== expectedStatus) {
+          renderAll();
+          toast('Status pengajuan sudah berubah. Muat ulang antrean sebelum memprosesnya.');
+          return false;
+        }
+        if (authorize && !authorize(list[i])) {
+          renderAll();
+          toast('Tugas ini tidak ditugaskan kepada petugas yang sedang masuk.');
+          return false;
+        }
+        fn(list[i]);
+        break;
+      }
+    }
+    if (!found) { toast('Pengajuan tidak ditemukan.'); return false; }
+    if (!save(list)) return false;
+    renderAll();
+    toast(msg);
+    return true;
+  }
+  document.querySelectorAll('.admin-tab').forEach(function (b) {
+    b.addEventListener('click', function () { adminTab = b.dataset.tab; renderAdmin(); });
+  });
+  document.getElementById('btn-exp-approved').addEventListener('click', function () {
+    exportBook(load().filter(function (r) { return r.status === 'issued'; }));
+  });
+  var requestEditModal = document.getElementById('request-edit-modal');
+  function closeRequestEditModal() {
+    requestEditModal.classList.add('hidden');
+    requestEditModal.classList.remove('flex');
+  }
+  function fillApproverSelect(select, selectedName, allowEmpty) {
+    select.innerHTML = (allowEmpty ? '<option value="">Tidak ada</option>' : '<option value="">Pilih penyetuju...</option>') +
+      APPROVERS.map(function (person) {
+        return '<option value="' + esc(person.nip) + '">' + esc(person.name) + '</option>';
+      }).join('');
+    var selected = approverByNip(
+      (APPROVERS.filter(function (person) { return person.name === selectedName; })[0] || {}).nip || ''
+    );
+    if (selected) select.value = selected.nip;
+    else if (selectedName) {
+      select.insertAdjacentHTML('beforeend', '<option value="' + esc(selectedName) + '">' + esc(selectedName) + ' (data pengajuan)</option>');
+      select.value = selectedName;
+    } else select.value = '';
+  }
+  function openRequestEditModal(id) {
+    if (!isAdmin1()) { toast('Hanya Admin 1 yang dapat mengedit data pengajuan.'); return; }
+    var request = load().filter(function (item) { return item.id === id; })[0];
+    if (!request || request.status !== 'pending_direct') {
+      toast('Pengajuan hanya dapat diedit sebelum diproses penyetuju tahap 1.');
+      renderAll();
+      return;
+    }
+    document.getElementById('request-edit-id').value = request.id;
+    document.getElementById('request-edit-name').value = request.name || '';
+    document.getElementById('request-edit-nip').value = request.nip || '';
+    document.getElementById('request-edit-jabatan').value = request.jabatan || '';
+    document.getElementById('request-edit-masa').value = request.masa || '';
+    document.getElementById('request-edit-unit').value = request.unit || '';
+    document.getElementById('request-edit-type').value = request.type || 'Annual';
+    document.getElementById('request-edit-start').value = request.start || '';
+    document.getElementById('request-edit-end').value = request.end || '';
+    document.getElementById('request-edit-telp').value = request.telp || '';
+    document.getElementById('request-edit-alamat').value = request.alamat || '';
+    document.getElementById('request-edit-reason').value = request.reason || '';
+    fillApproverSelect(document.getElementById('request-edit-approver1'), request.firstApprover, false);
+    fillApproverSelect(document.getElementById('request-edit-approver2'), request.secondApprover, true);
+    document.getElementById('request-edit-error').classList.add('hidden');
+    requestEditModal.classList.remove('hidden');
+    requestEditModal.classList.add('flex');
+  }
+  document.getElementById('request-edit-cancel').addEventListener('click', closeRequestEditModal);
+  requestEditModal.addEventListener('click', function (event) {
+    if (event.target === requestEditModal) closeRequestEditModal();
+  });
+  document.getElementById('request-edit-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    var error = document.getElementById('request-edit-error');
+    error.classList.add('hidden');
+    var id = document.getElementById('request-edit-id').value;
+    var start = document.getElementById('request-edit-start').value;
+    var end = document.getElementById('request-edit-end').value;
+    if (end < start) {
+      error.textContent = 'Tanggal selesai tidak boleh sebelum tanggal mulai.';
+      error.classList.remove('hidden');
+      return;
+    }
+    var firstValue = document.getElementById('request-edit-approver1').value;
+    var secondValue = document.getElementById('request-edit-approver2').value;
+    var first = approverByNip(firstValue);
+    var second = approverByNip(secondValue);
+    var updated = update(id, 'pending_direct', function (request) {
+      request.name = document.getElementById('request-edit-name').value.trim();
+      request.nip = document.getElementById('request-edit-nip').value.trim();
+      request.requestedBy = request.nip;
+      request.jabatan = document.getElementById('request-edit-jabatan').value.trim();
+      request.masa = document.getElementById('request-edit-masa').value.trim();
+      request.unit = document.getElementById('request-edit-unit').value.trim();
+      request.type = document.getElementById('request-edit-type').value;
+      request.start = start;
+      request.end = end;
+      request.telp = document.getElementById('request-edit-telp').value.trim();
+      request.alamat = document.getElementById('request-edit-alamat').value.trim();
+      request.reason = document.getElementById('request-edit-reason').value.trim();
+      request.firstApprover = first ? first.name : firstValue;
+      request.firstApproverPosition = first ? first.title : '';
+      request.secondApprover = second ? second.name : (secondValue || '');
+      request.secondApproverPosition = second ? second.title : '';
+      request.atasan = request.firstApprover;
+      request.atasanNip = first ? first.nip : '';
+    }, 'Data pengajuan berhasil diperbarui.', function () {
+      return isAdmin1();
+    });
+    if (updated) {
+      closeRequestEditModal();
+      showView('admin');
+    }
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-action]');
+    if (!b) return;
+    var id = b.dataset.id;
+    switch (b.dataset.action) {
+      case 'admin-edit-request':
+        openRequestEditModal(id);
+        break;
+      case 'save-approver':
+        if (!isAdmin2()) { toast('Hanya Admin 2 yang dapat mengubah data penyetuju.'); break; }
+        var approver = approverByNip(b.dataset.nip);
+        var nameInput = document.querySelector('.approver-name[data-nip="' + b.dataset.nip + '"]');
+        var emailInput = document.querySelector('.approver-email[data-nip="' + b.dataset.nip + '"]');
+        var nextEmail = emailInput ? emailInput.value.trim() : '';
+        var nextName = nameInput ? nameInput.value.trim() : '';
+        if (!approver || (nextEmail && !emailInput.checkValidity()) || !nextName) {
+          toast('Masukkan nama penyetuju dan alamat email yang valid jika tersedia.');
+          break;
+        }
+        if (staffEmailAlreadyAssigned(nextEmail, approver.nip)) {
+          toast('Email tersebut sudah terdaftar untuk petugas lain.');
+          break;
+        }
+        var oldApproverName = approver.name;
+        staffConfig[approver.nip] = { name: nextName, email: nextEmail };
+        if (!saveStaffConfig()) break;
+        approver.email = nextEmail;
+        approver.name = nextName;
+        if (!updateApproverNameReferences(oldApproverName, nextName, approver.nip)) {
+          toast('Email tersimpan, tetapi antrean pengajuan belum diperbarui. Coba simpan nama lagi.');
+          renderAll();
+          break;
+        }
+        if (testUser && testUser.role === 'approver' && testUser.nip === approver.nip) testUser.name = nextName;
+        renderAll();
+        toast('Nama dan email penyetuju berhasil diperbarui.');
+        break;
+      case 'password-reset':
+        if (!isAdmin2()) { toast('Hanya Admin 2 yang dapat meminta reset password.'); break; }
+        var resetApprover = approverByNip(id);
+        if (!supabaseClient || !resetApprover || !resetApprover.email) {
+          toast('Alamat email Supabase penyetuju belum tersedia.');
+          break;
+        }
+        supabaseClient.auth.resetPasswordForEmail(resetApprover.email, { redirectTo: window.location.href.split('#')[0] }).then(function (result) {
+          if (result.error) throw result.error;
+          toast('Tautan reset password dikirim ke ' + resetApprover.email + '.');
+        }).catch(function (error) {
+          console.error('Pengiriman tautan reset password gagal:', error);
+          toast(authErrorMessage(error));
+        });
+        break;
+      case 'export':
+        exportBook(load().filter(function (r) { return r.id === id; })); break;
+      case 'employee-pdf':
+        downloadEmployeePdf(id); break;
+      case 'first-approve':
+        var firstApproverUser = activeUser();
+        if (update(id, 'pending_direct', function (r) {
+          r.firstApprovedAt = Date.now();
+          r.firstApprovedBy = firstApproverUser.name;
+          r.status = r.secondApprover ? 'pending_next' : 'pending_correspondence';
+        }, 'Persetujuan tahap 1 selesai dan pengajuan diteruskan.', function (r) {
+          return firstApproverUser && firstApproverUser.role === 'approver' && r.firstApprover === firstApproverUser.name;
+        })) showView('approver');
+        break;
+      case 'first-reject':
+        var firstRejectingUser = activeUser();
+        update(id, 'pending_direct', function (r) {
+          r.status = 'rejected'; r.rejectedBy = firstRejectingUser.name; r.rejectedStage = 'first';
+        }, 'Pengajuan ditolak pada tahap 1.', function (r) {
+          return firstRejectingUser && firstRejectingUser.role === 'approver' && r.firstApprover === firstRejectingUser.name;
+        });
+        break;
+      case 'second-approve':
+        var secondApproverUser = activeUser();
+        if (update(id, 'pending_next', function (r) {
+          r.status = 'pending_correspondence';
+          r.secondApprovedAt = Date.now();
+          r.secondApprovedBy = secondApproverUser.name;
+        }, 'Persetujuan tahap 2 selesai dan diteruskan ke Persuratan.', function (r) {
+          return secondApproverUser && secondApproverUser.role === 'approver' && r.secondApprover === secondApproverUser.name;
+        })) showView('approver');
+        break;
+      case 'second-reject':
+        var secondRejectingUser = activeUser();
+        update(id, 'pending_next', function (r) {
+          r.status = 'rejected'; r.rejectedBy = secondRejectingUser.name; r.rejectedStage = 'second';
+        }, 'Pengajuan ditolak pada tahap 2.', function (r) {
+          return secondRejectingUser && secondRejectingUser.role === 'approver' && r.secondApprover === secondRejectingUser.name;
+        });
+        break;
+      case 'correspondence-issue-number':
+        openLetterNumberModal(id);
+        break;
+      case 'admin-issue':
+        var issuingAdmin = activeUser();
+        if (!issuingAdmin || issuingAdmin.role !== 'admin') {
+          toast('Hanya Admin yang dapat menerbitkan surat.');
+          break;
+        }
+        var readyForIssue = load().filter(function (r) { return r.id === id; })[0];
+        if (!readyForIssue || !readyForIssue.letterNumber) {
+          toast('Nomor surat dari Persuratan belum tersedia.');
+          break;
+        }
+        update(id, 'pending_admin_issue', function (r) {
+          r.status = 'issued';
+          r.issuedAt = Date.now();
+          r.issuedBy = issuingAdmin && issuingAdmin.role === 'admin' ? issuingAdmin.name : 'Admin';
+          r.letterDeliveredAt = Date.now();
+          r.letterDeliveredTo = r.requestedBy || r.nip;
+        }, 'Surat diterbitkan dan PDF tersedia di riwayat akun pemohon.', function () {
+          return issuingAdmin && issuingAdmin.role === 'admin';
+        });
+        break;
+    }
+  });
+
+  /* ---------- Reset ---------- */
+  document.getElementById('btn-reset').addEventListener('click', function () {
+    if (!isAdmin1()) { toast('Hanya Admin 1 yang dapat menghapus data.'); return; }
+    if (confirm('Hapus semua data pengajuan cuti?') && save([])) { renderAll(); toast('Semua data dihapus.'); }
+  });
+
+  /* ---------- Init ---------- */
+  showView('home');
+})();
+</script>
+</body>
+</html>
