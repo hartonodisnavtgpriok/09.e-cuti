@@ -79,14 +79,14 @@
         <button type="button" id="tab-signup" class="auth-tab px-3 py-2 rounded-md text-slate-600 transition">Daftar</button>
       </div>
 
-      <form id="login-form" class="space-y-4" novalidate>
+      <form id="login-form" class="space-y-4" novalidate autocomplete="off">
         <div>
           <label class="lb" for="login-email">Email</label>
-          <input id="login-email" class="inp" type="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="nama@email.com" required>
+          <input id="login-email" class="inp" type="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="nama@email.com" required>
         </div>
         <div>
           <label class="lb" for="login-password">Kata sandi</label>
-          <input id="login-password" class="inp" type="password" autocomplete="current-password" required>
+          <input id="login-password" class="inp" type="password" autocomplete="off" required>
         </div>
         <div id="login-link-wrap" class="hidden">
           <label class="lb" for="login-link">Nama / NIP Pegawai</label>
@@ -101,7 +101,7 @@
         </div>
       </form>
 
-      <form id="signup-form" class="hidden space-y-4" novalidate>
+      <form id="signup-form" class="hidden space-y-4" novalidate autocomplete="off">
         <div>
           <label class="lb" for="signup-name">Nama / NIP Pegawai</label>
           <input id="signup-name" class="inp" type="text" list="emp-list" autocomplete="off" placeholder="Ketik nama atau NIP, lalu pilih dari saran">
@@ -109,7 +109,7 @@
         </div>
         <div>
           <label class="lb" for="signup-email">Email</label>
-          <input id="signup-email" class="inp" type="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="email" placeholder="nama@email.com" required>
+          <input id="signup-email" class="inp" type="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="nama@email.com" required>
         </div>
         <div>
           <label class="lb" for="signup-password">Kata sandi (min. 8 karakter)</label>
@@ -263,6 +263,12 @@
       <p class="text-xs text-slate-500 mb-4">Perubahan nama dan email penyetuju tersimpan di browser ini saja; perubahan tidak mengubah akun Auth atau tersinkron antar perangkat.</p>
       <div id="admin2-approver-table"></div>
     </div>
+    <div class="staff-leave-card bg-white rounded-xl shadow p-4 mb-5 flex flex-wrap items-center gap-3">
+      <div class="mr-auto"><p class="font-semibold text-blue-900">Cuti Saya</p><p class="text-xs text-slate-500">Ajukan cuti pribadi dengan aturan dan alur persetujuan yang sama seperti pegawai lain.</p></div>
+      <button type="button" data-staff-emp="rules" class="px-4 py-2 rounded-lg text-sm font-semibold bg-white border border-blue-300 text-blue-800 hover:bg-blue-50">📘 Aturan</button>
+      <button type="button" data-staff-emp="form" class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 hover:bg-blue-800 text-white">📝 Ajukan Cuti</button>
+      <button type="button" data-staff-emp="history" class="px-4 py-2 rounded-lg text-sm font-semibold bg-white border border-blue-300 text-blue-800 hover:bg-blue-50">📄 Riwayat Saya</button>
+    </div>
     <div id="admin-stats" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
     <div class="bg-white rounded-xl shadow p-5">
       <div class="flex flex-wrap gap-2 mb-4">
@@ -282,6 +288,12 @@
     <div class="mb-5">
       <h2 class="text-2xl font-bold">Halaman Penyetuju <span id="approver-person-name"></span></h2>
       <p class="text-slate-500 text-sm">Tugas yang tampil hanya pengajuan yang ditujukan kepada Anda pada tahap persetujuan terkait.</p>
+    </div>
+    <div class="staff-leave-card bg-white rounded-xl shadow p-4 mb-5 flex flex-wrap items-center gap-3">
+      <div class="mr-auto"><p class="font-semibold text-blue-900">Cuti Saya</p><p class="text-xs text-slate-500">Ajukan cuti pribadi dengan aturan dan alur persetujuan yang sama seperti pegawai lain.</p></div>
+      <button type="button" data-staff-emp="rules" class="px-4 py-2 rounded-lg text-sm font-semibold bg-white border border-blue-300 text-blue-800 hover:bg-blue-50">📘 Aturan</button>
+      <button type="button" data-staff-emp="form" class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 hover:bg-blue-800 text-white">📝 Ajukan Cuti</button>
+      <button type="button" data-staff-emp="history" class="px-4 py-2 rounded-lg text-sm font-semibold bg-white border border-blue-300 text-blue-800 hover:bg-blue-50">📄 Riwayat Saya</button>
     </div>
     <div id="approver-stats" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
     <div class="bg-white rounded-xl shadow p-5 mb-6">
@@ -304,6 +316,12 @@
       <h2 class="text-2xl font-bold">Halaman Persuratan</h2>
       <p class="text-slate-500 text-sm">Terbitkan nomor surat untuk pengajuan yang telah disetujui Kabag/Kabid.</p>
       <p class="text-xs text-amber-700 mt-1">Nomor awal CUTI/YYYY/NNNN merupakan format simulasi; sesuaikan dengan tata naskah dinas yang berlaku.</p>
+    </div>
+    <div class="staff-leave-card bg-white rounded-xl shadow p-4 mb-5 flex flex-wrap items-center gap-3">
+      <div class="mr-auto"><p class="font-semibold text-blue-900">Cuti Saya</p><p class="text-xs text-slate-500">Ajukan cuti pribadi dengan aturan dan alur persetujuan yang sama seperti pegawai lain.</p></div>
+      <button type="button" data-staff-emp="rules" class="px-4 py-2 rounded-lg text-sm font-semibold bg-white border border-blue-300 text-blue-800 hover:bg-blue-50">📘 Aturan</button>
+      <button type="button" data-staff-emp="form" class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 hover:bg-blue-800 text-white">📝 Ajukan Cuti</button>
+      <button type="button" data-staff-emp="history" class="px-4 py-2 rounded-lg text-sm font-semibold bg-white border border-blue-300 text-blue-800 hover:bg-blue-50">📄 Riwayat Saya</button>
     </div>
     <div id="correspondence-stats" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5"></div>
     <div class="bg-white rounded-xl shadow p-5 mb-6">
@@ -888,15 +906,15 @@
     var allViews = ['employee', 'approver', 'correspondence', 'admin'];
     if (isAdmin2()) {
       if (v !== 'home' && v !== 'login' && allViews.indexOf(v) === -1) v = roleView;
-    } else if (roleView && v !== 'home' && v !== 'login' && v !== roleView) v = roleView;
+    } else if (roleView && v !== 'home' && v !== 'login' && v !== roleView && !(v === 'employee' && applicantProfile(user))) v = roleView;
     document.querySelectorAll('.view').forEach(function (s) { s.classList.toggle('active', s.id === 'view-' + v); });
     document.querySelectorAll('.nav-btn').forEach(function (b) {
       b.classList.toggle('active', b.dataset.view === v);
-      b.classList.toggle('hidden', !currentUser || (!isAdmin2() && b.dataset.view !== roleView));
+      b.classList.toggle('hidden', !currentUser || (!isAdmin2() && b.dataset.view !== roleView && !(b.dataset.view === 'employee' && applicantProfile(user))));
     });
     document.querySelectorAll('.nav-btn').forEach(function (b) {
       if (b.dataset.view === 'approver') b.textContent = user && user.role === 'approver' ? user.name : 'Halaman Penyetuju';
-      if (isAdmin2() && b.dataset.view === 'employee') b.textContent = 'Profil & Pengajuan';
+      if (b.dataset.view === 'employee') b.textContent = (user && user.role !== 'employee' && !isAdmin2()) ? 'Pengajuan Cuti Saya' : 'Profil & Pengajuan';
       if (b.dataset.view === 'admin') b.textContent = user && user.role === 'admin' ? user.name : 'Admin';
     });
     document.getElementById('main-nav').classList.toggle('hidden', !currentUser);
@@ -924,9 +942,10 @@
     e.preventDefault();
     errEl.classList.add('hidden');
     var user = activeUser();
-    if (!user || user.role !== 'employee') {
-      showErr('Silakan masuk menggunakan akun Pegawai sebelum mengajukan cuti.');
-      showView('login');
+    var prof = applicantProfile(user);
+    if (!user || !prof) {
+      showErr('Silakan masuk dengan akun yang terdaftar di daftar pegawai sebelum mengajukan cuti.');
+      showView(user ? 'employee' : 'login');
       return;
     }
     var name = document.getElementById('f-name').value.trim();
@@ -935,23 +954,25 @@
     var end = document.getElementById('f-end').value;
     var reason = document.getElementById('f-reason').value.trim();
     var v = function (id) { return document.getElementById(id).value.trim(); };
+    if (!document.getElementById('f-nip').value) { showErr('Ketik minimal 3 huruf nama atau NIP Anda, lalu pilih dari saran agar data terisi otomatis.'); return; }
     if (!name || !start || !end || !reason) { showErr('Nama, tanggal, dan alasan wajib diisi.'); return; }
     if (!inked) { showErr('Tanda tangan pemohon wajib diisi.'); return; }
     if (end < start) { showErr('Tanggal selesai tidak boleh sebelum tanggal mulai.'); return; }
     var list = load();
-    var route = resolveRoute(user.profile);
+    var route = resolveRoute(prof);
+    if (!route.first) { showErr('Rute persetujuan untuk jabatan Anda belum diatur. Hubungi Admin.'); return; }
     list.push({
       id: 'r' + Date.now() + Math.floor(Math.random() * 1000),
       name: user.name, type: type, start: start, end: end, reason: reason,
-      nip: user.nip, masa: masaKerja(user.nip), jabatan: user.profile.j, alamat: v('f-alamat'), telp: v('f-telp'),
+      nip: user.nip, masa: masaKerja(user.nip), jabatan: prof.j, alamat: v('f-alamat'), telp: v('f-telp'),
       atasan: route.first, atasanNip: v('f-atasan-nip'), sig: cv.toDataURL('image/png'),
-      unit: user.profile.unit, unitCode: user.profile.unitCode,
+      unit: prof.unit, unitCode: prof.unitCode,
       firstApprover: route.first, firstApproverPosition: route.firstPosition,
       secondApprover: route.second, secondApproverPosition: route.secondPosition,
       status: 'pending_direct', createdAt: Date.now(), requestedBy: user.nip
     });
     if (!save(list)) return;
-    form.reset(); clearSig();
+    form.reset(); clearSig(); fillApplicant();
     renderAll();
     toast('Pengajuan terkirim kepada ' + (route.first || 'penyetuju tahap 1') + '.');
     showView('employee');
@@ -1331,7 +1352,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     { name: 'LUSI ANDAYANI, S.T., M.MTr', nip: '19740601 200212 2 001', title: 'Kepala Bidang Layanan SBNP dan Armada', email: 'lusi_andayani@dephub.co.id' },
     { name: 'R. ACHMAD ANDRIAZ PRAMUDYA W, ST, M.Si', nip: '19720918 199903 1 003', title: 'Kepala Seksi Layanan Armada', email: 'r_achmad1809@dephub.co.id' },
     { name: 'ROHANI ALMUTMAINAH, S.SI, M.M.Tr', nip: '19770801 200502 2 001', title: 'Kepala Seksi Layanan Sarana Bantu Navigasi Pelayaran', email: 'rohani_almutmainah@dephub.co.id' },
-    { name: 'PADLANI, ST., M.MTr', nip: '19680915 199803 1 002', title: 'Kepala Seksi Layanan Alur Pelayaran', email: '' },
+    { name: 'PADLANI, ST., M.MTr', nip: '19680915 199803 1 002', title: 'Kepala Seksi Layanan Alur Pelayaran', email: 'jangkarmiring001@gmail.com' },
     { name: 'Capt. MARDIANTIKA SANGGUR, M.M.Tr.', nip: '19700323 200212 2 002', title: 'Kepala Seksi Layanan Telkompel', email: 'Mardiantika_sanggur@dephub.co.id' },
     { name: 'JUNI TARULIASI HUTAPEA, S.Psi, M.MTr', nip: '19750626 199703 2 001', title: 'Kepala Sub Bagian Sumber Daya Manusia dan Umum', email: 'Juni_tarulasi@dephub.co.id' },
     { name: 'EVRINA HERMAWATI, S.E., M.B.A.', nip: '19790111 200212 2 001', title: 'Kepala Sub Bagian Perencanaan dan Keuangan', email: 'Evrina_hermawati@dephub.co.id' },
@@ -1441,6 +1462,21 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       })
     );
   }
+  /* Profil pemohon cuti: pegawai biasa memakai profilnya; penyetuju/admin/persuratan dicocokkan lewat NIP ke daftar pegawai. */
+  function applicantProfile(user) {
+    if (!user) return null;
+    if (user.profile) return user.profile;
+    return EMP.filter(function (e) { return e.nip === user.nip; })[0] || null;
+  }
+  /* Form dikosongkan; data pemohon baru terisi setelah mengetik 3 huruf nama/NIP dan memilih saran. */
+  function fillApplicant() {
+    ['f-name', 'f-nip', 'f-jab', 'f-masa', 'f-atasan', 'f-atasan-nip'].forEach(function (id) {
+      var el = document.getElementById(id);
+      el.value = '';
+      el.readOnly = id !== 'f-name';
+    });
+    pickedName = '';
+  }
   function isAdmin1() {
     return currentUser && currentUser.role === 'admin' && currentUser.nip === ADMINS[0].nip;
   }
@@ -1484,7 +1520,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     testUser = person;
     document.getElementById('admin2-test-status').textContent = 'Mode uji berjalan sebagai ' + person.name + '.';
     updatePushButton();
-    if (role === 'employee') pick(person.profile);
+    fillApplicant();
     showView(role);
   });
   function stopTestMode() {
@@ -1494,6 +1530,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     document.getElementById('leave-form').reset();
     clearSig();
     updatePushButton();
+    fillApplicant();
     showView('admin');
   }
   document.getElementById('btn-stop-test').addEventListener('click', stopTestMode);
@@ -1501,9 +1538,20 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
   /* ---------- Login & pendaftaran mandiri (Supabase Auth) ---------- */
   var pendingUser = null, authRestored = false;
   var empList = document.getElementById('emp-list');
-  empList.innerHTML = EMP.map(function (e) {
-    return '<option value="' + esc(e.n + ' - ' + e.nip) + '"></option>';
-  }).join('');
+  /* Saran nama/NIP di login & daftar baru muncul setelah mengetik minimal 3 huruf. */
+  empList.innerHTML = '';
+  function updateEmpList(q) {
+    var t = String(q || '').trim().toLowerCase(), tn = t.replace(/\s+/g, '');
+    if (t.length < 3) { empList.innerHTML = ''; return; }
+    empList.innerHTML = EMP.filter(function (e) {
+      return e.n.toLowerCase().indexOf(t) !== -1 || e.nip.replace(/\s+/g, '').indexOf(tn) === 0;
+    }).slice(0, 8).map(function (e) {
+      return '<option value="' + esc(e.n + ' - ' + e.nip) + '"></option>';
+    }).join('');
+  }
+  ['signup-name', 'login-link'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', function () { updateEmpList(this.value); });
+  });
   function normId(v) { return String(v || '').toLowerCase().replace(/\s+/g, ''); }
   function findEmployee(q) {
     var n = normId(q);
@@ -1584,7 +1632,6 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     startRequestsSync();
     registerPush(false);
     updatePushButton();
-    if (u.role === 'employee') pick(u.profile);
     resendBtn.classList.add('hidden');
     linkWrap.classList.add('hidden');
     document.getElementById('login-form').reset();
@@ -1715,6 +1762,8 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     }).then(function (result) {
       if (result && result.error) throw result.error;
       currentUser = null; testUser = null; pendingUser = null;
+      document.getElementById('login-form').reset(); document.getElementById('signup-form').reset();
+      document.getElementById('login-link-wrap').classList.add('hidden');
       updatePushButton();
       showView('home');
     }).catch(function (error) {
@@ -1734,13 +1783,11 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     var el = document.getElementById('employee-profile');
     if (!el) return;
     var user = activeUser();
-    if (!user || user.role !== 'employee') {
-      el.innerHTML = '<p class="text-sm text-slate-500">' + (isAdmin2()
-        ? 'Pilih peran Pegawai di Mode Uji Live Admin 2 untuk menguji pengajuan cuti.'
-        : 'Masuk sebagai pegawai untuk melihat profil dan membuat pengajuan.') + '</p>';
+    var p = applicantProfile(user);
+    if (!user || !p) {
+      el.innerHTML = '<p class="text-sm text-slate-500">Masuk dengan akun yang terdaftar di daftar pegawai untuk melihat profil dan membuat pengajuan.</p>';
       return;
     }
-    var p = user.profile;
     el.innerHTML = '<div class="flex items-start gap-3"><div class="w-11 h-11 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-xl">👤</div>' +
       '<div><h3 class="font-semibold text-blue-900">' + esc(user.name) + '</h3><p class="text-sm text-slate-600">NIP ' + esc(user.nip) + '</p>' +
       '<p class="text-sm text-slate-500">' + esc(p.j || 'Jabatan belum tercatat') + ' · ' + esc(p.unit || 'Unit kerja belum tercatat') + '</p></div></div>';
@@ -1749,8 +1796,8 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     var el = document.getElementById('employee-history-table');
     if (!el) return;
     var user = activeUser();
-    if (!user || user.role !== 'employee') {
-      el.innerHTML = empty('🔒', 'Silakan masuk sebagai pegawai', 'Riwayat cuti hanya tersedia untuk akun pemohon.');
+    if (!user || !applicantProfile(user)) {
+      el.innerHTML = empty('🔒', 'Silakan masuk terlebih dahulu', 'Riwayat cuti hanya tersedia untuk akun pemohon.');
       return;
     }
     var own = load().filter(function (r) {
@@ -1779,6 +1826,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     if (t < 0) return '';
     return Math.floor(t / 12) + ' th ' + (t % 12) + ' bln';
   }
+  var pickedName = '';
   var nameIn = document.getElementById('f-name'), sugg = document.createElement('div'), sIdx = -1, sList = [];
   sugg.className = 'hidden absolute left-0 right-0 top-full mt-1 z-20 bg-white border border-slate-300 rounded-lg shadow-lg max-h-64 overflow-auto';
   nameIn.parentNode.style.position = 'relative';
@@ -1793,15 +1841,18 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     var approver = Object.keys(HEAD).map(function (code) { return HEAD[code]; })
       .filter(function (person) { return person[0] === route.first; })[0];
     document.getElementById('f-atasan-nip').value = approver ? approver[1] : e.anip;
-    ['f-name', 'f-nip', 'f-jab', 'f-masa', 'f-atasan', 'f-atasan-nip'].forEach(function (id) {
-      document.getElementById(id).readOnly = activeUser() && activeUser().role === 'employee';
-    });
+    pickedName = e.n;
     sugg.classList.add('hidden');
   }
   function showSugg() {
     var q = nameIn.value.trim().toLowerCase().replace(/\s+/g, ' '), qn = q.replace(/\s+/g, '');
-    if (q.length < 2) { sugg.classList.add('hidden'); return; }
-    sList = EMP.filter(function (e) { return e.n.toLowerCase().indexOf(q) !== -1 || e.nip.replace(/\s+/g, '').indexOf(qn) === 0; }).slice(0, 8);
+    if (pickedName && nameIn.value !== pickedName) {
+      ['f-nip', 'f-jab', 'f-masa', 'f-atasan', 'f-atasan-nip'].forEach(function (id) { document.getElementById(id).value = ''; });
+      pickedName = '';
+    }
+    if (q.length < 3) { sugg.classList.add('hidden'); return; }
+    var own = applicantProfile(activeUser());
+    sList = own && (own.n.toLowerCase().indexOf(q) !== -1 || own.nip.replace(/\s+/g, '').indexOf(qn) === 0) ? [own] : [];
     sIdx = -1;
     if (!sList.length) { sugg.classList.add('hidden'); return; }
     sugg.innerHTML = sList.map(function (e, i) {
@@ -1904,9 +1955,12 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     ['menu', 'rules', 'form', 'history'].forEach(function (x) { document.getElementById('emp-' + x).classList.toggle('hidden', x !== p); });
     if (p === 'rules') renderRules();
     if (p === 'history') renderEmployeeHistory();
+    if (p === 'form') fillApplicant();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   document.addEventListener('click', function (e) {
+    var sb = e.target.closest('[data-staff-emp]');
+    if (sb) { showView('employee'); empShow(sb.dataset.staffEmp); return; }
     var a = e.target.closest('[data-emp]');
     if (a) { empShow(a.dataset.emp); return; }
     var t = e.target.closest('[data-rtab]');
@@ -2069,7 +2123,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
   }
   function downloadEmployeePdf(id) {
     var user = activeUser();
-    if (!user || user.role !== 'employee') {
+    if (!user || !applicantProfile(user)) {
       toast('Masuk ke akun pemohon untuk mengunduh surat.');
       return;
     }
