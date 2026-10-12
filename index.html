@@ -10,6 +10,12 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <style>
+  .adm-sum{list-style:none}.adm-sum::-webkit-details-marker{display:none}
+  .adm-sum:hover{background:#f8fafc}
+  .adm-state::after{content:"Buka"}
+  details[open]>.adm-sum .adm-state::after{content:"Minimize"}
+  .adm-chev{transition:transform .2s}details[open]>.adm-sum .adm-chev{transform:rotate(180deg)}
+  details[open]>.adm-sum{border-bottom:1px solid #e2e8f0;border-bottom-left-radius:0;border-bottom-right-radius:0;margin-bottom:1rem}
   .nav-btn.active{background:#fff;color:#1e3a8a;box-shadow:0 1px 3px rgba(0,0,0,.2)}
   html{overflow-y:scroll;scrollbar-gutter:stable}
   body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100vh;height:100lvh;transform:translateZ(0);z-index:-1;background-color:#e2e8f0;
@@ -228,9 +234,9 @@
       <h2 class="text-2xl font-bold">Halaman Admin <span id="admin-person-name"></span></h2>
       <p class="text-slate-500 text-sm">Terbitkan surat yang sudah disetujui berjenjang dan diberi nomor oleh Persuratan.</p>
     </div>
-    <div id="admin2-approver-management" class="hidden bg-white rounded-xl shadow p-5 mb-5">
-      <div class="mb-5 rounded-xl border border-amber-300 bg-amber-50 p-4">
-        <h3 class="font-semibold text-lg text-amber-900">Mode Uji Live — Admin 2</h3>
+    <div id="admin2-approver-management" class="hidden mb-5 space-y-4">
+    <details class="adm-sec bg-white rounded-xl shadow" data-sec="test"><summary class="adm-sum flex items-center justify-between gap-3 cursor-pointer select-none px-5 py-4 rounded-xl"><span class="min-w-0"><span class="block font-semibold text-lg text-amber-900">Mode Uji Live — Admin 2</span><span class="block text-xs text-slate-500">Uji alur sebagai peran lain</span></span><span class="flex items-center gap-2 shrink-0"><span class="adm-state text-xs font-medium text-blue-700"></span><svg class="adm-chev h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.2 7.7a1 1 0 0 1 1.4 0L10 11.1l3.4-3.4a1 1 0 1 1 1.4 1.4l-4.1 4.1a1 1 0 0 1-1.4 0L5.2 9.1a1 1 0 0 1 0-1.4z" clip-rule="evenodd"/></svg></span></summary>
+      <div class="px-5 pb-5"><div class="rounded-xl border border-amber-300 bg-amber-50 p-4">
         <p class="text-sm text-amber-800 mt-1 mb-3">Pilih peran dan identitas untuk menguji alur pada data Supabase bersama. Aksi mengubah data sungguhan dan mencatat nama simulasi, tetapi tetap memakai sesi Admin 2—bukan menguji izin RLS akun peran tersebut—serta tidak mengirim notifikasi sebagai pengguna yang dipilih.</p>
         <div class="grid sm:grid-cols-2 gap-3">
           <div>
@@ -252,10 +258,11 @@
           <button type="button" id="btn-start-test" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">Mulai mode uji</button>
           <span id="admin2-test-status" class="text-sm text-amber-900"></span>
         </div>
-      </div>
-      <div class="border-t border-slate-200 mt-5 pt-5 mb-5">
-        <h3 class="font-semibold text-lg text-blue-900">Tautan Media Sosial</h3>
-        <p class="text-sm text-slate-600 mt-1 mb-4">Isi tautan yang dibuka dari ikon di bawah logo. Pengaturan tersimpan di browser ini saja.</p>
+      </div></div>
+    </details>
+    <details class="adm-sec bg-white rounded-xl shadow" data-sec="social"><summary class="adm-sum flex items-center justify-between gap-3 cursor-pointer select-none px-5 py-4 rounded-xl"><span class="min-w-0"><span class="block font-semibold text-lg text-blue-900">Tautan Media Sosial</span><span class="block text-xs text-slate-500">Tautan ikon di bawah logo halaman utama</span></span><span class="flex items-center gap-2 shrink-0"><span class="adm-state text-xs font-medium text-blue-700"></span><svg class="adm-chev h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.2 7.7a1 1 0 0 1 1.4 0L10 11.1l3.4-3.4a1 1 0 1 1 1.4 1.4l-4.1 4.1a1 1 0 0 1-1.4 0L5.2 9.1a1 1 0 0 1 0-1.4z" clip-rule="evenodd"/></svg></span></summary>
+      <div class="px-5 pb-5">
+        <p class="text-sm text-slate-600 mb-4">Isi tautan yang dibuka dari ikon di bawah logo. Tautan tersimpan di server dan tersinkron antar perangkat.</p>
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div><label class="lb" for="admin2-social-youtube">YouTube</label><input id="admin2-social-youtube" class="inp" type="url" placeholder="https://youtube.com/@akun"></div>
           <div><label class="lb" for="admin2-social-facebook">Facebook</label><input id="admin2-social-facebook" class="inp" type="url" placeholder="https://facebook.com/akun"></div>
@@ -268,8 +275,11 @@
           <span id="admin2-social-status" class="text-sm text-green-700" role="status"></span>
         </div>
       </div>
+    </details>
+    <details class="adm-sec bg-white rounded-xl shadow" data-sec="staff"><summary class="adm-sum flex items-center justify-between gap-3 cursor-pointer select-none px-5 py-4 rounded-xl"><span class="min-w-0"><span class="block font-semibold text-lg text-blue-900">Pengisian Email — Data Penyetuju &amp; Akun</span><span class="block text-xs text-slate-500">Tambah petugas dan perbarui nama/email penyetuju</span></span><span class="flex items-center gap-2 shrink-0"><span class="adm-state text-xs font-medium text-blue-700"></span><svg class="adm-chev h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.2 7.7a1 1 0 0 1 1.4 0L10 11.1l3.4-3.4a1 1 0 1 1 1.4 1.4l-4.1 4.1a1 1 0 0 1-1.4 0L5.2 9.1a1 1 0 0 1 0-1.4z" clip-rule="evenodd"/></svg></span></summary>
+      <div class="px-5 pb-5">
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h3 class="font-semibold text-lg text-blue-900">Data Penyetuju &amp; Akun</h3>
+        <p class="text-sm text-slate-600">Tambah petugas baru atau perbarui email kontak penyetuju.</p>
         <div class="flex flex-wrap gap-2">
           <button type="button" data-add-staff-role="approver" aria-expanded="false" aria-controls="admin2-add-staff-panel" class="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"><span aria-hidden="true" class="text-lg leading-none">+</span>Tambah Penyetuju</button>
           <button type="button" data-add-staff-role="correspondence" aria-expanded="false" aria-controls="admin2-add-staff-panel" class="inline-flex items-center gap-2 rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800"><span aria-hidden="true" class="text-lg leading-none">+</span>Tambah Persuratan</button>
@@ -278,7 +288,7 @@
       </div>
       <div id="admin2-add-staff-panel" class="hidden mb-5 rounded-lg border border-blue-200 bg-blue-50/50 p-4">
         <h4 id="admin2-add-staff-heading" class="mb-1 font-semibold text-blue-900"></h4>
-        <p class="mb-3 text-sm text-slate-600">Email harus cocok dengan akun Auth Supabase. Data akun baru tersimpan di browser ini.</p>
+        <p class="mb-3 text-sm text-slate-600">Email harus cocok dengan akun Auth Supabase. Data akun baru tersimpan di server dan tersinkron antar perangkat.</p>
         <form id="admin2-add-staff-form" class="grid gap-3 sm:grid-cols-2">
           <div><label class="lb" for="admin2-add-staff-name">Nama lengkap</label><input id="admin2-add-staff-name" class="inp" type="text" required></div>
           <div><label class="lb" for="admin2-add-staff-nip">NIP</label><input id="admin2-add-staff-nip" class="inp" type="text" required></div>
@@ -293,8 +303,10 @@
       </div>
       <p class="text-sm text-slate-600 mt-1 mb-4">Perbarui nama dan email kontak penyetuju untuk pencocokan peran aplikasi. Email yang dicatat di sini tidak mengubah email login akun Supabase. Email login pengguna tidak dapat diubah dari halaman ini.</p>
       <p class="text-xs text-amber-700 bg-amber-50 rounded-lg p-3 mb-4">Password tidak dapat dilihat. Gunakan tombol kirim tautan reset password agar pemilik email mengatur password baru sendiri. Alamat email harus cocok dengan akun Supabase.</p>
-      <p class="text-xs text-slate-500 mb-4">Perubahan nama dan email penyetuju tersimpan di browser ini saja; perubahan tidak mengubah akun Auth atau tersinkron antar perangkat.</p>
+      <p class="text-xs text-slate-500 mb-4">Perubahan nama dan email penyetuju tersimpan di server dan tersinkron antar perangkat; perubahan tidak mengubah akun Auth.</p>
       <div id="admin2-approver-table"></div>
+      </div>
+    </details>
     </div>
     <div class="staff-leave-card bg-white rounded-xl shadow p-4 mb-5 flex flex-wrap items-center gap-3">
       <div class="mr-auto"><p class="font-semibold text-blue-900">Cuti Saya</p><p class="text-xs text-slate-500">Ajukan cuti pribadi dengan aturan dan alur persetujuan yang sama seperti pegawai lain.</p></div>
@@ -1681,6 +1693,12 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       })
     );
   }
+  /* Bagian Admin 2 bisa di-minimize; keadaan terakhir diingat di perangkat ini. */
+  document.querySelectorAll('details.adm-sec').forEach(function (d) {
+    var k = 'adm2_sec_' + d.dataset.sec;
+    try { if (localStorage.getItem(k) === '1') d.open = true; } catch (e) {}
+    d.addEventListener('toggle', function () { try { localStorage.setItem(k, d.open ? '1' : '0'); } catch (e) {} });
+  });
   var addStaffPanel = document.getElementById('admin2-add-staff-panel');
   var addStaffForm = document.getElementById('admin2-add-staff-form');
   var addStaffError = document.getElementById('admin2-add-staff-error');
