@@ -2532,6 +2532,37 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     for (i = 1; i <= 61; i++) ws.getRow(i).height = Math.round(hs[i] * k * 100) / 100;
   }
 
+  /* Unduh file. Di browser biasa memakai blob; di aplikasi Android (WebView) unduhan blob tidak jalan,
+     jadi file diunggah ke Supabase Storage lalu dibuka lewat tautan https bertanda tangan (sementara). */
+  function isAndroidWebView() {
+    var ua = navigator.userAgent || '';
+    return /Android/.test(ua) && (/; wv\)/.test(ua) || /Version\/\d/.test(ua));
+  }
+  function blobDownload(blob, fileName, okMsg) {
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = fileName;
+    document.body.appendChild(a); a.click(); a.remove();
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    if (okMsg) toast(okMsg);
+  }
+  function deliverFile(blob, fileName, mime, key, okMsg) {
+    if (!isAndroidWebView() || !supabaseClient) { blobDownload(blob, fileName, okMsg); return; }
+    var uid = (currentUser && currentUser.uid) || 'umum';
+    var path = uid + '/' + String(key).replace(/[^A-Za-z0-9_.-]/g, '_') + '.' + fileName.split('.').pop();
+    var bucket = supabaseClient.storage.from('surat-cuti');
+    toast('Menyiapkan file...');
+    bucket.upload(path, blob, { contentType: mime, upsert: true }).then(function (up) {
+      if (up.error) throw up.error;
+      return bucket.createSignedUrl(path, 600, { download: fileName });
+    }).then(function (res) {
+      if (res.error) throw res.error;
+      toast(okMsg || 'File siap diunduh.');
+      window.location.href = res.data.signedUrl;
+    }).catch(function (error) {
+      console.error('Unduhan lewat server gagal:', error);
+      toast('File gagal disiapkan (' + (error.message || error.code || 'error') + '). Pastikan bucket surat-cuti sudah dibuat.');
+    });
+  }
   function exportBook(items) {
     if (!items.length) { toast('Tidak ada data untuk diekspor.'); return; }
     if (typeof ExcelJS === 'undefined') { toast('Library Excel gagal dimuat. Periksa koneksi internet.'); return; }
@@ -2544,11 +2575,9 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       buildSheet(wb, sn, r);
     });
     wb.xlsx.writeBuffer().then(function (buf) {
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-      a.download = items.length === 1 ? 'Formulir_Cuti_' + String(items[0].name).replace(/\s+/g, '_') + '.xlsx' : 'Formulir_Cuti_Semua.xlsx';
-      document.body.appendChild(a); a.click(); a.remove();
-      toast('File Excel berhasil dibuat.');
+      var xlsxName = items.length === 1 ? 'Formulir_Cuti_' + String(items[0].name).replace(/\s+/g, '_') + '.xlsx' : 'Formulir_Cuti_Semua.xlsx';
+      deliverFile(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), xlsxName,
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'xlsx_' + xlsxName, 'File Excel berhasil dibuat.');
     });
   }
   function downloadEmployeePdf(id) {
@@ -2731,15 +2760,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     doc.setFontSize(7);
     doc.text('Keterangan: tanda X pada kotak menunjukkan pilihan. Area bertanda garis putus-putus disediakan untuk tanda tangan basah.', margin, Math.min(y + 4, 288));
     var filename = String(r.name || 'Pemohon').replace(/[\\\/:*?"<>|]/g, '').trim().replace(/\s+/g, '_') || 'Pemohon';
-    var pdfUrl = URL.createObjectURL(doc.output('blob'));
-    var link = document.createElement('a');
-    link.href = pdfUrl;
-    link.download = 'Surat_Cuti_' + filename + '.pdf';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(function () { URL.revokeObjectURL(pdfUrl); }, 60000);
-    toast('PDF surat cuti berhasil diunduh.');
+    deliverFile(doc.output('blob'), 'Surat_Cuti_' + filename + '.pdf', 'application/pdf', 'surat_' + r.id, 'PDF surat cuti berhasil diunduh.');
   }
   document.getElementById('btn-all').addEventListener('click', function () {
     if (!isAdmin1Or2()) { toast('Hanya Admin 1 dan Admin 2 yang dapat mengekspor seluruh data.'); return; }
