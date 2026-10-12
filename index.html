@@ -128,7 +128,7 @@
           <label class="lb" for="signup-password2">Ulangi kata sandi</label>
           <input id="signup-password2" class="inp" type="password" autocomplete="new-password" required>
         </div>
-        <p class="text-xs text-slate-500 bg-blue-50 rounded-lg p-3">Setelah mendaftar, kami mengirim tautan verifikasi ke email Anda. Akun baru bisa dipakai masuk setelah email diverifikasi. Akun penyetuju, admin, dan persuratan dikenali otomatis dari email yang terdaftar.</p>
+        <p class="text-xs text-slate-500 bg-blue-50 rounded-lg p-3">Setelah mendaftar, kami mengirim tautan verifikasi ke email Anda. Akun baru bisa dipakai masuk setelah email diverifikasi. Akun penyetuju dikenali otomatis dari NIP yang Anda masukkan di atas; admin dan persuratan dikenali dari email yang didaftarkan Admin 2.</p>
         <p id="signup-error" class="hidden"></p>
         <button id="signup-submit" type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition">Daftar</button>
       </form>
@@ -280,10 +280,10 @@
         </div>
       </div>
     </details>
-    <details class="adm-sec bg-white rounded-xl shadow" data-sec="staff"><summary class="adm-sum flex items-center justify-between gap-3 cursor-pointer select-none px-5 py-4 rounded-xl"><span class="min-w-0"><span class="block font-semibold text-lg text-blue-900">Pengisian Email — Data Penyetuju &amp; Akun</span><span class="block text-xs text-slate-500">Tambah petugas dan perbarui nama/email penyetuju</span></span><span class="flex items-center gap-2 shrink-0"><span class="adm-state text-xs font-medium text-blue-700"></span><svg class="adm-chev h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.2 7.7a1 1 0 0 1 1.4 0L10 11.1l3.4-3.4a1 1 0 1 1 1.4 1.4l-4.1 4.1a1 1 0 0 1-1.4 0L5.2 9.1a1 1 0 0 1 0-1.4z" clip-rule="evenodd"/></svg></span></summary>
+    <details class="adm-sec bg-white rounded-xl shadow" data-sec="staff"><summary class="adm-sum flex items-center justify-between gap-3 cursor-pointer select-none px-5 py-4 rounded-xl"><span class="min-w-0"><span class="block font-semibold text-lg text-blue-900">Data Penyetuju &amp; Akun</span><span class="block text-xs text-slate-500">Penyetuju dikenali dari NIP; tambah petugas dan ubah nama</span></span><span class="flex items-center gap-2 shrink-0"><span class="adm-state text-xs font-medium text-blue-700"></span><svg class="adm-chev h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.2 7.7a1 1 0 0 1 1.4 0L10 11.1l3.4-3.4a1 1 0 1 1 1.4 1.4l-4.1 4.1a1 1 0 0 1-1.4 0L5.2 9.1a1 1 0 0 1 0-1.4z" clip-rule="evenodd"/></svg></span></summary>
       <div class="px-5 pb-5">
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p class="text-sm text-slate-600">Tambah petugas baru atau perbarui email kontak penyetuju.</p>
+        <p class="text-sm text-slate-600">Tambah petugas baru atau ubah nama penyetuju.</p>
         <div class="flex flex-wrap gap-2">
           <button type="button" data-add-staff-role="approver" aria-expanded="false" aria-controls="admin2-add-staff-panel" class="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"><span aria-hidden="true" class="text-lg leading-none">+</span>Tambah Penyetuju</button>
           <button type="button" data-add-staff-role="correspondence" aria-expanded="false" aria-controls="admin2-add-staff-panel" class="inline-flex items-center gap-2 rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800"><span aria-hidden="true" class="text-lg leading-none">+</span>Tambah Persuratan</button>
@@ -292,12 +292,12 @@
       </div>
       <div id="admin2-add-staff-panel" class="hidden mb-5 rounded-lg border border-blue-200 bg-blue-50/50 p-4">
         <h4 id="admin2-add-staff-heading" class="mb-1 font-semibold text-blue-900"></h4>
-        <p class="mb-3 text-sm text-slate-600">Email harus cocok dengan akun Auth Supabase. Data akun baru tersimpan di server dan tersinkron antar perangkat.</p>
+        <p id="admin2-add-staff-note" class="mb-3 text-sm text-slate-600"></p>
         <form id="admin2-add-staff-form" class="grid gap-3 sm:grid-cols-2">
           <div><label class="lb" for="admin2-add-staff-name">Nama lengkap</label><input id="admin2-add-staff-name" class="inp" type="text" required></div>
           <div><label class="lb" for="admin2-add-staff-nip">NIP</label><input id="admin2-add-staff-nip" class="inp" type="text" required></div>
           <div><label class="lb" for="admin2-add-staff-title">Jabatan</label><input id="admin2-add-staff-title" class="inp" type="text" required></div>
-          <div><label class="lb" for="admin2-add-staff-email">Email akun</label><input id="admin2-add-staff-email" class="inp" type="email" inputmode="email" autocomplete="off" required></div>
+          <div id="admin2-add-staff-email-wrap"><label class="lb" for="admin2-add-staff-email">Email akun</label><input id="admin2-add-staff-email" class="inp" type="email" inputmode="email" autocomplete="off" required></div>
           <p id="admin2-add-staff-error" class="hidden sm:col-span-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert"></p>
           <div class="flex flex-wrap justify-end gap-2 sm:col-span-2">
             <button type="button" id="btn-cancel-add-staff" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Batal</button>
@@ -305,9 +305,9 @@
           </div>
         </form>
       </div>
-      <p class="text-sm text-slate-600 mt-1 mb-4">Perbarui nama dan email kontak penyetuju untuk pencocokan peran aplikasi. Email yang dicatat di sini tidak mengubah email login akun Supabase. Email login pengguna tidak dapat diubah dari halaman ini.</p>
-      <p class="text-xs text-amber-700 bg-amber-50 rounded-lg p-3 mb-4">Password tidak dapat dilihat. Gunakan tombol kirim tautan reset password agar pemilik email mengatur password baru sendiri. Alamat email harus cocok dengan akun Supabase.</p>
-      <p class="text-xs text-slate-500 mb-4">Perubahan nama dan email penyetuju tersimpan di server dan tersinkron antar perangkat; perubahan tidak mengubah akun Auth.</p>
+      <p class="text-sm text-slate-600 mt-1 mb-4">Perbarui nama penyetuju. Akun penyetuju dikenali dari NIP yang dipakai saat mendaftar, jadi email tidak perlu diisi.</p>
+      <p class="text-xs text-amber-700 bg-amber-50 rounded-lg p-3 mb-4">Password tidak dapat dilihat. Jika penyetuju lupa password, minta ia memakai tautan "Lupa kata sandi?" di halaman masuk.</p>
+      <p class="text-xs text-slate-500 mb-4">Perubahan nama penyetuju tersimpan di server dan tersinkron antar perangkat; perubahan tidak mengubah akun Auth.</p>
       <div id="admin2-approver-table"></div>
       </div>
     </details>
@@ -638,11 +638,6 @@
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function (OneSignal) {
       try {
-      if (window.AndroidBridge) {
-    console.log('Mode Android: pakai Bridge native, skip OneSignal Web');
-    resolve(null);
-    return;
-  }
         if (!appConfig.oneSignalAppId) throw new Error('ID aplikasi OneSignal belum dikonfigurasi.');
         await OneSignal.init({ appId: appConfig.oneSignalAppId });
         oneSignal = OneSignal;
@@ -658,7 +653,7 @@
     });
   });
   oneSignalReady.catch(function (error) { console.error('OneSignal gagal diinisialisasi:', error); });
-  function pushSupported() { return !!(window.AndroidBridge || (oneSignal && supabaseClient && 'serviceWorker' in navigator && 'Notification' in window)); }
+  function pushSupported() { return !!(oneSignal && supabaseClient && 'serviceWorker' in navigator && 'Notification' in window); }
   function updatePushButton() {
     var b = document.getElementById('btn-push');
     if (!b) return;
@@ -667,18 +662,6 @@
   }
   function registerPush(interactive) {
     if (!currentUser) return Promise.resolve(false);
-      if (window.AndroidBridge) {
-    AndroidBridge.login(currentUser.uid);
-    return supabaseClient.from('one_signal_users').upsert({
-      user_id: currentUser.uid, role: currentUser.role, nip: currentUser.nip, name: currentUser.name, updated_at: new Date().toISOString()
-    }).then(function(result) {
-      if (result.error) throw result.error;
-      pushEnabled = true;
-      updatePushButton();
-      if (interactive) toast('Notifikasi aktif untuk akun ini.');
-      return true;
-    }).catch(function(e){ console.error(e); return false; });
-  }
     if (!supabaseClient || !('serviceWorker' in navigator) || !('Notification' in window)) {
       if (interactive) toast('Browser ini belum mendukung notifikasi push.');
       return Promise.resolve(false);
@@ -1563,18 +1546,18 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     });
   });
   var APPROVERS = [
-    { name: 'Dr. Capt. MUGEN S. SARTOTO, M.Sc.', nip: '19731121 200212 1 001', title: 'Kepala Distrik Navigasi Tipe B Tanjung Priok', email: 'mugen_suprihatin@dephub.co.id' },
-    { name: 'NI WIDANINGSIH, S.E', nip: '19730730 199803 2 001', title: 'Kepala Bagian Keuangan dan Umum', email: 'ni_widaningsih@dephub.co.id' },
-    { name: 'HENDAVINY KARTOMO, SE, M.Kom', nip: '19730731 199302 2 001', title: 'Kepala Bidang Layanan Alur Pelayaran dan Telkompel', email: 'hendavani_kartomo@dephub.co.id' },
-    { name: 'LUSI ANDAYANI, S.T., M.MTr', nip: '19740601 200212 2 001', title: 'Kepala Bidang Layanan SBNP dan Armada', email: 'lusi_andayani@dephub.co.id' },
-    { name: 'R. ACHMAD ANDRIAZ PRAMUDYA W, ST, M.Si', nip: '19720918 199903 1 003', title: 'Kepala Seksi Layanan Armada', email: 'r_achmad1809@dephub.co.id' },
-    { name: 'ROHANI ALMUTMAINAH, S.SI, M.M.Tr', nip: '19770801 200502 2 001', title: 'Kepala Seksi Layanan Sarana Bantu Navigasi Pelayaran', email: 'rohani_almutmainah@dephub.co.id' },
-    { name: 'PADLANI, ST., M.MTr', nip: '19680915 199803 1 002', title: 'Kepala Seksi Layanan Alur Pelayaran', email: 'jangkarmiring001@gmail.com' },
-    { name: 'Capt. MARDIANTIKA SANGGUR, M.M.Tr.', nip: '19700323 200212 2 002', title: 'Kepala Seksi Layanan Telkompel', email: 'Mardiantika_sanggur@dephub.co.id' },
-    { name: 'JUNI TARULIASI HUTAPEA, S.Psi, M.MTr', nip: '19750626 199703 2 001', title: 'Kepala Sub Bagian Sumber Daya Manusia dan Umum', email: 'Juni_tarulasi@dephub.co.id' },
-    { name: 'EVRINA HERMAWATI, S.E., M.B.A.', nip: '19790111 200212 2 001', title: 'Kepala Sub Bagian Perencanaan dan Keuangan', email: 'Evrina_hermawati@dephub.co.id' },
-    { name: 'ILMIYAWAN SYAF AGUS, S.T, M.MTr', nip: '19790817 199903 1 002', title: 'Kepala SPI', email: 'Ilmiyawan_syaf@dephub.co.id' },
-    { name: 'TAUFIK CHAHYADI, SH, M.H', nip: '19820906 200604 1 005', title: 'Kepala Unit Pengembangan Usaha dan Kerja Sama', email: 'Taufik_chahyadi@dephub.co.id' }
+    { name: 'Dr. Capt. MUGEN S. SARTOTO, M.Sc.', nip: '19731121 200212 1 001', title: 'Kepala Distrik Navigasi Tipe B Tanjung Priok' },
+    { name: 'NI WIDANINGSIH, S.E', nip: '19730730 199803 2 001', title: 'Kepala Bagian Keuangan dan Umum' },
+    { name: 'HENDAVINY KARTOMO, SE, M.Kom', nip: '19730731 199302 2 001', title: 'Kepala Bidang Layanan Alur Pelayaran dan Telkompel' },
+    { name: 'LUSI ANDAYANI, S.T., M.MTr', nip: '19740601 200212 2 001', title: 'Kepala Bidang Layanan SBNP dan Armada' },
+    { name: 'R. ACHMAD ANDRIAZ PRAMUDYA W, ST, M.Si', nip: '19720918 199903 1 003', title: 'Kepala Seksi Layanan Armada' },
+    { name: 'ROHANI ALMUTMAINAH, S.SI, M.M.Tr', nip: '19770801 200502 2 001', title: 'Kepala Seksi Layanan Sarana Bantu Navigasi Pelayaran' },
+    { name: 'PADLANI, ST., M.MTr', nip: '19680915 199803 1 002', title: 'Kepala Seksi Layanan Alur Pelayaran' },
+    { name: 'Capt. MARDIANTIKA SANGGUR, M.M.Tr.', nip: '19700323 200212 2 002', title: 'Kepala Seksi Layanan Telkompel' },
+    { name: 'JUNI TARULIASI HUTAPEA, S.Psi, M.MTr', nip: '19750626 199703 2 001', title: 'Kepala Sub Bagian Sumber Daya Manusia dan Umum' },
+    { name: 'EVRINA HERMAWATI, S.E., M.B.A.', nip: '19790111 200212 2 001', title: 'Kepala Sub Bagian Perencanaan dan Keuangan' },
+    { name: 'ILMIYAWAN SYAF AGUS, S.T, M.MTr', nip: '19790817 199903 1 002', title: 'Kepala SPI' },
+    { name: 'TAUFIK CHAHYADI, SH, M.H', nip: '19820906 200604 1 005', title: 'Kepala Unit Pengembangan Usaha dan Kerja Sama' }
   ];
   var ADDITIONAL_APPROVERS_KEY = 'cuti_additional_approvers_v1';
   function loadAdditionalApprovers() {
@@ -1582,9 +1565,9 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       var saved = JSON.parse(localStorage.getItem(ADDITIONAL_APPROVERS_KEY)) || [];
       if (!Array.isArray(saved)) return [];
       return saved.filter(function (person) {
-        return person && person.name && person.nip && person.title && person.email;
+        return person && person.name && person.nip && person.title;
       }).map(function (person) {
-        return { name: String(person.name).trim(), nip: String(person.nip).trim(), title: String(person.title).trim(), email: String(person.email).trim() };
+        return { name: String(person.name).trim(), nip: String(person.nip).trim(), title: String(person.title).trim() };
       });
     } catch (error) {
       console.error('Data penyetuju tambahan tidak dapat dibaca:', error);
@@ -1594,9 +1577,8 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
   var additionalApprovers = loadAdditionalApprovers();
   additionalApprovers.forEach(function (person) {
     var nip = person.nip.replace(/\s/g, '');
-    var email = person.email.toLowerCase();
     var duplicate = APPROVERS.some(function (existing) {
-      return existing.nip.replace(/\s/g, '') === nip || existing.email.toLowerCase() === email;
+      return existing.nip.replace(/\s/g, '') === nip;
     });
     if (!duplicate) APPROVERS.push(person);
   });
@@ -1726,7 +1708,6 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     var saved = staffConfig[person.nip];
     if (!saved) return;
     if (saved.name) person.name = saved.name;
-    if (Object.prototype.hasOwnProperty.call(saved, 'email')) person.email = saved.email;
     Object.keys(HEAD).forEach(function (code) {
       if (HEAD[code][1] === person.nip) HEAD[code][0] = person.name;
     });
@@ -1738,12 +1719,18 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     var normalizedEmail = String(email || '').trim().toLowerCase();
     if (!normalizedEmail) return null;
     var accounts = [];
-    APPROVERS.forEach(function (person) { if (person.email) accounts.push({ role: 'approver', person: person }); });
     ADMINS.forEach(function (person) { if (person.email) accounts.push({ role: 'admin', person: person }); });
     CORRESPONDENCE.forEach(function (person) { if (person.email) accounts.push({ role: 'correspondence', person: person }); });
     return accounts.filter(function (account) {
       return account.person.email.trim().toLowerCase() === normalizedEmail;
     })[0] || null;
+  }
+  /* Penyetuju dikenali dari NIP (metadata akun), bukan email. */
+  function staffAccountByNip(nip) {
+    var key = String(nip || '').replace(/\s/g, '');
+    if (!key) return null;
+    var person = APPROVERS.filter(function (p) { return p.nip.replace(/\s/g, '') === key; })[0];
+    return person ? { role: 'approver', person: person } : null;
   }
   function staffEmailAlreadyAssigned(email, nip) {
     var normalizedEmail = String(email || '').trim().toLowerCase();
@@ -1796,15 +1783,12 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     panel.classList.toggle('hidden', !isAdmin2);
     if (!isAdmin2) return;
     document.getElementById('admin2-approver-table').innerHTML = table(
-      ['Nama Penyetuju', 'NIP', 'Email akun (diisi Admin 2)', 'Pengaturan'],
+      ['Nama Penyetuju', 'NIP (dasar pengenal akun)', 'Pengaturan'],
       APPROVERS.map(function (person) {
-        var email = person.email || '';
         return [
           '<input type="text" class="approver-name inp min-w-56" data-nip="' + esc(person.nip) + '" value="' + esc(person.name) + '" required><div class="text-xs text-slate-500 mt-1">' + esc(person.title) + '</div>',
           esc(person.nip),
-          '<input type="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off" class="approver-email inp min-w-48" data-nip="' + esc(person.nip) + '" value="' + esc(email) + '" placeholder="email penyetuju">',
-          '<div class="flex flex-wrap gap-2"><button type="button" data-action="save-approver" data-nip="' + esc(person.nip) + '" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-700 text-white hover:bg-blue-800">Ubah nama/email</button>' +
-          (email ? btn('password-reset', person.nip, 'Kirim tautan reset sandi', 'ex') : '<span class="text-xs text-slate-500">Isi email dulu untuk reset sandi</span>') + '</div>'
+          '<button type="button" data-action="save-approver" data-nip="' + esc(person.nip) + '" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-700 text-white hover:bg-blue-800">Ubah nama</button>'
         ];
       })
     );
@@ -1832,11 +1816,13 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
   }
   function cacheLocal(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {} }
   function cleanPerson(p) {
-    if (!p || !p.name || !p.nip || !p.title || !p.email) return null;
-    return { name: String(p.name).trim(), nip: String(p.nip).trim(), title: String(p.title).trim(), email: String(p.email).trim() };
+    if (!p || !p.name || !p.nip || !p.title) return null;
+    var out = { name: String(p.name).trim(), nip: String(p.nip).trim(), title: String(p.title).trim() };
+    if (p.email) out.email = String(p.email).trim();
+    return out;
   }
   function samePerson(a, b) {
-    return a.nip.replace(/\s/g, '') === b.nip.replace(/\s/g, '') || a.email.toLowerCase() === b.email.toLowerCase();
+    return a.nip.replace(/\s/g, '') === b.nip.replace(/\s/g, '') || (!!a.email && !!b.email && a.email.toLowerCase() === b.email.toLowerCase());
   }
   function syncStaffList(serverKey, localKey, list, additions, serverValue) {
     var incoming = (Array.isArray(serverValue) ? serverValue : []).map(cleanPerson).filter(Boolean);
@@ -1853,7 +1839,6 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       var saved = staffConfig[person.nip];
       if (!saved) return;
       if (saved.name) person.name = saved.name;
-      if (Object.prototype.hasOwnProperty.call(saved, 'email')) person.email = saved.email;
       Object.keys(HEAD).forEach(function (code) { if (HEAD[code][1] === person.nip) HEAD[code][0] = person.name; });
       EMP.forEach(function (employee) { if (employee.nip === person.nip) employee.n = person.name; });
     });
@@ -1918,6 +1903,12 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       button.setAttribute('aria-expanded', 'true');
       document.getElementById('admin2-add-staff-heading').textContent = 'Tambah ' + additionalStaffRoles[role].label;
       document.getElementById('btn-save-add-staff').textContent = 'Simpan ' + additionalStaffRoles[role].label;
+      var byNip = role === 'approver';
+      document.getElementById('admin2-add-staff-email-wrap').classList.toggle('hidden', byNip);
+      document.getElementById('admin2-add-staff-email').required = !byNip;
+      document.getElementById('admin2-add-staff-note').textContent = byNip
+        ? 'Penyetuju dikenali dari NIP. Setelah petugas mendaftar dengan NIP ini, akunnya otomatis menjadi penyetuju. Tidak perlu mengisi email.'
+        : 'Email harus cocok dengan akun Auth Supabase. Data akun baru tersimpan di server dan tersinkron antar perangkat.';
       document.getElementById('admin2-add-staff-name').focus();
     });
   });
@@ -1930,16 +1921,18 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       name: document.getElementById('admin2-add-staff-name').value.trim(),
       nip: document.getElementById('admin2-add-staff-nip').value.trim().replace(/\s+/g, ' '),
       title: document.getElementById('admin2-add-staff-title').value.trim(),
-      email: document.getElementById('admin2-add-staff-email').value.trim().toLowerCase()
+      email: addStaffRole === 'approver' ? '' : document.getElementById('admin2-add-staff-email').value.trim().toLowerCase()
     };
+    if (!person.email) delete person.email;
     addStaffError.classList.add('hidden');
     var fail = function (message) {
       addStaffError.textContent = message;
       addStaffError.classList.remove('hidden');
     };
     var emailInput = document.getElementById('admin2-add-staff-email');
-    if (!roleConfig || !person.name || !person.nip || !person.title || !person.email || !emailInput.checkValidity()) {
-      fail('Lengkapi nama, NIP, jabatan, dan email yang valid.');
+    var needEmail = addStaffRole !== 'approver';
+    if (!roleConfig || !person.name || !person.nip || !person.title || (needEmail && (!person.email || !emailInput.checkValidity()))) {
+      fail(needEmail ? 'Lengkapi nama, NIP, jabatan, dan email yang valid.' : 'Lengkapi nama, NIP, dan jabatan.');
       return;
     }
     var nipKey = person.nip.replace(/\s/g, '');
@@ -1953,7 +1946,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       fail('Nama tersebut sudah terdaftar.');
       return;
     }
-    if (staffEmailAlreadyAssigned(person.email, '')) {
+    if (person.email && staffEmailAlreadyAssigned(person.email, '')) {
       fail('Email tersebut sudah terdaftar untuk petugas lain.');
       return;
     }
@@ -2139,7 +2132,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
 
   /* Email petugas terdaftar menentukan peran; metadata NIP menghubungkan pegawai. */
   function buildUser(user) {
-    var staff = staffAccountByEmail(user.email);
+    var staff = staffAccountByEmail(user.email) || staffAccountByNip(user.user_metadata && user.user_metadata.nip);
     if (staff) {
       return { role: staff.role, name: staff.person.name, nip: staff.person.nip, title: staff.person.title,
                uid: user.id, email: user.email };
@@ -2236,8 +2229,9 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       nip = staff.person.nip;
     } else {
       var emp = findEmployee(nameVal);
-      if (!emp) { authMsg('signup-error', 'Nama lengkap atau NIP tidak ditemukan di daftar pegawai. Periksa kembali data yang Anda masukkan.'); return; }
-      nip = emp.nip;
+      var npr = !emp ? staffAccountByNip(nameVal.trim()) : null;
+      if (!emp && !npr) { authMsg('signup-error', 'Nama lengkap atau NIP tidak ditemukan di daftar pegawai. Periksa kembali data yang Anda masukkan.'); return; }
+      nip = emp ? emp.nip : npr.person.nip;
     }
     if (pw.length < 8) { authMsg('signup-error', 'Kata sandi minimal 8 karakter.'); return; }
     if (pw !== pw2) { authMsg('signup-error', 'Kata sandi dan pengulangannya tidak sama.'); return; }
@@ -3051,30 +3045,23 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         if (!canManageAdmin2Settings()) { toast('Hanya Admin 2 yang dapat mengubah data penyetuju.'); break; }
         var approver = approverByNip(b.dataset.nip);
         var nameInput = document.querySelector('.approver-name[data-nip="' + b.dataset.nip + '"]');
-        var emailInput = document.querySelector('.approver-email[data-nip="' + b.dataset.nip + '"]');
-        var nextEmail = emailInput ? emailInput.value.trim() : '';
         var nextName = nameInput ? nameInput.value.trim() : '';
-        if (!approver || (nextEmail && !emailInput.checkValidity()) || !nextName) {
-          toast('Masukkan nama penyetuju dan alamat email yang valid jika tersedia.');
-          break;
-        }
-        if (staffEmailAlreadyAssigned(nextEmail, approver.nip)) {
-          toast('Email tersebut sudah terdaftar untuk petugas lain.');
+        if (!approver || !nextName) {
+          toast('Masukkan nama penyetuju.');
           break;
         }
         var oldApproverName = approver.name;
-        staffConfig[approver.nip] = { name: nextName, email: nextEmail };
+        staffConfig[approver.nip] = { name: nextName };
         if (!saveStaffConfig()) break;
-        approver.email = nextEmail;
         approver.name = nextName;
         if (!updateApproverNameReferences(oldApproverName, nextName, approver.nip)) {
-          toast('Email tersimpan, tetapi antrean pengajuan belum diperbarui. Coba simpan nama lagi.');
+          toast('Nama tersimpan, tetapi antrean pengajuan belum diperbarui. Coba simpan nama lagi.');
           renderAll();
           break;
         }
         if (testUser && testUser.role === 'approver' && testUser.nip === approver.nip) testUser.name = nextName;
         renderAll();
-        toast('Nama dan email penyetuju berhasil diperbarui.');
+        toast('Nama penyetuju berhasil diperbarui.');
         break;
       case 'password-reset':
         if (!canManageAdmin2Settings()) { toast('Hanya Admin 2 yang dapat meminta reset password.'); break; }
