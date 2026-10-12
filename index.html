@@ -46,6 +46,10 @@
       <button data-view="approver" class="nav-btn px-3 py-2 rounded-md text-blue-100 transition">Halaman Penyetuju</button>
       <button data-view="correspondence" class="nav-btn px-3 py-2 rounded-md text-blue-100 transition">Persuratan</button>
       <button data-view="admin" class="nav-btn px-3 py-2 rounded-md text-blue-100 transition">Admin</button>
+      <button type="button" id="btn-bell" class="relative px-3 py-2 rounded-md text-blue-100 hover:bg-blue-700 transition" aria-label="Pemberitahuan" aria-haspopup="dialog" title="Pemberitahuan">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a6 6 0 0 0-6 6v3.6l-1.7 3.4A1 1 0 0 0 5.2 16.5h13.6a1 1 0 0 0 .9-1.5L18 11.6V8a6 6 0 0 0-6-6zm0 20a3 3 0 0 0 2.8-2H9.2A3 3 0 0 0 12 22z"/></svg>
+        <span id="bell-badge" class="hidden absolute -top-1 -right-1 min-w-[1.25rem] h-5 px-1 rounded-full bg-red-500 text-white text-xs font-bold leading-5 text-center"></span>
+      </button>
       <button type="button" id="btn-push" class="hidden px-3 py-2 rounded-md text-blue-100 hover:bg-blue-700 transition" title="Aktifkan notifikasi push">🔔 Notifikasi</button>
       <button type="button" id="btn-stop-test" class="hidden px-3 py-2 rounded-md bg-amber-500 hover:bg-amber-600 text-white transition">Akhiri mode uji</button>
       <button type="button" id="btn-logout" class="px-3 py-2 rounded-md text-blue-100 hover:bg-blue-700 transition">Keluar</button>
@@ -398,6 +402,16 @@
     </div>
   </div>
 </main>
+
+<div id="notif-panel" class="hidden fixed inset-0 z-50 bg-slate-900/40" role="dialog" aria-modal="true" aria-labelledby="notif-title">
+  <div class="absolute left-2 right-2 sm:left-auto sm:right-4 top-16 sm:w-96 max-h-[75vh] bg-white rounded-xl shadow-xl flex flex-col">
+    <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200">
+      <h3 id="notif-title" class="font-semibold text-blue-900">Pemberitahuan</h3>
+      <button type="button" id="notif-close" class="text-slate-500 hover:text-slate-800 px-2" aria-label="Tutup">&#10005;</button>
+    </div>
+    <div id="notif-list" class="overflow-y-auto divide-y divide-slate-100"></div>
+  </div>
+</div>
 
 <div id="letter-number-modal" class="hidden fixed inset-0 z-50 items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-labelledby="letter-number-title">
   <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
@@ -966,7 +980,91 @@
     })) : empty('📭', 'Belum ada nomor surat terbit', 'Nomor yang diterbitkan Persuratan akan tercatat di sini.');
   }
 
+  /* ---------- Pemberitahuan dalam aplikasi (lonceng) ---------- */
+  var notifLastCount = -1, notifLastUser = '';
+  function notifSeenKey() { var u = activeUser(); return 'cuti_notif_seen_v1_' + (u ? (u.nip || u.uid || u.name) : ''); }
+  function loadSeen() { try { return JSON.parse(localStorage.getItem(notifSeenKey()) || '{}') || {}; } catch (e) { return {}; } }
+  function saveSeen(m) { try { localStorage.setItem(notifSeenKey(), JSON.stringify(m)); } catch (e) {} }
+  function buildNotifications() {
+    var u = activeUser(); if (!u) return [];
+    var out = [], approverName = u.role === 'approver' ? approverNameForUser(u) : '';
+    function add(r, kind, text, time, tone, view) {
+      out.push({ key: r.id + ':' + kind + ':' + (time || 0), text: text, time: time || r.createdAt || 0, tone: tone, view: view });
+    }
+    load().forEach(function (r) {
+      if (r.requestedBy ? r.requestedBy === u.nip : r.nip === u.nip) {
+        var rejStage = r.rejectedStage === 'second' ? 'Tahap 2' : 'Tahap 1';
+        if (r.status === 'issued') add(r, 'issued', 'Surat cuti Anda telah diterbitkan. Buka riwayat pengajuan untuk mengunduh PDF.', r.issuedAt, 'ok', 'employee');
+        else if (r.status === 'rejected') add(r, 'rejected', 'Pengajuan cuti Anda ditolak oleh ' + (r.rejectedBy || 'penyetuju') + ' (' + rejStage + ').', r.rejectedAt, 'no', 'employee');
+        else if (r.status === 'pending_admin_issue') add(r, 'numbered', 'Nomor surat terbit' + (r.letterNumber ? ' (' + r.letterNumber + ')' : '') + ', menunggu penerbitan oleh Admin.', r.letterNumberIssuedAt, 'info', 'employee');
+        else if (r.status === 'pending_correspondence') add(r, 'approved', 'Pengajuan Anda disetujui, menunggu nomor surat dari Persuratan.', r.secondApprovedAt || r.firstApprovedAt, 'info', 'employee');
+        else if (r.status === 'pending_next') add(r, 'first', 'Disetujui Tahap 1 oleh ' + (r.firstApprovedBy || r.firstApprover) + ', menunggu Tahap 2.', r.firstApprovedAt, 'info', 'employee');
+        else if (r.status === 'pending_direct') add(r, 'sent', 'Pengajuan terkirim, menunggu persetujuan ' + r.firstApprover + ' (Tahap 1).', r.createdAt, 'info', 'employee');
+      }
+      if (approverName && r.status === 'pending_direct' && r.firstApprover === approverName)
+        add(r, 'todo1', 'Pengajuan baru dari ' + r.name + ' menunggu persetujuan Anda (Tahap 1).', r.createdAt, 'todo', 'approver');
+      if (approverName && r.status === 'pending_next' && r.secondApprover === approverName)
+        add(r, 'todo2', 'Pengajuan ' + r.name + ' menunggu persetujuan Anda (Tahap 2).', r.firstApprovedAt, 'todo', 'approver');
+      if (u.role === 'correspondence' && r.status === 'pending_correspondence')
+        add(r, 'todonum', 'Pengajuan ' + r.name + ' menunggu nomor surat.', r.secondApprovedAt || r.firstApprovedAt, 'todo', 'correspondence');
+      if (u.role === 'admin' && r.status === 'pending_admin_issue')
+        add(r, 'todoissue', 'Surat cuti ' + r.name + ' siap diterbitkan.', r.letterNumberIssuedAt, 'todo', 'admin');
+    });
+    out.sort(function (a, b) { return b.time - a.time; });
+    return out.slice(0, 40);
+  }
+  var NOTIF_TONE = { ok: 'bg-green-500', no: 'bg-red-500', info: 'bg-blue-400', todo: 'bg-amber-500' };
+  function renderNotifList(seen) {
+    var list = document.getElementById('notif-list'), items = buildNotifications();
+    list.innerHTML = items.length ? items.map(function (n, i) {
+      var when = n.time ? new Date(n.time).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+      return '<button type="button" data-notif="' + i + '" class="w-full text-left flex gap-3 px-4 py-3 hover:bg-slate-50">' +
+        '<span class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ' + (seen[n.key] ? 'bg-slate-300' : NOTIF_TONE[n.tone]) + '"></span>' +
+        '<span class="min-w-0"><span class="block text-sm ' + (seen[n.key] ? 'text-slate-600' : 'text-slate-900 font-medium') + '">' + esc(n.text) + '</span>' +
+        '<span class="block text-xs text-slate-400 mt-0.5">' + esc(when) + '</span></span></button>';
+    }).join('') : '<p class="px-4 py-8 text-center text-sm text-slate-500">Belum ada pemberitahuan.</p>';
+    list._items = items;
+  }
+  function updateNotifBell() {
+    var badge = document.getElementById('bell-badge');
+    if (!badge) return;
+    var u = activeUser(), items = buildNotifications(), seen = loadSeen();
+    var unread = items.filter(function (n) { return !seen[n.key]; }).length;
+    badge.textContent = unread > 9 ? '9+' : String(unread);
+    badge.classList.toggle('hidden', !unread);
+    var who = u ? notifSeenKey() : '';
+    var panelOpen = !document.getElementById('notif-panel').classList.contains('hidden');
+    if (who === notifLastUser && notifLastCount >= 0 && unread > notifLastCount && !panelOpen) {
+      toast('Ada pemberitahuan baru.');
+      try { if (navigator.vibrate) navigator.vibrate(200); } catch (e) {}
+    }
+    notifLastUser = who; notifLastCount = unread;
+    if (panelOpen) renderNotifList(seen);
+  }
+  function openNotifPanel() {
+    var seen = loadSeen();
+    renderNotifList(seen);
+    document.getElementById('notif-panel').classList.remove('hidden');
+    buildNotifications().forEach(function (n) { seen[n.key] = 1; });
+    saveSeen(seen);
+    var badge = document.getElementById('bell-badge');
+    badge.classList.add('hidden'); notifLastCount = 0;
+  }
+  function closeNotifPanel() { document.getElementById('notif-panel').classList.add('hidden'); }
+  document.getElementById('btn-bell').addEventListener('click', openNotifPanel);
+  document.getElementById('notif-close').addEventListener('click', closeNotifPanel);
+  document.getElementById('notif-panel').addEventListener('click', function (e) {
+    if (e.target === this) { closeNotifPanel(); return; }
+    var b = e.target.closest('[data-notif]');
+    if (!b) return;
+    var n = (document.getElementById('notif-list')._items || [])[+b.dataset.notif];
+    closeNotifPanel();
+    if (n) showView(n.view);
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeNotifPanel(); });
+
   function renderAll() {
+    updateNotifBell();
     renderAdmin();
     renderApprover();
     renderCorrespondence();
@@ -994,6 +1092,7 @@
       if (b.dataset.view === 'admin') b.textContent = user && user.role === 'admin' ? user.name : 'Admin';
     });
     document.getElementById('main-nav').classList.toggle('hidden', !currentUser);
+    updateNotifBell();
     document.getElementById('btn-stop-test').classList.toggle('hidden', !testUser);
     var testBanner = document.getElementById('test-mode-banner');
     testBanner.classList.toggle('hidden', !testUser);
@@ -2993,7 +3092,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       case 'first-reject':
         var firstRejectingUser = activeUser();
         update(id, 'pending_direct', function (r) {
-          r.status = 'rejected'; r.rejectedBy = firstRejectingUser.name; r.rejectedStage = 'first';
+          r.status = 'rejected'; r.rejectedBy = firstRejectingUser.name; r.rejectedStage = 'first'; r.rejectedAt = Date.now();
         }, 'Pengajuan ditolak pada tahap 1.', function (r) {
           return firstRejectingUser && firstRejectingUser.role === 'approver' && r.firstApprover === firstRejectingUser.name;
         });
@@ -3011,7 +3110,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       case 'second-reject':
         var secondRejectingUser = activeUser();
         update(id, 'pending_next', function (r) {
-          r.status = 'rejected'; r.rejectedBy = secondRejectingUser.name; r.rejectedStage = 'second';
+          r.status = 'rejected'; r.rejectedBy = secondRejectingUser.name; r.rejectedStage = 'second'; r.rejectedAt = Date.now();
         }, 'Pengajuan ditolak pada tahap 2.', function (r) {
           return secondRejectingUser && secondRejectingUser.role === 'approver' && r.secondApprover === secondRejectingUser.name;
         });
