@@ -638,6 +638,11 @@
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function (OneSignal) {
       try {
+      if (window.AndroidBridge) {
+    console.log('Mode Android: pakai Bridge native, skip OneSignal Web');
+    resolve(null);
+    return;
+  }
         if (!appConfig.oneSignalAppId) throw new Error('ID aplikasi OneSignal belum dikonfigurasi.');
         await OneSignal.init({ appId: appConfig.oneSignalAppId });
         oneSignal = OneSignal;
@@ -653,7 +658,7 @@
     });
   });
   oneSignalReady.catch(function (error) { console.error('OneSignal gagal diinisialisasi:', error); });
-  function pushSupported() { return !!(oneSignal && supabaseClient && 'serviceWorker' in navigator && 'Notification' in window); }
+  function pushSupported() { return !!(window.AndroidBridge || (oneSignal && supabaseClient && 'serviceWorker' in navigator && 'Notification' in window)); }
   function updatePushButton() {
     var b = document.getElementById('btn-push');
     if (!b) return;
@@ -662,6 +667,18 @@
   }
   function registerPush(interactive) {
     if (!currentUser) return Promise.resolve(false);
+      if (window.AndroidBridge) {
+    AndroidBridge.login(currentUser.uid);
+    return supabaseClient.from('one_signal_users').upsert({
+      user_id: currentUser.uid, role: currentUser.role, nip: currentUser.nip, name: currentUser.name, updated_at: new Date().toISOString()
+    }).then(function(result) {
+      if (result.error) throw result.error;
+      pushEnabled = true;
+      updatePushButton();
+      if (interactive) toast('Notifikasi aktif untuk akun ini.');
+      return true;
+    }).catch(function(e){ console.error(e); return false; });
+  }
     if (!supabaseClient || !('serviceWorker' in navigator) || !('Notification' in window)) {
       if (interactive) toast('Browser ini belum mendukung notifikasi push.');
       return Promise.resolve(false);
