@@ -3181,6 +3181,43 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     if (confirm('Hapus semua data pengajuan cuti?') && save([])) { renderAll(); toast('Semua data dihapus.'); }
   });
 
+  /* ---------- Buka tautan sosial media tanpa menimpa aplikasi ---------- */
+  function socialDeepLink(url) {
+    try {
+      var u = new URL(url), host = u.hostname.replace(/^www\.|^m\./, '');
+      var first = u.pathname.split('/').filter(Boolean)[0] || '';
+      if (host === 'instagram.com' && first) return 'instagram://user?username=' + encodeURIComponent(first);
+      if ((host === 'x.com' || host === 'twitter.com') && first) return 'twitter://user?screen_name=' + encodeURIComponent(first);
+      if (host === 'facebook.com' || host === 'fb.com') return 'fb://facewebmodal/f?href=' + encodeURIComponent(url);
+      if (host === 'youtube.com' || host === 'youtu.be') return 'youtube://' + url.replace(/^https?:\/\//, '');
+    } catch (e) {}
+    return '';
+  }
+  function openSocialLink(url) {
+    var win = null;
+    try { win = window.open(url, '_blank', 'noopener,noreferrer'); } catch (e) {}
+    if (win) return;
+    /* window.open diblokir/tidak didukung: coba buka aplikasinya lewat iframe tersembunyi
+       agar halaman aplikasi cuti tidak tertimpa. */
+    var deep = socialDeepLink(url);
+    if (deep) {
+      var frame = document.createElement('iframe');
+      frame.style.display = 'none';
+      frame.src = deep;
+      document.body.appendChild(frame);
+      setTimeout(function () { if (frame.parentNode) frame.parentNode.removeChild(frame); }, 2000);
+      return;
+    }
+    try { navigator.clipboard.writeText(url); } catch (e) {}
+    toast('Tautan tidak dapat dibuka dari dalam aplikasi. Tautan disalin: ' + url);
+  }
+  document.getElementById('home-social-links').addEventListener('click', function (e) {
+    var a = e.target.closest('a[href]');
+    if (!a) return;
+    e.preventDefault();
+    openSocialLink(a.getAttribute('href'));
+  });
+
   /* ---------- Init ---------- */
   renderSocialLinks();
   fillSocialLinkInputs();
