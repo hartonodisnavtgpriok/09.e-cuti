@@ -1694,6 +1694,26 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       if (input) input.value = socialLinks[site.id] || '';
     });
   }
+  /* Muat tautan media sosial dari server untuk SEMUA pengunjung (tanpa login).
+     Hanya membaca; tidak pernah menulis balik ke server. */
+  function loadSocialLinksFromServer() {
+    if (!supabaseClient) return Promise.resolve();
+    return supabaseClient.from('app_settings').select('value').eq('key', 'social_links').maybeSingle()
+      .then(function (result) {
+        if (result.error) throw result.error;
+        var serverLinks = (result.data && result.data.value) || {};
+        socialLinks = SOCIAL_SITES.reduce(function (links, site) {
+          links[site.id] = normalizeSocialUrl(serverLinks[site.id]);
+          return links;
+        }, {});
+        try { localStorage.setItem(SOCIAL_LINKS_KEY, JSON.stringify(socialLinks)); } catch (e) {}
+        renderSocialLinks();
+        fillSocialLinkInputs();
+      })
+      .catch(function (error) {
+        console.error('Tautan media sosial gagal dimuat dari server:', error);
+      });
+  }
   var STAFF_CONFIG_KEY = 'cuti_staff_config_v1';
   function loadStaffConfig() {
     try {
@@ -2288,26 +2308,28 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
   });
 
   document.getElementById('btn-logout').addEventListener('click', function () {
-    if (!supabaseClient) {
-      currentUser = null;
-      testUser = null;
-      showView('home');
-      return;
-    }
-    Promise.resolve(disconnectPush()).then(function () {
-      stopRequestsSync();
-      return supabaseClient.auth.signOut();
-    }).then(function (result) {
-      if (result && result.error) throw result.error;
-      currentUser = null; testUser = null; pendingUser = null;
-      document.getElementById('login-form').reset(); document.getElementById('signup-form').reset();
+    /* Keluar langsung: pembersihan (push, realtime, sesi Supabase) berjalan di latar
+       belakang dengan batas waktu supaya tombol tidak pernah macet. */
+    var withTimeout = function (promise, ms) {
+      return Promise.race([Promise.resolve(promise), new Promise(function (resolve) { setTimeout(resolve, ms); })]);
+    };
+    var client = supabaseClient;
+    try { stopRequestsSync(); } catch (e) { console.error('Hentikan sinkronisasi gagal:', e); }
+    currentUser = null; testUser = null; pendingUser = null;
+    try {
+      document.getElementById('login-form').reset();
+      document.getElementById('signup-form').reset();
       document.getElementById('login-link-wrap').classList.add('hidden');
-      updatePushButton();
-      showView('home');
-    }).catch(function (error) {
-      console.error('Supabase sign-out gagal:', error);
-      toast('Gagal keluar dari Supabase Authentication. Coba lagi.');
-    });
+    } catch (e) { console.error(e); }
+    try { updatePushButton(); } catch (e) { console.error(e); }
+    showView('home');
+    window.scrollTo(0, 0);
+    withTimeout(disconnectPush(), 3000).catch(function (e) { console.error('Logout push gagal:', e); });
+    if (client) {
+      withTimeout(client.auth.signOut({ scope: 'local' }), 5000).then(function (result) {
+        if (result && result.error) console.error('Supabase sign-out gagal:', result.error);
+      }).catch(function (error) { console.error('Supabase sign-out gagal:', error); });
+    }
   });
   /* Pulihkan sesi setelah halaman dimuat ulang. */
   if (supabaseClient) {
@@ -3027,16 +3049,23 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         }
         try {
           localStorage.setItem(SOCIAL_LINKS_KEY, JSON.stringify(nextSocialLinks));
-          pushSetting('social_links', nextSocialLinks);
         } catch (error) {
           console.error('Tautan media sosial tidak dapat disimpan:', error);
-          toast('Tautan media sosial gagal disimpan di browser ini.');
-          break;
         }
         socialLinks = nextSocialLinks;
         renderSocialLinks();
-        document.getElementById('admin2-social-status').textContent = 'Tautan berhasil disimpan.';
-        toast('Tautan media sosial berhasil disimpan.');
+        var socialStatusEl = document.getElementById('admin2-social-status');
+        socialStatusEl.textContent = 'Menyimpan ke server...';
+        pushSetting('social_links', nextSocialLinks).then(function (ok) {
+          if (ok) {
+            socialStatusEl.className = 'text-sm text-green-700';
+            socialStatusEl.textContent = 'Tautan berhasil disimpan dan tampil di semua perangkat.';
+            toast('Tautan media sosial berhasil disimpan.');
+          } else {
+            socialStatusEl.className = 'text-sm text-red-700';
+            socialStatusEl.textContent = 'GAGAL tersimpan ke server. Tautan hanya ada di perangkat ini.';
+          }
+        });
         break;
       case 'admin-edit-request':
         openRequestEditModal(id);
@@ -3156,6 +3185,10 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
   renderSocialLinks();
   fillSocialLinkInputs();
   showView('home');
+  loadSocialLinksFromServer();
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) loadSocialLinksFromServer();
+  });
 })();
 </script>
 </body>
