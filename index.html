@@ -1073,6 +1073,7 @@
   }
 
   /* ---------- Navigation ---------- */
+  var navFromPop = false;
   function showView(v) {
     var user = activeUser();
     if (v !== 'home' && v !== 'login' && !user) v = 'login';
@@ -1082,6 +1083,13 @@
       if (v !== 'home' && v !== 'login' && allViews.indexOf(v) === -1) v = roleView;
     } else if (roleView && v !== 'home' && v !== 'login' && v !== roleView && !(v === 'employee' && applicantProfile(user))) v = roleView;
     document.querySelectorAll('.view').forEach(function (s) { s.classList.toggle('active', s.id === 'view-' + v); });
+    try {
+      if (!navFromPop) {
+        var curState = history.state && history.state.view;
+        if (curState !== v) history.pushState({ view: v }, '');
+      }
+    } catch (e) {}
+    navFromPop = false;
     document.querySelectorAll('.nav-btn').forEach(function (b) {
       b.classList.toggle('active', b.dataset.view === v);
       b.classList.toggle('hidden', !currentUser || (!isAdmin2() && b.dataset.view !== roleView && !(b.dataset.view === 'employee' && applicantProfile(user))));
@@ -3186,30 +3194,50 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     try {
       var u = new URL(url), host = u.hostname.replace(/^www\.|^m\./, '');
       var first = u.pathname.split('/').filter(Boolean)[0] || '';
-      if (host === 'instagram.com' && first) return 'instagram://user?username=' + encodeURIComponent(first);
-      if ((host === 'x.com' || host === 'twitter.com') && first) return 'twitter://user?screen_name=' + encodeURIComponent(first);
+      if (host === 'instagram.com' && first) return 'instagram://user?username=' + encodeURIComponent(first.replace(/^@/, ''));
+      if ((host === 'x.com' || host === 'twitter.com') && first) return 'twitter://user?screen_name=' + encodeURIComponent(first.replace(/^@/, ''));
       if (host === 'facebook.com' || host === 'fb.com') return 'fb://facewebmodal/f?href=' + encodeURIComponent(url);
       if (host === 'youtube.com' || host === 'youtu.be') return 'youtube://' + url.replace(/^https?:\/\//, '');
+      if (host === 'tiktok.com' && first) return 'snssdk1233://user/profile/' + encodeURIComponent(first.replace(/^@/, ''));
     } catch (e) {}
     return '';
   }
+  var socialOpening = false;
   function openSocialLink(url) {
-    var win = null;
-    try { win = window.open(url, '_blank', 'noopener,noreferrer'); } catch (e) {}
-    if (win) return;
-    /* window.open diblokir/tidak didukung: coba buka aplikasinya lewat iframe tersembunyi
-       agar halaman aplikasi cuti tidak tertimpa. */
-    var deep = socialDeepLink(url);
-    if (deep) {
-      var frame = document.createElement('iframe');
-      frame.style.display = 'none';
-      frame.src = deep;
-      document.body.appendChild(frame);
-      setTimeout(function () { if (frame.parentNode) frame.parentNode.removeChild(frame); }, 2000);
+    if (socialOpening) return;
+    var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    var deep = isMobile ? socialDeepLink(url) : '';
+    if (!deep) {
+      /* Desktop / tanpa deep link: tab baru. */
+      var w = null;
+      try { w = window.open(url, '_blank', 'noopener,noreferrer'); } catch (e) {}
+      if (!w) { try { navigator.clipboard.writeText(url); } catch (e) {} toast('Tautan disalin: ' + url); }
       return;
     }
-    try { navigator.clipboard.writeText(url); } catch (e) {}
-    toast('Tautan tidak dapat dibuka dari dalam aplikasi. Tautan disalin: ' + url);
+    /* HP: coba buka aplikasinya langsung lewat iframe tersembunyi (halaman ini tidak tertimpa).
+       Bila aplikasi tidak terpasang / tidak terbuka, baru buka tab baru. */
+    socialOpening = true;
+    var hiddenAt = false;
+    function onHide() { if (document.hidden) hiddenAt = true; }
+    function onBlur() { hiddenAt = true; }
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', onBlur);
+    window.addEventListener('blur', onBlur);
+    var frame = document.createElement('iframe');
+    frame.style.display = 'none';
+    frame.src = deep;
+    document.body.appendChild(frame);
+    setTimeout(function () {
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', onBlur);
+      window.removeEventListener('blur', onBlur);
+      if (frame.parentNode) frame.parentNode.removeChild(frame);
+      socialOpening = false;
+      if (hiddenAt) return; /* aplikasi sosmed terbuka */
+      var w = null;
+      try { w = window.open(url, '_blank', 'noopener,noreferrer'); } catch (e) {}
+      if (!w) { try { navigator.clipboard.writeText(url); } catch (e) {} toast('Tautan disalin: ' + url); }
+    }, 1500);
   }
   document.getElementById('home-social-links').addEventListener('click', function (e) {
     var a = e.target.closest('a[href]');
@@ -3217,6 +3245,15 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     e.preventDefault();
     openSocialLink(a.getAttribute('href'));
   });
+
+  /* ---------- Tombol kembali HP: pindah halaman di dalam aplikasi ---------- */
+  window.addEventListener('popstate', function (e) {
+    var v = (e.state && e.state.view) || 'home';
+    navFromPop = true;
+    showView(v);
+    navFromPop = false;
+  });
+  try { history.replaceState({ view: 'home' }, ''); } catch (e) {}
 
   /* ---------- Init ---------- */
   renderSocialLinks();
