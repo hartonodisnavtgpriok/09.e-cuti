@@ -70,7 +70,16 @@
         <p class="text-lg font-semibold text-slate-700">Pengajuan Cuti Elektronik Karyawan</p>
         <div class="w-16 h-1 bg-blue-700 rounded-full my-5"></div>
         <p class="text-sm text-slate-500 mt-2 max-w-md">Ajukan cuti dan pantau proses persetujuan berjenjang hingga surat diterbitkan.</p>
-        <button type="button" data-view="login" class="go-btn mt-6 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-xl px-8 py-3 shadow transition">Masuk ke Aplikasi &rarr;</button>
+        <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <button type="button" id="home-btn-login" data-view="login" class="go-btn inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-xl px-7 py-3 shadow transition">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+            Login
+          </button>
+          <button type="button" id="home-btn-logout" class="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl px-7 py-3 shadow transition">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+            Logout
+          </button>
+        </div>
       </div>
     </div>
   </section>
@@ -168,7 +177,7 @@
 
     <div id="emp-rules" class="hidden max-w-3xl mx-auto">
       <div class="bg-white rounded-xl shadow p-5">
-        <button type="button" data-emp="menu" class="inline-flex w-full sm:w-auto items-center mb-5 rounded-xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 hover:shadow-md active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Kembali ke Menu</button>
+        <button type="button" data-view="home" class="go-btn inline-flex w-full sm:w-auto items-center mb-5 rounded-xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 hover:shadow-md active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">&larr; Kembali ke Beranda</button>
         <h3 class="font-bold text-lg text-blue-900">KETENTUAN CUTI PEGAWAI DI LINGKUNGAN PERHUBUNGAN LAUT</h3>
         <div id="rules-tabs" class="flex flex-wrap gap-2 my-4"></div>
         <div id="rules-body"></div>
@@ -177,7 +186,7 @@
 
     <div id="emp-form" class="hidden">
       <div class="bg-white rounded-xl shadow p-5 w-full max-w-2xl mx-auto">
-        <button type="button" data-emp="menu" class="inline-flex w-full sm:w-auto items-center mb-5 rounded-xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 hover:shadow-md active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Kembali ke Menu</button>
+        <button type="button" data-view="home" class="go-btn inline-flex w-full sm:w-auto items-center mb-5 rounded-xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 hover:shadow-md active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">&larr; Kembali ke Beranda</button>
         <h3 class="font-semibold text-lg mb-4">Form Pengajuan Cuti</h3>
         <form id="leave-form" class="space-y-4" novalidate>
           <div>
@@ -890,10 +899,15 @@
   var letterNumberRequestId = null;
   var letterNumberModal = document.getElementById('letter-number-modal');
   var letterNumberValue = document.getElementById('letter-number-value');
-  function closeLetterNumberModal() {
-    letterNumberModal.classList.add('hidden');
-    letterNumberModal.classList.remove('flex');
-    letterNumberRequestId = null;
+  function closeLetterNumberModal(fromPop) {
+    if (!letterNumberModal.classList.contains('hidden')) {
+      letterNumberModal.classList.add('hidden');
+      letterNumberModal.classList.remove('flex');
+      letterNumberRequestId = null;
+      if (!fromPop && history.state && history.state.modal === 'letter') {
+        try { history.back(); } catch (e) {}
+      }
+    }
   }
   function openLetterNumberModal(id) {
     var user = activeUser();
@@ -912,8 +926,9 @@
     letterNumberModal.classList.add('flex');
     letterNumberValue.focus();
     letterNumberValue.select();
+    try { history.pushState({ modal: 'letter', view: (history.state && history.state.view) || 'home' }, ''); } catch (e) {}
   }
-  document.getElementById('letter-number-cancel').addEventListener('click', closeLetterNumberModal);
+  document.getElementById('letter-number-cancel').addEventListener('click', function () { closeLetterNumberModal(); });
   letterNumberModal.addEventListener('click', function (e) {
     if (e.target === letterNumberModal) closeLetterNumberModal();
   });
@@ -1049,10 +1064,19 @@
     saveSeen(seen);
     var badge = document.getElementById('bell-badge');
     badge.classList.add('hidden'); notifLastCount = 0;
+    try { history.pushState({ modal: 'notif', view: (history.state && history.state.view) || 'home' }, ''); } catch (e) {}
   }
-  function closeNotifPanel() { document.getElementById('notif-panel').classList.add('hidden'); }
+  function closeNotifPanel(fromPop) {
+    var el = document.getElementById('notif-panel');
+    if (el && !el.classList.contains('hidden')) {
+      el.classList.add('hidden');
+      if (!fromPop && history.state && history.state.modal === 'notif') {
+        try { history.back(); } catch (e) {}
+      }
+    }
+  }
   document.getElementById('btn-bell').addEventListener('click', openNotifPanel);
-  document.getElementById('notif-close').addEventListener('click', closeNotifPanel);
+  document.getElementById('notif-close').addEventListener('click', function () { closeNotifPanel(); });
   document.getElementById('notif-panel').addEventListener('click', function (e) {
     if (e.target === this) { closeNotifPanel(); return; }
     var b = e.target.closest('[data-notif]');
@@ -1071,6 +1095,9 @@
     renderEmployeeProfile();
     renderEmployeeHistory();
   }
+  function safeRender() {
+    try { renderAll(); } catch (e) { console.error('Render error:', e); }
+  }
 
   /* ---------- Navigation ---------- */
   var navFromPop = false;
@@ -1079,14 +1106,15 @@
     if (v !== 'home' && v !== 'login' && !user) v = 'login';
     var roleView = user && { employee: 'employee', approver: 'approver', correspondence: 'correspondence', admin: 'admin' }[user.role];
     var allViews = ['employee', 'approver', 'correspondence', 'admin'];
+    if (user && v === 'login') v = roleView || 'employee';
     if (isAdmin2()) {
       if (v !== 'home' && v !== 'login' && allViews.indexOf(v) === -1) v = roleView;
     } else if (roleView && v !== 'home' && v !== 'login' && v !== roleView && !(v === 'employee' && applicantProfile(user))) v = roleView;
     document.querySelectorAll('.view').forEach(function (s) { s.classList.toggle('active', s.id === 'view-' + v); });
     try {
       if (!navFromPop) {
-        var curState = history.state && history.state.view;
-        if (curState !== v) history.pushState({ view: v }, '');
+        var curState = (history.state && history.state.view) || '';
+        if (curState !== v) history.pushState({ view: v, sub: v === 'employee' ? 'menu' : '' }, '');
       }
     } catch (e) {}
     navFromPop = false;
@@ -1108,12 +1136,23 @@
       ? 'MODE UJI LIVE sebagai ' + testUser.roleLabel + ' — ' + testUser.name + ' (' + testUser.nip + '). Perubahan tersimpan pada data bersama. Akhiri mode uji untuk kembali ke akun Admin 2.'
       : '';
     document.getElementById('data-tools').style.display = isAdmin1Or2() ? '' : 'none';
-    if (v === 'employee') empShow('menu');
-    renderAll();
+    if (v === 'employee' && !navFromPop) empShow('menu', true);
+    safeRender();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
-  document.querySelectorAll('.nav-btn, .go-btn').forEach(function (b) {
-    b.addEventListener('click', function () { showView(b.dataset.view); });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('.nav-btn, .go-btn');
+    if (!b) return;
+    var target = b.dataset.view;
+    if (!target) return;
+    var user = activeUser();
+    if (target === 'home') {
+      showView('home');
+    } else if (b.classList.contains('go-btn') && user) {
+      showView(user.role || 'employee');
+    } else {
+      showView(target);
+    }
   });
   document.querySelectorAll('.collapsible-panel-toggle').forEach(function (toggle) {
     toggle.addEventListener('click', function () {
@@ -2201,7 +2240,10 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     linkWrap.classList.add('hidden');
     document.getElementById('login-form').reset();
     ['login-error', 'login-info'].forEach(function (id) { authMsg(id, ''); });
-    renderAll();
+    safeRender();
+    try {
+      history.replaceState({ view: u.role, sub: 'menu' }, '');
+    } catch (e) {}
     showView(u.role);
     return Promise.resolve(true);
   }
@@ -2315,7 +2357,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     });
   });
 
-  document.getElementById('btn-logout').addEventListener('click', function () {
+  function doLogout() {
     /* Keluar langsung: pembersihan (push, realtime, sesi Supabase) berjalan di latar
        belakang dengan batas waktu supaya tombol tidak pernah macet. */
     var withTimeout = function (promise, ms) {
@@ -2330,6 +2372,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       document.getElementById('login-link-wrap').classList.add('hidden');
     } catch (e) { console.error(e); }
     try { updatePushButton(); } catch (e) { console.error(e); }
+    try { history.replaceState({ view: 'home', sub: 'menu' }, ''); } catch (e) {}
     showView('home');
     window.scrollTo(0, 0);
     withTimeout(disconnectPush(), 3000).catch(function (e) { console.error('Logout push gagal:', e); });
@@ -2337,6 +2380,21 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       withTimeout(client.auth.signOut({ scope: 'local' }), 5000).then(function (result) {
         if (result && result.error) console.error('Supabase sign-out gagal:', result.error);
       }).catch(function (error) { console.error('Supabase sign-out gagal:', error); });
+    }
+  }
+
+  document.getElementById('btn-logout').addEventListener('click', function () {
+    doLogout();
+    toast('Berhasil keluar dari akun, BOS!');
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('#home-btn-logout');
+    if (!b) return;
+    if (activeUser()) {
+      doLogout();
+      toast('Berhasil keluar dari akun, BOS!');
+    } else {
+      toast('BOS belum login ke akun!');
     }
   });
   /* Pulihkan sesi setelah halaman dimuat ulang. */
@@ -2521,11 +2579,24 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     }
     document.getElementById('rules-body').innerHTML = '<h4 class="font-semibold mb-3">' + r.t + '</h4>' + h;
   }
-  function empShow(p) {
-    ['menu', 'rules', 'form', 'history'].forEach(function (x) { document.getElementById('emp-' + x).classList.toggle('hidden', x !== p); });
+  function empShow(p, fromPop) {
+    var valid = ['menu', 'rules', 'form', 'history'];
+    if (valid.indexOf(p) === -1) p = 'menu';
+    valid.forEach(function (x) {
+      var el = document.getElementById('emp-' + x);
+      if (el) el.classList.toggle('hidden', x !== p);
+    });
     if (p === 'rules') renderRules();
     if (p === 'history') renderEmployeeHistory();
     if (p === 'form') fillApplicant();
+    if (!fromPop) {
+      try {
+        var cur = history.state || {};
+        if (cur.view !== 'employee' || cur.sub !== p) {
+          history.pushState({ view: 'employee', sub: p }, '');
+        }
+      } catch (e) {}
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   document.addEventListener('click', function (e) {
@@ -2942,9 +3013,14 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     exportBook(load().filter(function (r) { return r.status === 'issued'; }));
   });
   var requestEditModal = document.getElementById('request-edit-modal');
-  function closeRequestEditModal() {
-    requestEditModal.classList.add('hidden');
-    requestEditModal.classList.remove('flex');
+  function closeRequestEditModal(fromPop) {
+    if (!requestEditModal.classList.contains('hidden')) {
+      requestEditModal.classList.add('hidden');
+      requestEditModal.classList.remove('flex');
+      if (!fromPop && history.state && history.state.modal === 'edit') {
+        try { history.back(); } catch (e) {}
+      }
+    }
   }
   function fillApproverSelect(select, selectedName, allowEmpty) {
     select.innerHTML = (allowEmpty ? '<option value="">Tidak ada</option>' : '<option value="">Pilih penyetuju...</option>') +
@@ -2985,8 +3061,9 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     document.getElementById('request-edit-error').classList.add('hidden');
     requestEditModal.classList.remove('hidden');
     requestEditModal.classList.add('flex');
+    try { history.pushState({ modal: 'edit', view: (history.state && history.state.view) || 'home' }, ''); } catch (e) {}
   }
-  document.getElementById('request-edit-cancel').addEventListener('click', closeRequestEditModal);
+  document.getElementById('request-edit-cancel').addEventListener('click', function () { closeRequestEditModal(); });
   requestEditModal.addEventListener('click', function (event) {
     if (event.target === requestEditModal) closeRequestEditModal();
   });
@@ -3192,13 +3269,88 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
 
 
   /* ---------- Tombol kembali HP: pindah halaman di dalam aplikasi ---------- */
+  function getActiveModal() {
+    var np = document.getElementById('notif-panel');
+    if (np && !np.classList.contains('hidden')) return 'notif';
+    var lm = document.getElementById('letter-number-modal');
+    if (lm && !lm.classList.contains('hidden')) return 'letter';
+    var rm = document.getElementById('request-edit-modal');
+    if (rm && !rm.classList.contains('hidden')) return 'edit';
+    return null;
+  }
+  function closeModalDirect(name) {
+    if (name === 'notif') closeNotifPanel(true);
+    else if (name === 'letter') closeLetterNumberModal(true);
+    else if (name === 'edit') closeRequestEditModal(true);
+  }
+
   window.addEventListener('popstate', function (e) {
-    var v = (e.state && e.state.view) || 'home';
+    var openModal = getActiveModal();
+    if (openModal) {
+      closeModalDirect(openModal);
+      return;
+    }
+
+    var isRulesVisible = !document.getElementById('emp-rules').classList.contains('hidden');
+    var isFormVisible = !document.getElementById('emp-form').classList.contains('hidden');
+    var isEmpActive = document.getElementById('view-employee').classList.contains('active');
+
+    if (isEmpActive && (isRulesVisible || isFormVisible)) {
+      navFromPop = true;
+      showView('home');
+      empShow('menu', true);
+      navFromPop = false;
+      return;
+    }
+
+    var state = e.state || {};
+    var v = state.view || 'home';
+    var sub = state.sub || 'menu';
     navFromPop = true;
     showView(v);
+    if (v === 'employee') {
+      empShow(sub, true);
+    }
     navFromPop = false;
   });
-  try { history.replaceState({ view: 'home' }, ''); } catch (e) {}
+
+  window.addEventListener('pageshow', function () {
+    var state = history.state || {};
+    var v = state.view || 'home';
+    var sub = state.sub || 'menu';
+    navFromPop = true;
+    showView(v);
+    if (v === 'employee') {
+      empShow(sub, true);
+    }
+    navFromPop = false;
+    safeRender();
+  });
+
+  try { history.replaceState({ view: 'home', sub: 'menu' }, ''); } catch (e) {}
+
+  /* ---------- Buka tautan media sosial secara aman ---------- */
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('#home-social-links a[href]');
+    if (!a) return;
+    var href = a.getAttribute('href');
+    if (!href) return;
+    e.preventDefault();
+    try {
+      var w = window.open(href, '_blank', 'noopener,noreferrer');
+      if (!w || w.closed || typeof w.closed === 'undefined') {
+        var link = document.createElement('a');
+        link.href = href;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err) {
+      window.open(href, '_blank');
+    }
+  });
 
   /* ---------- Init ---------- */
   renderSocialLinks();
@@ -3206,7 +3358,10 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
   showView('home');
   loadSocialLinksFromServer();
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden) loadSocialLinksFromServer();
+    if (!document.hidden) {
+      loadSocialLinksFromServer();
+      safeRender();
+    }
   });
 })();
 </script>
