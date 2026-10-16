@@ -30,8 +30,7 @@
     pending:               { label: 'Pengajuan Lama', cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
     admin_approved:        { label: 'Pengajuan Lama - Admin', cls: 'bg-blue-100 text-blue-800 border-blue-300' },
     approved:              { label: 'Disetujui (data lama)', cls: 'bg-green-100 text-green-800 border-green-300' },
-    rejected:              { label: 'Ditolak', cls: 'bg-red-100 text-red-800 border-red-300' },
-    draft:                 { label: 'Draft (belum dikirim)', cls: 'bg-slate-100 text-slate-700 border-slate-300' }
+    rejected:              { label: 'Ditolak', cls: 'bg-red-100 text-red-800 border-red-300' }
   };
   var TYPE_LABEL = { Annual: 'Annual (Tahunan)', Sick: 'Sick (Sakit)', Personal: 'Personal (Alasan Penting)', Besar: 'Cuti Besar', Melahirkan: 'Cuti Melahirkan', LuarTanggungan: 'Cuti di Luar Tanggungan Negara' };
 
@@ -324,7 +323,6 @@
       h + '</tr></thead><tbody>' + b + '</tbody></table></div>';
   }
   function periodCell(r) {
-    if (!r.start || !r.end) return '<span class="text-xs text-slate-400">Tanggal belum diisi</span>';
     return fmtDate(r.start) + ' &ndash; ' + fmtDate(r.end) +
       '<div class="text-xs text-slate-500">' + days(r.start, r.end) + ' hari</div>';
   }
@@ -345,7 +343,7 @@
     renderAdmin2ApproverManagement();
     var count = function (s) { return all.filter(function (r) { return r.status === s; }).length; };
     document.getElementById('admin-stats').innerHTML =
-      statCard('Total Pengajuan', all.filter(function (r) { return r.status !== 'draft'; }).length, 'border-slate-500') +
+      statCard('Total Pengajuan', all.length, 'border-slate-500') +
       statCard('Siap Diterbitkan', count('pending_admin_issue'), 'border-purple-500') +
       statCard('Surat Diterbitkan', count('issued'), 'border-green-500') +
       statCard('Ditolak', count('rejected'), 'border-red-500');
@@ -761,9 +759,16 @@
     var list = load();
     var route = resolveRoute(prof);
     if (!route.first) { showErr('Rute persetujuan untuk jabatan Anda belum diatur. Hubungi Admin.'); return; }
-    var rec = buildRequestRecord(prof, route, 'pending_direct');
-    var di = editingDraftId ? list.map(function (x) { return x.id; }).indexOf(editingDraftId) : -1;
-    if (di !== -1 && list[di].status === 'draft') { rec.id = list[di].id; list[di] = rec; } else list.push(rec);
+    list.push({
+      id: 'r' + Date.now() + Math.floor(Math.random() * 1000),
+      name: prof.n, type: type, start: start, end: end, reason: reason,
+      nip: prof.nip, masa: masaKerja(prof.nip), jabatan: prof.j, alamat: v('f-alamat'), telp: v('f-telp'),
+      atasan: route.first, atasanNip: v('f-atasan-nip'), sig: cv.toDataURL('image/png'),
+      unit: prof.unit, unitCode: prof.unitCode,
+      firstApprover: route.first, firstApproverPosition: route.firstPosition,
+      secondApprover: route.second, secondApproverPosition: route.secondPosition,
+      status: 'pending_direct', createdAt: Date.now(), requestedBy: prof.nip
+    });
     if (!save(list)) return;
     form.reset(); clearSig(); fillApplicant();
     renderAll();
@@ -774,72 +779,6 @@
     showView('employee');
     empShow('history');
   });
-
-  /* ---------- Draft pengajuan ---------- */
-  var editingDraftId = null, openingDraft = false;
-  function buildRequestRecord(prof, route, status) {
-    var v = function (id) { return document.getElementById(id).value.trim(); };
-    return {
-      id: 'r' + Date.now() + Math.floor(Math.random() * 1000),
-      name: prof.n, type: v('f-type'), start: v('f-start'), end: v('f-end'), reason: v('f-reason'),
-      nip: prof.nip, masa: masaKerja(prof.nip), jabatan: prof.j, alamat: v('f-alamat'), telp: v('f-telp'),
-      atasan: route.first, atasanNip: v('f-atasan-nip'), sig: inked ? cv.toDataURL('image/png') : '',
-      unit: prof.unit, unitCode: prof.unitCode,
-      firstApprover: route.first, firstApproverPosition: route.firstPosition,
-      secondApprover: route.second, secondApproverPosition: route.secondPosition,
-      status: status, createdAt: Date.now(), requestedBy: prof.nip
-    };
-  }
-  document.getElementById('btn-save-draft').addEventListener('click', function () {
-    errEl.classList.add('hidden');
-    var user = activeUser();
-    var prof = testUser ? (document.getElementById('f-nip').value ? testApplicant : null) : applicantProfile(user);
-    if (testUser && !prof) { showErr('Mode uji: ketik 3 huruf nama atau NIP pegawai, lalu pilih dari saran.'); return; }
-    if (!user || !prof) {
-      showErr('Silakan masuk dengan akun yang terdaftar di daftar pegawai sebelum menyimpan draft.');
-      showView(user ? 'employee' : 'login');
-      return;
-    }
-    if (!document.getElementById('f-nip').value) { showErr('Ketik minimal 3 huruf nama atau NIP Anda, lalu pilih dari saran agar data terisi otomatis.'); return; }
-    var s = document.getElementById('f-start').value, e = document.getElementById('f-end').value;
-    if (s && e && e < s) { showErr('Tanggal selesai tidak boleh sebelum tanggal mulai.'); return; }
-    var list = load();
-    var rec = buildRequestRecord(prof, resolveRoute(prof), 'draft');
-    var di = editingDraftId ? list.map(function (x) { return x.id; }).indexOf(editingDraftId) : -1;
-    if (di !== -1 && list[di].status === 'draft') { rec.id = list[di].id; list[di] = rec; } else list.push(rec);
-    if (!save(list)) return;
-    form.reset(); clearSig(); fillApplicant();
-    renderAll();
-    toast('Draft tersimpan. Buka dari Riwayat untuk melanjutkan.');
-    showView('employee');
-    empShow('history');
-  });
-  form.addEventListener('reset', function () { editingDraftId = null; });
-  function openDraft(id) {
-    var user = activeUser();
-    var hn = user ? ((testUser && testApplicant) ? testApplicant.nip : user.nip) : null;
-    var r = load().filter(function (x) { return x.id === id; })[0];
-    if (!r || r.status !== 'draft' || !hn || (r.requestedBy || r.nip) !== hn) { toast('Draft tidak ditemukan.'); return; }
-    var prof = EMP.filter(function (p) { return p.nip === r.nip; })[0];
-    if (!prof) { toast('Data pegawai untuk draft ini tidak ditemukan.'); return; }
-    openingDraft = true;
-    showView('employee');
-    empShow('form');
-    openingDraft = false;
-    form.reset(); clearSig();
-    pick(prof);
-    editingDraftId = r.id;
-    var set = function (fid, val) { document.getElementById(fid).value = val || ''; };
-    set('f-type', r.type); set('f-start', r.start); set('f-end', r.end); set('f-reason', r.reason);
-    set('f-alamat', r.alamat); set('f-telp', r.telp);
-    if (r.sig) {
-      var img = new Image();
-      img.onload = function () { cx.clearRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height); inked = true; };
-      img.src = r.sig;
-    }
-    updateHariKerjaInfo(); updateRuleWarning();
-    toast('Draft dibuka. Lengkapi lalu kirim atau simpan lagi.');
-  }
 
 /* ---------- Data pegawai & autofill ---------- */
   var HEAD = {
@@ -2059,7 +1998,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     if (!el) return;
     var user = activeUser();
     var hn = user ? ((testUser && testApplicant) ? testApplicant.nip : user.nip) : null;
-    var mine = hn ? load().filter(function (r) { return (r.requestedBy || r.nip) === hn && r.status !== 'draft'; })
+    var mine = hn ? load().filter(function (r) { return (r.requestedBy || r.nip) === hn; })
       .sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); }) : [];
     var r = mine[0];
     if (!r) {
@@ -2224,10 +2163,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       return;
     }
     el.innerHTML = table(['Tanggal Pengajuan', 'Jenis Cuti', 'Periode', 'Status', 'Surat'], own.map(function (r) {
-      var letter = r.status === 'draft'
-        ? '<div class="text-xs text-slate-500 mb-2">Belum dikirim, tidak mengurangi saldo cuti.</div>' +
-          btn('draft-edit', r.id, '✏ Buka &amp; Edit Draft', 'ok') + ' ' + btn('draft-delete', r.id, '🗑 Hapus Draft')
-        : r.status === 'issued'
+      var letter = r.status === 'issued'
         ? '<div class="font-semibold text-slate-800">' + esc(r.letterNumber || 'Nomor belum tersedia') + '</div>' +
           '<div class="text-xs text-green-700 mb-2">Surat PDF telah tersedia di akun Anda sejak ' +
           (r.letterDeliveredAt ? new Date(r.letterDeliveredAt).toLocaleDateString('id-ID') : 'surat diterbitkan') + '</div>' +
@@ -2381,10 +2317,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     });
     if (p === 'rules') renderRules();
     if (p === 'history') renderEmployeeHistory();
-    if (p === 'form') {
-      if (!openingDraft && editingDraftId) { form.reset(); clearSig(); }
-      fillApplicant(); hitungSaldoCuti();
-    }
+    if (p === 'form') { fillApplicant(); hitungSaldoCuti(); }
     if (!fromPop) {
       try {
         var cur = history.state || {};
@@ -3077,17 +3010,6 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       case 'export':
         if (!isAdmin1Or2()) { toast('Hanya Admin 1 dan Admin 2 yang dapat mengekspor formulir.'); break; }
         exportBook(load().filter(function (r) { return r.id === id; })); break;
-      case 'draft-edit':
-        openDraft(id); break;
-      case 'draft-delete':
-        var delUser = activeUser();
-        var delHn = delUser ? ((testUser && testApplicant) ? testApplicant.nip : delUser.nip) : null;
-        var delList = load();
-        var delReq = delList.filter(function (x) { return x.id === id; })[0];
-        if (!delReq || delReq.status !== 'draft' || (delReq.requestedBy || delReq.nip) !== delHn) { toast('Draft tidak ditemukan.'); break; }
-        if (!confirm('Hapus draft ini?')) break;
-        if (save(delList.filter(function (x) { return x.id !== id; }))) { renderAll(); toast('Draft dihapus.'); }
-        break;
       case 'employee-pdf':
         downloadEmployeePdf(id); break;
       case 'first-approve':
