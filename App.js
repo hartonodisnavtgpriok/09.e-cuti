@@ -30,7 +30,8 @@
     pending:               { label: 'Pengajuan Lama', cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
     admin_approved:        { label: 'Pengajuan Lama - Admin', cls: 'bg-blue-100 text-blue-800 border-blue-300' },
     approved:              { label: 'Disetujui (data lama)', cls: 'bg-green-100 text-green-800 border-green-300' },
-    rejected:              { label: 'Ditolak', cls: 'bg-red-100 text-red-800 border-red-300' }
+    rejected:              { label: 'Ditolak', cls: 'bg-red-100 text-red-800 border-red-300' },
+    draft:                 { label: 'Draft (belum dikirim)', cls: 'bg-slate-100 text-slate-700 border-slate-300' }
   };
   var TYPE_LABEL = { Annual: 'Annual (Tahunan)', Sick: 'Sick (Sakit)', Personal: 'Personal (Alasan Penting)', Besar: 'Cuti Besar', Melahirkan: 'Cuti Melahirkan', LuarTanggungan: 'Cuti di Luar Tanggungan Negara' };
 
@@ -323,6 +324,7 @@
       h + '</tr></thead><tbody>' + b + '</tbody></table></div>';
   }
   function periodCell(r) {
+    if (!r.start || !r.end) return '<span class="text-xs text-slate-400">Tanggal belum diisi</span>';
     return fmtDate(r.start) + ' &ndash; ' + fmtDate(r.end) +
       '<div class="text-xs text-slate-500">' + days(r.start, r.end) + ' hari</div>';
   }
@@ -343,7 +345,7 @@
     renderAdmin2ApproverManagement();
     var count = function (s) { return all.filter(function (r) { return r.status === s; }).length; };
     document.getElementById('admin-stats').innerHTML =
-      statCard('Total Pengajuan', all.length, 'border-slate-500') +
+      statCard('Total Pengajuan', all.filter(function (r) { return r.status !== 'draft'; }).length, 'border-slate-500') +
       statCard('Siap Diterbitkan', count('pending_admin_issue'), 'border-purple-500') +
       statCard('Surat Diterbitkan', count('issued'), 'border-green-500') +
       statCard('Ditolak', count('rejected'), 'border-red-500');
@@ -651,6 +653,8 @@
     renderCorrespondence();
     renderEmployeeProfile();
     renderEmployeeHistory();
+    hitungSaldoCuti();
+    renderLastRequestTimeline();
   }
   function safeRender() {
     try { renderAll(); } catch (e) { console.error('Render error:', e); }
@@ -757,16 +761,9 @@
     var list = load();
     var route = resolveRoute(prof);
     if (!route.first) { showErr('Rute persetujuan untuk jabatan Anda belum diatur. Hubungi Admin.'); return; }
-    list.push({
-      id: 'r' + Date.now() + Math.floor(Math.random() * 1000),
-      name: prof.n, type: type, start: start, end: end, reason: reason,
-      nip: prof.nip, masa: masaKerja(prof.nip), jabatan: prof.j, alamat: v('f-alamat'), telp: v('f-telp'),
-      atasan: route.first, atasanNip: v('f-atasan-nip'), sig: cv.toDataURL('image/png'),
-      unit: prof.unit, unitCode: prof.unitCode,
-      firstApprover: route.first, firstApproverPosition: route.firstPosition,
-      secondApprover: route.second, secondApproverPosition: route.secondPosition,
-      status: 'pending_direct', createdAt: Date.now(), requestedBy: prof.nip
-    });
+    var rec = buildRequestRecord(prof, route, 'pending_direct');
+    var di = editingDraftId ? list.map(function (x) { return x.id; }).indexOf(editingDraftId) : -1;
+    if (di !== -1 && list[di].status === 'draft') { rec.id = list[di].id; list[di] = rec; } else list.push(rec);
     if (!save(list)) return;
     form.reset(); clearSig(); fillApplicant();
     renderAll();
@@ -777,6 +774,72 @@
     showView('employee');
     empShow('history');
   });
+
+  /* ---------- Draft pengajuan ---------- */
+  var editingDraftId = null, openingDraft = false;
+  function buildRequestRecord(prof, route, status) {
+    var v = function (id) { return document.getElementById(id).value.trim(); };
+    return {
+      id: 'r' + Date.now() + Math.floor(Math.random() * 1000),
+      name: prof.n, type: v('f-type'), start: v('f-start'), end: v('f-end'), reason: v('f-reason'),
+      nip: prof.nip, masa: masaKerja(prof.nip), jabatan: prof.j, alamat: v('f-alamat'), telp: v('f-telp'),
+      atasan: route.first, atasanNip: v('f-atasan-nip'), sig: inked ? cv.toDataURL('image/png') : '',
+      unit: prof.unit, unitCode: prof.unitCode,
+      firstApprover: route.first, firstApproverPosition: route.firstPosition,
+      secondApprover: route.second, secondApproverPosition: route.secondPosition,
+      status: status, createdAt: Date.now(), requestedBy: prof.nip
+    };
+  }
+  document.getElementById('btn-save-draft').addEventListener('click', function () {
+    errEl.classList.add('hidden');
+    var user = activeUser();
+    var prof = testUser ? (document.getElementById('f-nip').value ? testApplicant : null) : applicantProfile(user);
+    if (testUser && !prof) { showErr('Mode uji: ketik 3 huruf nama atau NIP pegawai, lalu pilih dari saran.'); return; }
+    if (!user || !prof) {
+      showErr('Silakan masuk dengan akun yang terdaftar di daftar pegawai sebelum menyimpan draft.');
+      showView(user ? 'employee' : 'login');
+      return;
+    }
+    if (!document.getElementById('f-nip').value) { showErr('Ketik minimal 3 huruf nama atau NIP Anda, lalu pilih dari saran agar data terisi otomatis.'); return; }
+    var s = document.getElementById('f-start').value, e = document.getElementById('f-end').value;
+    if (s && e && e < s) { showErr('Tanggal selesai tidak boleh sebelum tanggal mulai.'); return; }
+    var list = load();
+    var rec = buildRequestRecord(prof, resolveRoute(prof), 'draft');
+    var di = editingDraftId ? list.map(function (x) { return x.id; }).indexOf(editingDraftId) : -1;
+    if (di !== -1 && list[di].status === 'draft') { rec.id = list[di].id; list[di] = rec; } else list.push(rec);
+    if (!save(list)) return;
+    form.reset(); clearSig(); fillApplicant();
+    renderAll();
+    toast('Draft tersimpan. Buka dari Riwayat untuk melanjutkan.');
+    showView('employee');
+    empShow('history');
+  });
+  form.addEventListener('reset', function () { editingDraftId = null; });
+  function openDraft(id) {
+    var user = activeUser();
+    var hn = user ? ((testUser && testApplicant) ? testApplicant.nip : user.nip) : null;
+    var r = load().filter(function (x) { return x.id === id; })[0];
+    if (!r || r.status !== 'draft' || !hn || (r.requestedBy || r.nip) !== hn) { toast('Draft tidak ditemukan.'); return; }
+    var prof = EMP.filter(function (p) { return p.nip === r.nip; })[0];
+    if (!prof) { toast('Data pegawai untuk draft ini tidak ditemukan.'); return; }
+    openingDraft = true;
+    showView('employee');
+    empShow('form');
+    openingDraft = false;
+    form.reset(); clearSig();
+    pick(prof);
+    editingDraftId = r.id;
+    var set = function (fid, val) { document.getElementById(fid).value = val || ''; };
+    set('f-type', r.type); set('f-start', r.start); set('f-end', r.end); set('f-reason', r.reason);
+    set('f-alamat', r.alamat); set('f-telp', r.telp);
+    if (r.sig) {
+      var img = new Image();
+      img.onload = function () { cx.clearRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height); inked = true; };
+      img.src = r.sig;
+    }
+    updateHariKerjaInfo(); updateRuleWarning();
+    toast('Draft dibuka. Lengkapi lalu kirim atau simpan lagi.');
+  }
 
 /* ---------- Data pegawai & autofill ---------- */
   var HEAD = {
@@ -1967,9 +2030,10 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     }
   }
 
+  /* Tombol "Beranda" di dalam aplikasi: kembali ke halaman awal TANPA logout.
+     Logout hanya lewat tombol "Logout" di halaman awal (#home-btn-logout). */
   document.getElementById('btn-logout').addEventListener('click', function () {
-    doLogout();
-    toast('Berhasil keluar dari akun, BOS!');
+    showView('home');
   });
   document.addEventListener('click', function (e) {
     var b = e.target.closest('#home-btn-logout');
@@ -1988,6 +2052,148 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       authRestored = true;
       if (session && session.user) setTimeout(function () { finishLogin(session.user, true); }, 0);
     });
+  }
+  /* ---------- Timeline pengajuan terakhir ---------- */
+  function renderLastRequestTimeline() {
+    var el = document.getElementById('last-request-timeline');
+    if (!el) return;
+    var user = activeUser();
+    var hn = user ? ((testUser && testApplicant) ? testApplicant.nip : user.nip) : null;
+    var mine = hn ? load().filter(function (r) { return (r.requestedBy || r.nip) === hn && r.status !== 'draft'; })
+      .sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); }) : [];
+    var r = mine[0];
+    if (!r) {
+      el.innerHTML = '<p class="text-sm text-slate-500">Belum ada pengajuan cuti.</p>';
+      return;
+    }
+    var hasSecond = !!r.secondApprover;
+    var steps = [
+      { t: 'Pengajuan Terkirim', d: fmtDate(r.start) + ' – ' + fmtDate(r.end) },
+      { t: 'Persetujuan Tahap 1', d: r.firstApprover || '' },
+      { t: 'Persetujuan Tahap 2', d: hasSecond ? r.secondApprover : 'Tidak diperlukan' },
+      { t: 'Nomor Surat (Persuratan)', d: r.letterNumber || '' },
+      { t: 'Surat Diterbitkan / Selesai', d: '' }
+    ];
+    /* current = indeks tahap yang sedang berjalan; tahap sebelumnya sudah lewat */
+    var current = { pending_direct: 1, pending_next: 2, pending_correspondence: 3, pending_admin_issue: 4, issued: 5 }[r.status];
+    var rejectedIdx = -1;
+    if (r.status === 'rejected') {
+      rejectedIdx = r.rejectedStage === 'second' ? 2 : 1;
+      current = rejectedIdx;
+    }
+    if (current === undefined) current = 1;
+    var CHECK = '<svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.8 3.8 6.8-6.8a1 1 0 011.4 0z" clip-rule="evenodd"/></svg>';
+    var CROSS = '<svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M5.3 5.3a1 1 0 011.4 0L10 8.6l3.3-3.3a1 1 0 111.4 1.4L11.4 10l3.3 3.3a1 1 0 01-1.4 1.4L10 11.4l-3.3 3.3a1 1 0 01-1.4-1.4L8.6 10 5.3 6.7a1 1 0 010-1.4z"/></svg>';
+    var html = '<ol class="relative">';
+    steps.forEach(function (s, i) {
+      var state = i < current ? 'done' : (i === current ? 'now' : 'todo');
+      if (r.status === 'issued') state = 'done';
+      var circle, title = 'text-slate-800', note = s.d ? '<div class="text-xs text-slate-500">' + esc(s.d) + '</div>' : '';
+      if (i === rejectedIdx) {
+        circle = 'bg-red-600 text-white'; title = 'text-red-700 font-semibold';
+        s = { t: 'Ditolak pada ' + s.t, d: '' };
+        var reason = r.rejectedReason || r.rejectReason || r.alasanPenolakan || '';
+        note = '<div class="text-xs text-red-700">Ditolak oleh ' + esc(r.rejectedBy || 'penyetuju') +
+          (r.rejectedAt ? ' pada ' + new Date(r.rejectedAt).toLocaleDateString('id-ID') : '') + '</div>' +
+          '<div class="mt-1 rounded border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">Alasan: ' +
+          esc(reason || 'tidak dicatat') + '</div>';
+      } else if (rejectedIdx !== -1 && i > rejectedIdx) {
+        circle = 'bg-slate-200 text-slate-400'; title = 'text-slate-400';
+      } else if (state === 'done') {
+        circle = 'bg-green-600 text-white';
+      } else if (state === 'now') {
+        circle = 'bg-blue-600 text-white ring-4 ring-blue-100'; title = 'text-blue-700 font-semibold';
+      } else {
+        circle = 'bg-slate-200 text-slate-400'; title = 'text-slate-400';
+      }
+      var ico = i === rejectedIdx ? CROSS : (state === 'done' && !(rejectedIdx !== -1 && i > rejectedIdx) ? CHECK : String(i + 1));
+      var last = i === steps.length - 1;
+      html += '<li class="relative flex gap-3 pb-5' + (last ? ' pb-0' : '') + '">' +
+        (last ? '' : '<span class="absolute left-4 top-8 -ml-px h-full w-0.5 ' + (state === 'done' && rejectedIdx === -1 ? 'bg-green-300' : 'bg-slate-200') + '"></span>') +
+        '<span class="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ' + circle + '">' + ico + '</span>' +
+        '<div class="pt-1 ' + '"><div class="text-sm ' + title + '">' + esc(s.t) + '</div>' + note + '</div></li>';
+    });
+    el.innerHTML = html + '</ol>';
+  }
+
+  /* ---------- Hari kerja (Senin-Jumat) ---------- */
+  function hitungHariKerja(tanggalMulai, tanggalSelesai) {
+    if (!tanggalMulai || !tanggalSelesai) return 0;
+    var s = new Date(tanggalMulai + 'T00:00:00'), e = new Date(tanggalSelesai + 'T00:00:00');
+    if (isNaN(s) || isNaN(e) || e < s) return 0;
+    var n = 0;
+    for (var d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+      var w = d.getDay();
+      if (w !== 0 && w !== 6) n++;
+    }
+    return n;
+  }
+  function updateHariKerjaInfo() {
+    var el = document.getElementById('f-workdays-info');
+    if (!el) return;
+    var s = document.getElementById('f-start').value, e = document.getElementById('f-end').value;
+    if (!s || !e) { el.classList.add('hidden'); el.textContent = ''; return; }
+    if (new Date(e) < new Date(s)) {
+      el.textContent = 'Tanggal selesai tidak boleh sebelum tanggal mulai.';
+    } else {
+      el.textContent = 'Total: ' + hitungHariKerja(s, e) + ' hari kerja';
+    }
+    el.classList.remove('hidden');
+  }
+  ['f-start', 'f-end'].forEach(function (id) {
+    var inp = document.getElementById(id);
+    if (!inp) return;
+    inp.addEventListener('input', updateHariKerjaInfo);
+    inp.addEventListener('change', updateHariKerjaInfo);
+  });
+  document.getElementById('leave-form').addEventListener('reset', function () { setTimeout(updateHariKerjaInfo, 0); });
+
+  /* ---------- Peringatan aturan: pengajuan < 3 hari kerja ---------- */
+  var MIN_HARI_KERJA_PENGAJUAN = 3;
+  function isoLocal(d) {
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
+  function updateRuleWarning() {
+    var el = document.getElementById('leave-rule-warning');
+    if (!el) return;
+    var start = document.getElementById('f-start').value;
+    if (!start) { el.classList.add('hidden'); return; }
+    var tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    /* jumlah hari kerja dari besok sampai tanggal mulai (hari ini tidak dihitung) */
+    var lead = start >= isoLocal(tomorrow) ? hitungHariKerja(isoLocal(tomorrow), start) : 0;
+    el.classList.toggle('hidden', lead >= MIN_HARI_KERJA_PENGAJUAN);
+  }
+  var startInput = document.getElementById('f-start');
+  startInput.addEventListener('input', updateRuleWarning);
+  startInput.addEventListener('change', updateRuleWarning);
+  document.getElementById('leave-form').addEventListener('reset', function () { setTimeout(updateRuleWarning, 0); });
+
+  /* ---------- Saldo cuti tahunan ---------- */
+  var JATAH_CUTI_TAHUNAN = 12;
+  function hitungSaldoCuti() {
+    var user = activeUser();
+    var elRemain = document.getElementById('leave-balance-remaining');
+    if (!elRemain) return null;
+    var year = new Date().getFullYear();
+    var hn = user ? ((testUser && typeof testApplicant !== 'undefined' && testApplicant) ? testApplicant.nip : user.nip) : null;
+    var used = 0;
+    if (hn) {
+      load().forEach(function (r) {
+        var owner = r.requestedBy || r.nip;
+        if (owner !== hn || r.status !== 'issued' || r.type !== 'Annual') return;
+        if (!r.start || !r.end || new Date(r.start).getFullYear() !== year) return;
+        used += hitungHariKerja(r.start, r.end);
+      });
+    }
+    var remaining = Math.max(0, JATAH_CUTI_TAHUNAN - used);
+    elRemain.textContent = hn ? remaining : '-';
+    elRemain.className = 'text-2xl font-bold ' + (hn && remaining === 0 ? 'text-red-600' : 'text-green-700');
+    document.getElementById('leave-balance-used').textContent = hn ? used : '-';
+    document.getElementById('leave-balance-total').textContent = JATAH_CUTI_TAHUNAN;
+    document.getElementById('leave-balance-year').textContent = '(' + year + ')';
+    document.getElementById('leave-balance-warning').classList.toggle('hidden', !(hn && remaining === 0));
+    return { jatah: JATAH_CUTI_TAHUNAN, terpakai: used, sisa: remaining };
   }
   function renderEmployeeProfile() {
     var el = document.getElementById('employee-profile');
@@ -2018,7 +2224,10 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       return;
     }
     el.innerHTML = table(['Tanggal Pengajuan', 'Jenis Cuti', 'Periode', 'Status', 'Surat'], own.map(function (r) {
-      var letter = r.status === 'issued'
+      var letter = r.status === 'draft'
+        ? '<div class="text-xs text-slate-500 mb-2">Belum dikirim, tidak mengurangi saldo cuti.</div>' +
+          btn('draft-edit', r.id, '✏ Buka &amp; Edit Draft', 'ok') + ' ' + btn('draft-delete', r.id, '🗑 Hapus Draft')
+        : r.status === 'issued'
         ? '<div class="font-semibold text-slate-800">' + esc(r.letterNumber || 'Nomor belum tersedia') + '</div>' +
           '<div class="text-xs text-green-700 mb-2">Surat PDF telah tersedia di akun Anda sejak ' +
           (r.letterDeliveredAt ? new Date(r.letterDeliveredAt).toLocaleDateString('id-ID') : 'surat diterbitkan') + '</div>' +
@@ -2172,7 +2381,10 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     });
     if (p === 'rules') renderRules();
     if (p === 'history') renderEmployeeHistory();
-    if (p === 'form') fillApplicant();
+    if (p === 'form') {
+      if (!openingDraft && editingDraftId) { form.reset(); clearSig(); }
+      fillApplicant(); hitungSaldoCuti();
+    }
     if (!fromPop) {
       try {
         var cur = history.state || {};
@@ -2865,6 +3077,17 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       case 'export':
         if (!isAdmin1Or2()) { toast('Hanya Admin 1 dan Admin 2 yang dapat mengekspor formulir.'); break; }
         exportBook(load().filter(function (r) { return r.id === id; })); break;
+      case 'draft-edit':
+        openDraft(id); break;
+      case 'draft-delete':
+        var delUser = activeUser();
+        var delHn = delUser ? ((testUser && testApplicant) ? testApplicant.nip : delUser.nip) : null;
+        var delList = load();
+        var delReq = delList.filter(function (x) { return x.id === id; })[0];
+        if (!delReq || delReq.status !== 'draft' || (delReq.requestedBy || delReq.nip) !== delHn) { toast('Draft tidak ditemukan.'); break; }
+        if (!confirm('Hapus draft ini?')) break;
+        if (save(delList.filter(function (x) { return x.id !== id; }))) { renderAll(); toast('Draft dihapus.'); }
+        break;
       case 'employee-pdf':
         downloadEmployeePdf(id); break;
       case 'first-approve':
@@ -3002,6 +3225,15 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     var state = e.state || {};
     var v = state.view || 'home';
     var sub = state.sub || 'menu';
+
+    // Jika sudah logout dan target view adalah halaman yang membutuhkan login,
+    // paksa ke beranda agar aplikasi tidak terlihat "mati" atau restart.
+    if (!activeUser() && v !== 'home' && v !== 'login') {
+      try { history.replaceState({ view: 'home', sub: 'menu' }, ''); } catch (err) {}
+      v = 'home';
+      sub = 'menu';
+    }
+
     navFromPop = true;
     showView(v);
     if (v === 'employee') {
