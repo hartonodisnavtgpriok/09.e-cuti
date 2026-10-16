@@ -118,7 +118,7 @@
           <label class="lb" for="signup-password2">Ulangi kata sandi</label>
           <input id="signup-password2" class="inp" type="password" autocomplete="new-password" required>
         </div>
-        <p class="text-xs text-slate-500 bg-blue-50 rounded-lg p-3">Setelah mendaftar, kami mengirim tautan verifikasi ke email Anda. Akun baru bisa dipakai masuk setelah email diverifikasi. Akun penyetuju dikenali otomatis dari NIP yang Anda masukkan di atas; admin dan persuratan dikenali dari email yang didaftarkan Admin 2.</p>
+        <p class="text-xs text-slate-500 bg-blue-50 rounded-lg p-3">Setelah mendaftar, kami mengirim tautan verifikasi ke email Anda. Akun baru bisa dipakai masuk setelah email diverifikasi.</p>
         <p id="signup-error" class="hidden"></p>
         <button id="signup-submit" type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition">Daftar</button>
       </form>
@@ -228,10 +228,7 @@
           <p id="form-error" class="hidden text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"></p>
           <p id="leave-rule-warning" class="hidden text-sm rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 font-medium text-yellow-800" role="alert">Pengajuan kurang dari 3 hari kerja, membutuhkan persetujuan khusus atasan.</p>
           <div class="grid grid-cols-2 gap-3">
-            <button type="button" id="btn-save-draft" class="w-full bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-semibold py-2.5 rounded-lg transition flex items-center justify-center gap-2">
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-              Simpan Draft
-            </button>
+            <button type="button" id="btn-save-draft" class="w-full bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-semibold py-2.5 rounded-lg transition">Simpan Draft</button>
             <button type="submit" id="btn-submit-leave" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition">Kirim Pengajuan</button>
           </div>
           <input type="hidden" id="f-draft-id" value="">
@@ -292,7 +289,7 @@
         </div>
       </div>
     </details>
-    <details class="adm-sec bg-white rounded-xl shadow" data-sec="staff"><summary class="adm-sum flex items-center justify-between gap-3 cursor-pointer select-none px-5 py-4 rounded-xl"><span class="min-w-0"><span class="block font-semibold text-lg text-blue-900">Data Penyetuju &amp; Akun</span><span class="block text-xs text-slate-500">Penyetuju dikenali dari NIP; tambah petugas dan ubah nama</span></span><span class="flex items-center gap-2 shrink-0"><span class="adm-state text-xs font-medium text-blue-700"></span><svg class="adm-chev h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.2 7.7a1 1 0 0 1 1.4 0L10 11.1l3.4-3.4a1 1 0 1 1 1.4 1.4l-4.1 4.1a1 1 0 0 1-1.4 0L5.2 9.1a1 1 0 0 1 0-1.4z" clip-rule="evenodd"/></svg></span></summary>
+    <details class="adm-sec bg-white rounded-xl shadow" data-sec="staff"><summary class="adm-sum flex items-center justify-between gap-3 cursor-pointer select-none px-5 py-4 rounded-xl"><span class="min-w-0"><span class="block font-semibold text-lg text-blue-900">Data Penyetuju &amp; Akun</span><span class="block text-xs text-slate-500">Penyetuju, admin, dan persuratan dikenali dari NIP; tambah petugas dan ubah nama</span></span><span class="flex items-center gap-2 shrink-0"><span class="adm-state text-xs font-medium text-blue-700"></span><svg class="adm-chev h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.2 7.7a1 1 0 0 1 1.4 0L10 11.1l3.4-3.4a1 1 0 1 1 1.4 1.4l-4.1 4.1a1 1 0 0 1-1.4 0L5.2 9.1a1 1 0 0 1 0-1.4z" clip-rule="evenodd"/></svg></span></summary>
       <div class="px-5 pb-5">
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p class="text-sm text-slate-600">Tambah petugas baru atau ubah nama penyetuju.</p>
@@ -317,7 +314,7 @@
           </div>
         </form>
       </div>
-      <p class="text-sm text-slate-600 mt-1 mb-4">Perbarui nama penyetuju. Akun penyetuju dikenali dari NIP yang dipakai saat mendaftar, jadi email tidak perlu diisi.</p>
+      <p class="text-sm text-slate-600 mt-1 mb-4">Perbarui nama petugas. Akun penyetuju, admin, dan persuratan dikenali dari NIP yang dipakai saat mendaftar, jadi email tidak perlu diisi.</p>
       <p class="text-xs text-amber-700 bg-amber-50 rounded-lg p-3 mb-4">Password tidak dapat dilihat. Jika penyetuju lupa password, minta ia memakai tautan "Lupa kata sandi?" di halaman masuk.</p>
       <p class="text-xs text-slate-500 mb-4">Perubahan nama penyetuju tersimpan di server dan tersinkron antar perangkat; perubahan tidak mengubah akun Auth.</p>
       <div id="admin2-approver-table"></div>

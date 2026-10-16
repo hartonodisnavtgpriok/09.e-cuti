@@ -349,12 +349,8 @@
     return '<div class="max-w-xs break-words">' + esc(r.reason) + '</div>';
   }
   function btn(action, id, text, kind) {
-    var c = '';
-    if (kind === 'ok') c = 'bg-green-600 hover:bg-green-700 text-white';
-    else if (kind === 'ex') c = 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300';
-    else if (kind === 'draft') c = 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200';
-    else if (kind === 'del') c = 'bg-red-50 hover:bg-red-100 text-red-700 border border-red-200';
-    else c = kind === 'ok' ? 'bg-green-600 hover:bg-green-700 text-white' : kind === 'ex' ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300' : 'bg-red-50 hover:bg-red-100 text-red-700 border border-red-200';
+    var _map = { ok:'bg-green-600 hover:bg-green-700 text-white', ex:'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300', draft:'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200', del:'bg-red-50 hover:bg-red-100 text-red-700 border border-red-200' };
+    var c = _map[kind] || _map.ex;
     return '<button data-action="' + action + '" data-id="' + id + '" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition ' + c + '">' + text + '</button>';
   }
 
@@ -759,7 +755,7 @@
   var errEl = document.getElementById('form-error');
   function showErr(m) { errEl.textContent = m; errEl.classList.remove('hidden'); }
 
-    var editingDraftId = null;
+  var editingDraftId = null;
   function collectFormData() { return { name: document.getElementById('f-name').value.trim(), type: document.getElementById('f-type').value, start: document.getElementById('f-start').value, end: document.getElementById('f-end').value, reason: document.getElementById('f-reason').value.trim(), alamat: document.getElementById('f-alamat').value.trim(), telp: document.getElementById('f-telp').value.trim(), atasanNip: document.getElementById('f-atasan-nip').value.trim() }; }
   function validateForm(requireSig) { var user = activeUser(); var prof = testUser ? (document.getElementById('f-nip').value ? testApplicant : null) : applicantProfile(user); if (testUser && !prof) { return { ok:false, msg:'Mode uji: ketik 3 huruf nama atau NIP pegawai, lalu pilih dari saran.', prof:null }; } if (!user || !prof) { return { ok:false, msg:'Silakan masuk dengan akun yang terdaftar.', prof:null, needLogin:true }; } var data = collectFormData(); if (!document.getElementById('f-nip').value) { return { ok:false, msg:'Ketik minimal 3 huruf nama atau NIP Anda.', prof:prof }; } if (!data.name || !data.start || !data.end || !data.reason) { return { ok:false, msg:'Nama, tanggal, dan alasan wajib diisi.', prof:prof }; } if (requireSig && !inked) { return { ok:false, msg:'Tanda tangan wajib diisi.', prof:prof }; } if (data.end < data.start) { return { ok:false, msg:'Tanggal selesai tidak boleh sebelum tanggal mulai.', prof:prof }; } var route = resolveRoute(prof); if (!route.first) { return { ok:false, msg:'Rute persetujuan belum diatur.', prof:prof }; } return { ok:true, prof:prof, data:data, route:route }; }
   function buildRequestObject(prof, data, route, status) { var draftIdEl = document.getElementById('f-draft-id'); var id = (draftIdEl && draftIdEl.value) ? draftIdEl.value : ('r' + Date.now() + Math.floor(Math.random() * 1000)); return { id: id, name: prof.n, type: data.type, start: data.start, end: data.end, reason: data.reason, nip: prof.nip, masa: masaKerja(prof.nip), jabatan: prof.j, alamat: data.alamat, telp: data.telp, atasan: route.first, atasanNip: data.atasanNip, sig: cv.toDataURL('image/png'), unit: prof.unit, unitCode: prof.unitCode, firstApprover: route.first, firstApproverPosition: route.firstPosition, secondApprover: route.second, secondApproverPosition: route.secondPosition, status: status, createdAt: Date.now(), updatedAt: Date.now(), requestedBy: prof.nip }; }
@@ -1211,17 +1207,19 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       var seenNips = {}, seenEmails = {};
       existingStaff.forEach(function (person) {
         seenNips[person.nip.replace(/\s/g, '')] = true;
-        seenEmails[person.email.toLowerCase()] = true;
+        if (person.email) seenEmails[person.email.toLowerCase()] = true;
       });
       return saved.filter(function (person) {
-        if (!person || !person.name || !person.nip || !person.title || !person.email) return false;
-        var nip = String(person.nip).replace(/\s/g, ''), email = String(person.email).trim().toLowerCase();
-        if (seenNips[nip] || seenEmails[email]) return false;
+        if (!person || !person.name || !person.nip || !person.title) return false;
+        var nip = String(person.nip).replace(/\s/g, ''), email = person.email ? String(person.email).trim().toLowerCase() : '';
+        if (seenNips[nip] || (email && seenEmails[email])) return false;
         seenNips[nip] = true;
-        seenEmails[email] = true;
+        if (email) seenEmails[email] = true;
         return true;
       }).map(function (person) {
-        return { name: String(person.name).trim(), nip: String(person.nip).trim(), title: String(person.title).trim(), email: String(person.email).trim() };
+        var out = { name: String(person.name).trim(), nip: String(person.nip).trim(), title: String(person.title).trim() };
+        if (person.email) out.email = String(person.email).trim();
+        return out;
       });
     } catch (error) {
       console.error('Data petugas tambahan tidak dapat dibaca:', error);
@@ -1352,12 +1350,20 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       return account.person.email.trim().toLowerCase() === normalizedEmail;
     })[0] || null;
   }
-  /* Penyetuju dikenali dari NIP (metadata akun), bukan email. */
+  /* Penyetuju, Admin, dan Persuratan dikenali dari NIP (metadata akun), bukan email. */
   function staffAccountByNip(nip) {
     var key = String(nip || '').replace(/\s/g, '');
     if (!key) return null;
-    var person = APPROVERS.filter(function (p) { return p.nip.replace(/\s/g, '') === key; })[0];
-    return person ? { role: 'approver', person: person } : null;
+    var groups = [
+      { role: 'admin', list: ADMINS },
+      { role: 'correspondence', list: CORRESPONDENCE },
+      { role: 'approver', list: APPROVERS }
+    ];
+    for (var i = 0; i < groups.length; i++) {
+      var person = groups[i].list.filter(function (p) { return p.nip.replace(/\s/g, '') === key; })[0];
+      if (person) return { role: groups[i].role, person: person };
+    }
+    return null;
   }
   function staffEmailAlreadyAssigned(email, nip) {
     var normalizedEmail = String(email || '').trim().toLowerCase();
@@ -1562,12 +1568,12 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       button.setAttribute('aria-expanded', 'true');
       document.getElementById('admin2-add-staff-heading').textContent = 'Tambah ' + additionalStaffRoles[role].label;
       document.getElementById('btn-save-add-staff').textContent = 'Simpan ' + additionalStaffRoles[role].label;
-      var byNip = role === 'approver';
+      var byNip = true;
       document.getElementById('admin2-add-staff-email-wrap').classList.toggle('hidden', byNip);
       document.getElementById('admin2-add-staff-email').required = !byNip;
       document.getElementById('admin2-add-staff-note').textContent = byNip
-        ? 'Penyetuju dikenali dari NIP. Setelah petugas mendaftar dengan NIP ini, akunnya otomatis menjadi penyetuju. Tidak perlu mengisi email.'
-        : 'Email harus cocok dengan akun Auth Supabase. Data akun baru tersimpan di server dan tersinkron antar perangkat.';
+        ? 'Petugas dikenali dari NIP. Setelah petugas mendaftar dengan NIP ini, akunnya otomatis menjadi ' + additionalStaffRoles[role].label.toLowerCase() + '. Tidak perlu mengisi email.'
+        : '';
       document.getElementById('admin2-add-staff-name').focus();
     });
   });
@@ -1580,7 +1586,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       name: document.getElementById('admin2-add-staff-name').value.trim(),
       nip: document.getElementById('admin2-add-staff-nip').value.trim().replace(/\s+/g, ' '),
       title: document.getElementById('admin2-add-staff-title').value.trim(),
-      email: addStaffRole === 'approver' ? '' : document.getElementById('admin2-add-staff-email').value.trim().toLowerCase()
+      email: ''
     };
     if (!person.email) delete person.email;
     addStaffError.classList.add('hidden');
@@ -1589,9 +1595,9 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       addStaffError.classList.remove('hidden');
     };
     var emailInput = document.getElementById('admin2-add-staff-email');
-    var needEmail = addStaffRole !== 'approver';
+    var needEmail = false;
     if (!roleConfig || !person.name || !person.nip || !person.title || (needEmail && (!person.email || !emailInput.checkValidity()))) {
-      fail(needEmail ? 'Lengkapi nama, NIP, jabatan, dan email yang valid.' : 'Lengkapi nama, NIP, dan jabatan.');
+      fail('Lengkapi nama, NIP, dan jabatan.');
       return;
     }
     var nipKey = person.nip.replace(/\s/g, '');
@@ -1789,9 +1795,9 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     return messages[error.code] || 'Terjadi kesalahan (' + (error.code || 'unknown') + ').';
   }
 
-  /* Email petugas terdaftar menentukan peran; metadata NIP menghubungkan pegawai. */
+  /* NIP di metadata akun menentukan peran (penyetuju/admin/persuratan); email lama tetap dikenali sebagai cadangan. */
   function buildUser(user) {
-    var staff = staffAccountByEmail(user.email) || staffAccountByNip(user.user_metadata && user.user_metadata.nip);
+    var staff = staffAccountByNip(user.user_metadata && user.user_metadata.nip) || staffAccountByEmail(user.email);
     if (staff) {
       return { role: staff.role, name: staff.person.name, nip: staff.person.nip, title: staff.person.title,
                uid: user.id, email: user.email };
@@ -1855,7 +1861,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     supabaseClient.auth.signInWithPassword({ email: email, password: password }).then(function (result) {
       if (result.error) throw result.error;
       var user = result.data.user;
-      if (linkVisible && linkInput.value.trim() && !staffAccountByEmail(user.email)) {
+      if (linkVisible && linkInput.value.trim() && !staffAccountByEmail(user.email) && !staffAccountByNip(user.user_metadata && user.user_metadata.nip)) {
         var p = findEmployee(linkInput.value);
         if (!p) { authMsg('login-error', 'Nama/NIP tidak ditemukan. Pilih dari saran yang muncul atau ketik NIP lengkap.'); return; }
         return supabaseClient.auth.updateUser({ data: { nip: p.nip } }).then(function (updateResult) {
@@ -2003,7 +2009,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     });
   }
   /* ---------- Timeline pengajuan terakhir ---------- */
-    function renderLastRequestTimeline() {
+  function renderLastRequestTimeline() {
     var el = document.getElementById('last-request-timeline');
     if (!el) return;
     var user = activeUser();
@@ -2015,15 +2021,15 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     var steps = [
       { t: 'Pengajuan Terkirim', d: 'Tgl ' + fmtDate(r.start) + ' – ' + fmtDate(r.end) + ' • ' + (TYPE_LABEL[r.type] || r.type) },
       { t: 'Diverifikasi Admin', d: r.firstApprovedAt ? 'Diverifikasi pada ' + new Date(r.firstApprovedAt).toLocaleDateString('id-ID') : 'Menunggu verifikasi Admin' },
-      { t: 'Menunggu TTD Kasubag', d: r.firstApprover ? r.firstApprover + (r.firstApproverPosition ? ' ('+r.firstApproverPosition+')' : '') : '' },
-      { t: 'Menunggu TTD Kabag', d: r.secondApprover ? r.secondApprover + (r.secondApproverPosition ? ' ('+r.secondApproverPosition+')' : '') : 'Tidak diperlukan jika hanya 1 tahap' },
-      { t: 'SK Terbit / Selesai', d: r.letterNumber ? 'No. ' + r.letterNumber : (r.status === 'issued' ? 'Selesai' : 'Menunggu penerbitan SK') }
+      { t: 'Menunggu TTD Kasubag', d: r.firstApprover ? r.firstApprover : '' },
+      { t: 'Menunggu TTD Kabag', d: r.secondApprover ? r.secondApprover : 'Tidak diperlukan' },
+      { t: 'SK Terbit / Selesai', d: r.letterNumber ? 'No. ' + r.letterNumber : (r.status === 'issued' ? 'Selesai' : 'Menunggu SK') }
     ];
     var currentByStatus = { pending_direct: 2, pending_next: 3, pending_correspondence: 4, pending_admin_issue: 4, issued: 5, draft: 0 };
     var current = currentByStatus[r.status];
     var rejectedIdx = -1;
     var isRejected = r.status === 'rejected';
-    if (isRejected) { rejectedIdx = r.rejectedStage === 'second' ? 3 : 2; if (!r.rejectedStage || r.rejectedStage === 'admin') rejectedIdx = 1; current = rejectedIdx; }
+    if (isRejected) { rejectedIdx = r.rejectedStage === 'second' ? 3 : 2; if (!r.rejectedStage) rejectedIdx = 1; current = rejectedIdx; }
     if (current === undefined) current = 0;
     var CHECK = '<svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.8 3.8 6.8-6.8a1 1 0 011.4 0z" clip-rule="evenodd"/></svg>';
     var CROSS = '<svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M5.3 5.3a1 1 0 011.4 0L10 8.6l3.3-3.3a1 1 0 111.4 1.4L11.4 10l3.3 3.3a1 1 0 01-1.4 1.4L10 11.4l-3.3 3.3a1 1 0 01-1.4-1.4L8.6 10 5.3 6.7a1 1 0 010-1.4z"/></svg>';
@@ -2035,7 +2041,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       if (i === rejectedIdx && isRejected) {
         circle = 'bg-red-600 text-white'; title = 'text-red-700 font-semibold';
         var reason = r.rejectedReason || r.rejectReason || r.alasanPenolakan || '';
-        note = '<div class="text-xs text-red-700 mt-1">Ditolak oleh ' + esc(r.rejectedBy || 'penyetuju') + (r.rejectedAt ? ' pada ' + new Date(r.rejectedAt).toLocaleDateString('id-ID') : '') + '</div><div class="mt-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700">Alasan: ' + esc(reason || 'tidak dicatat') + '</div>';
+        note = '<div class="text-xs text-red-700 mt-1">Ditolak oleh ' + esc(r.rejectedBy || 'penyetuju') + '</div><div class="mt-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700">Alasan: ' + esc(reason || 'tidak dicatat') + '</div>';
       } else if (isRejected && i > rejectedIdx) { circle = 'bg-slate-200 text-slate-400'; title = 'text-slate-400'; }
       else if (state === 'done') { circle = 'bg-green-600 text-white'; title = 'text-slate-800'; }
       else if (state === 'now') { circle = 'bg-blue-600 text-white ring-4 ring-blue-100'; title = 'text-blue-700 font-semibold'; }
@@ -2050,6 +2056,18 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     else if (r.status === 'draft') el.innerHTML += '<div class="mt-4 rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-sm text-slate-600 font-medium">Status: Draft – belum dikirim ke Admin.</div>';
   }
 
+
+  function hitungHariKerja(tanggalMulai, tanggalSelesai) {
+    if (!tanggalMulai || !tanggalSelesai) return 0;
+    var s = new Date(tanggalMulai + 'T00:00:00'), e = new Date(tanggalSelesai + 'T00:00:00');
+    if (isNaN(s) || isNaN(e) || e < s) return 0;
+    var n = 0;
+    for (var d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+      var w = d.getDay();
+      if (w !== 0 && w !== 6) n++;
+    }
+    return n;
+  }
   function updateHariKerjaInfo() {
     var el = document.getElementById('f-workdays-info');
     if (!el) return;
@@ -2145,13 +2163,19 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       el.innerHTML = empty('📭', 'Belum ada permohonan cuti', 'Permohonan yang Anda ajukan akan tercatat di sini.');
       return;
     }
-    el.innerHTML = table(['Tanggal Pengajuan', 'Jenis Cuti', 'Periode', 'Status', 'Surat'], own.map(function (r) {
-      var letter = r.status === 'issued'
-        ? '<div class="font-semibold text-slate-800">' + esc(r.letterNumber || 'Nomor belum tersedia') + '</div>' +
-          '<div class="text-xs text-green-700 mb-2">Surat PDF telah tersedia di akun Anda sejak ' +
+        el.innerHTML = table(['Tanggal Pengajuan', 'Jenis Cuti', 'Periode', 'Status', 'Aksi'], own.map(function (r) {
+      var isDraft = r.status === 'draft';
+      var letter = '';
+      if (isDraft) {
+        letter = '<div class="flex flex-col gap-2"><span class="text-xs text-slate-500">Draft belum dikirim.</span><div class="flex gap-2">' + btn('edit-draft', r.id, '✏️ Edit', 'draft') + btn('send-draft', r.id, '📤 Kirim', 'ok') + btn('delete-draft', r.id, '🗑️ Hapus', 'del') + '</div></div>';
+      } else if (r.status === 'issued') {
+        letter = '<div class="font-semibold text-slate-800">' + esc(r.letterNumber || 'Nomor belum tersedia') + '</div>' +
+          '<div class="text-xs text-green-700 mb-2">Surat PDF telah tersedia sejak ' +
           (r.letterDeliveredAt ? new Date(r.letterDeliveredAt).toLocaleDateString('id-ID') : 'surat diterbitkan') + '</div>' +
-          btn('employee-pdf', r.id, '⬇ Unduh PDF', 'ok')
-        : '<span class="text-xs text-slate-500">PDF tersedia setelah Admin menerbitkan surat.</span>';
+          btn('employee-pdf', r.id, '⬇ Unduh PDF', 'ok');
+      } else {
+        letter = '<span class="text-xs text-slate-500">PDF tersedia setelah Admin menerbitkan surat.</span>';
+      }
       return [new Date(r.createdAt).toLocaleDateString('id-ID'), esc(TYPE_LABEL[r.type] || r.type),
         periodCell(r), badge(r), letter];
     }));

@@ -1,0 +1,4 @@
+{
+  "name": "send-push-notification",
+  "verify_jwt": true
+}
