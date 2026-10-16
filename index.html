@@ -33,7 +33,7 @@
       </button>
       <button type="button" id="btn-push" class="hidden px-3 py-2 rounded-md text-blue-100 hover:bg-blue-700 transition" title="Aktifkan notifikasi push">🔔 Notifikasi</button>
       <button type="button" id="btn-stop-test" class="hidden px-3 py-2 rounded-md bg-amber-500 hover:bg-amber-600 text-white transition">Akhiri mode uji</button>
-      <button type="button" id="btn-logout" class="px-3 py-2 rounded-md text-blue-100 hover:bg-blue-700 transition">Keluar</button>
+      <button type="button" id="btn-logout" class="px-3 py-2 rounded-md text-blue-100 hover:bg-blue-700 transition">Beranda</button>
     </nav>
   </div>
 </header>
@@ -169,6 +169,15 @@
       <div class="bg-white rounded-xl shadow p-5 w-full max-w-2xl mx-auto">
         <button type="button" data-emp="menu" class="go-btn inline-flex w-full sm:w-auto items-center mb-5 rounded-xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 hover:shadow-md active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">&larr; Kembali</button>
         <h3 class="font-semibold text-lg mb-4">Form Pengajuan Cuti</h3>
+        <div id="leave-balance-card" class="mb-5 rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <h4 class="text-sm font-semibold text-blue-900 mb-3">Info Saldo Cuti Tahunan <span id="leave-balance-year" class="font-normal text-blue-700"></span></h4>
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="rounded-lg bg-white p-3 shadow-sm"><div id="leave-balance-remaining" class="text-2xl font-bold text-green-700">-</div><div class="text-xs text-slate-500">Sisa Cuti Tahunan</div></div>
+            <div class="rounded-lg bg-white p-3 shadow-sm"><div id="leave-balance-used" class="text-2xl font-bold text-slate-800">-</div><div class="text-xs text-slate-500">Terpakai</div></div>
+            <div class="rounded-lg bg-white p-3 shadow-sm"><div id="leave-balance-total" class="text-2xl font-bold text-blue-800">12</div><div class="text-xs text-slate-500">Total Jatah (hari)</div></div>
+          </div>
+          <p id="leave-balance-warning" class="hidden mt-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">Saldo cuti habis</p>
+        </div>
         <form id="leave-form" class="space-y-4" novalidate>
           <div>
             <label class="block text-sm font-medium mb-1" for="f-name">Nama Karyawan</label>
@@ -200,6 +209,7 @@
               <input id="f-end" type="date" required class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
           </div>
+          <p id="f-workdays-info" class="hidden -mt-2 text-sm font-medium text-blue-800"></p>
           <div>
             <label class="block text-sm font-medium mb-1" for="f-reason">Alasan</label>
             <textarea id="f-reason" rows="3" required placeholder="Jelaskan alasan cuti..." class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
@@ -216,8 +226,17 @@
             <p class="text-xs text-slate-500 mt-1">Goreskan tanda tangan di dalam kotak (mouse / jari).</p>
           </div>
           <p id="form-error" class="hidden text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"></p>
-          <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition">Kirim Pengajuan</button>
+          <p id="leave-rule-warning" class="hidden text-sm rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 font-medium text-yellow-800" role="alert">Pengajuan kurang dari 3 hari kerja, membutuhkan persetujuan khusus atasan.</p>
+          <div class="grid grid-cols-2 gap-3">
+            <button type="button" id="btn-save-draft" class="w-full bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-semibold py-2.5 rounded-lg transition">Simpan Draft</button>
+            <button type="submit" id="btn-submit-leave" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition">Kirim Pengajuan</button>
+          </div>
+          <input type="hidden" id="f-draft-id" value="">
         </form>
+      </div>
+      <div id="last-request-section" class="bg-white rounded-xl shadow p-5 w-full max-w-2xl mx-auto mt-4">
+        <h3 class="font-semibold text-lg mb-4">Pengajuan Terakhir Saya</h3>
+        <div id="last-request-timeline"></div>
       </div>
     </div>
   </section>
