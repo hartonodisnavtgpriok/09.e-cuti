@@ -164,6 +164,7 @@
         await OneSignal.init({ appId: appConfig.oneSignalAppId });
         oneSignal = OneSignal;
         OneSignal.Notifications.addEventListener('foregroundWillDisplay', function (event) {
+          event.preventDefault(); // cegah notifikasi native browser agar tidak ganda dengan toast
           var notification = event.notification || {};
           toast((notification.title || 'Notifikasi') + ': ' + (notification.body || ''));
         });
@@ -231,6 +232,40 @@
     });
   }
   document.getElementById('btn-push').addEventListener('click', function () { registerPush(true); });
+
+  /* ---------- Pengiriman push notification (memanggil Edge Function) ---------- */
+  // Cari NIP berdasarkan nama di daftar penyetuju/persuratan/admin.
+  function nipFromName(name, list) {
+    var p = (list || []).filter(function (x) { return x.name === name; })[0];
+    return p ? p.nip : '';
+  }
+  // Kirim push notification ke external_id (Supabase auth uid) tertentu.
+  function sendPushNotification(externalId, title, body) {
+    if (!externalId || !supabaseClient) return Promise.resolve(false);
+    return supabaseClient.functions.invoke('send-push-notification', {
+      body: { external_id: externalId, title: title, body: body, url: window.location.href.split('#')[0] }
+    }).then(function (res) {
+      if (res.error) { console.error('Kirim push gagal:', res.error); return false; }
+      return true;
+    }).catch(function (error) {
+      console.error('Kirim push gagal:', error);
+      return false;
+    });
+  }
+  // Cari external_id dari tabel one_signal_users berdasarkan NIP, lalu kirim notifikasi.
+  // Jika NIP tidak ditemukan / belum daftar push, lewati tanpa error.
+  function notifyByNip(nip, title, body) {
+    if (!supabaseClient || !nip) return Promise.resolve(false);
+    return supabaseClient.from('one_signal_users').select('user_id').eq('nip', nip).limit(1)
+      .then(function (result) {
+        if (result.error || !result.data || !result.data.length) return false;
+        return sendPushNotification(result.data[0].user_id, title, body);
+      });
+  }
+  // Helper: kirim notifikasi ke pemohon pengajuan cuti.
+  function notifyApplicant(request, title, body) {
+    return notifyByNip(request.requestedBy || request.nip, title, body);
+  }
 
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
@@ -469,6 +504,7 @@
       error.classList.remove('hidden');
       return;
     }
+    var numberedReq = load().filter(function (r) { return r.id === id; })[0];
     var issued = update(id, 'pending_correspondence', function (r) {
       r.letterNumber = number;
       r.letterNumberIssuedAt = Date.now();
@@ -478,6 +514,14 @@
     if (issued) {
       closeLetterNumberModal();
       showView('admin');
+      if (numberedReq) {
+        notifyApplicant(numberedReq, 'Nomor surat terbit',
+          'Nomor surat cuti Anda (' + number + ') telah diterbitkan, menunggu penerbitan oleh Admin.');
+        ADMINS.forEach(function (a) {
+          notifyByNip(a.nip, 'Surat cuti siap diterbitkan',
+            'Surat cuti ' + numberedReq.name + ' (No. ' + number + ') siap diterbitkan.');
+        });
+      }
     }
   });
 
@@ -727,6 +771,9 @@
     form.reset(); clearSig(); fillApplicant();
     renderAll();
     toast('Pengajuan terkirim kepada ' + (route.first || 'penyetuju tahap 1') + '.');
+    notifyByNip(nipFromName(route.first, APPROVERS),
+      'Pengajuan cuti baru',
+      prof.n + ' mengajukan cuti ' + (TYPE_LABEL[type] || type) + ' menunggu persetujuan Anda (Tahap 1).');
     showView('employee');
     empShow('history');
   });
@@ -2822,39 +2869,74 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         downloadEmployeePdf(id); break;
       case 'first-approve':
         var firstApproverUser = activeUser();
+        var firstReq = load().filter(function (r) { return r.id === id; })[0];
         if (update(id, 'pending_direct', function (r) {
           r.firstApprovedAt = Date.now();
           r.firstApprovedBy = firstApproverUser.name;
           r.status = r.secondApprover ? 'pending_next' : 'pending_correspondence';
         }, 'Persetujuan tahap 1 selesai dan pengajuan diteruskan.', function (r) {
           return firstApproverUser && firstApproverUser.role === 'approver' && r.firstApprover === firstApproverUser.name;
-        })) showView('approver');
+        })) {
+          showView('approver');
+          if (firstReq) {
+            notifyApplicant(firstReq, 'Pengajuan disetujui Tahap 1',
+              'Pengajuan cuti Anda disetujui oleh ' + (firstApproverUser.name) + ' (Tahap 1).');
+            if (firstReq.secondApprover) {
+              notifyByNip(nipFromName(firstReq.secondApprover, APPROVERS),
+                'Pengajuan menunggu persetujuan Anda',
+                'Pengajuan cuti dari ' + firstReq.name + ' menunggu persetujuan Anda (Tahap 2).');
+            }
+          }
+        }
         break;
       case 'first-reject':
         var firstRejectingUser = activeUser();
-        update(id, 'pending_direct', function (r) {
+        var firstRejReq = load().filter(function (r) { return r.id === id; })[0];
+        if (update(id, 'pending_direct', function (r) {
           r.status = 'rejected'; r.rejectedBy = firstRejectingUser.name; r.rejectedStage = 'first'; r.rejectedAt = Date.now();
         }, 'Pengajuan ditolak pada tahap 1.', function (r) {
           return firstRejectingUser && firstRejectingUser.role === 'approver' && r.firstApprover === firstRejectingUser.name;
-        });
+        })) {
+          if (firstRejReq) {
+            notifyApplicant(firstRejReq, 'Pengajuan ditolak',
+              'Pengajuan cuti Anda ditolak oleh ' + firstRejectingUser.name + ' (Tahap 1).');
+          }
+        }
         break;
       case 'second-approve':
         var secondApproverUser = activeUser();
+        var secondReq = load().filter(function (r) { return r.id === id; })[0];
         if (update(id, 'pending_next', function (r) {
           r.status = 'pending_correspondence';
           r.secondApprovedAt = Date.now();
           r.secondApprovedBy = secondApproverUser.name;
         }, 'Persetujuan tahap 2 selesai dan diteruskan ke Persuratan.', function (r) {
           return secondApproverUser && secondApproverUser.role === 'approver' && r.secondApprover === secondApproverUser.name;
-        })) showView('approver');
+        })) {
+          showView('approver');
+          if (secondReq) {
+            notifyApplicant(secondReq, 'Pengajuan disetujui',
+              'Pengajuan cuti Anda telah disetujui dan diteruskan ke Persuratan untuk nomor surat.');
+            CORRESPONDENCE.forEach(function (c) {
+              notifyByNip(c.nip, 'Pengajuan menunggu nomor surat',
+                'Pengajuan cuti dari ' + secondReq.name + ' menunggu penerbitan nomor surat.');
+            });
+          }
+        }
         break;
       case 'second-reject':
         var secondRejectingUser = activeUser();
-        update(id, 'pending_next', function (r) {
+        var secondRejReq = load().filter(function (r) { return r.id === id; })[0];
+        if (update(id, 'pending_next', function (r) {
           r.status = 'rejected'; r.rejectedBy = secondRejectingUser.name; r.rejectedStage = 'second'; r.rejectedAt = Date.now();
         }, 'Pengajuan ditolak pada tahap 2.', function (r) {
           return secondRejectingUser && secondRejectingUser.role === 'approver' && r.secondApprover === secondRejectingUser.name;
-        });
+        })) {
+          if (secondRejReq) {
+            notifyApplicant(secondRejReq, 'Pengajuan ditolak',
+              'Pengajuan cuti Anda ditolak oleh ' + secondRejectingUser.name + ' (Tahap 2).');
+          }
+        }
         break;
       case 'correspondence-issue-number':
         openLetterNumberModal(id);
@@ -2870,7 +2952,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
           toast('Nomor surat dari Persuratan belum tersedia.');
           break;
         }
-        update(id, 'pending_admin_issue', function (r) {
+        if (update(id, 'pending_admin_issue', function (r) {
           r.status = 'issued';
           r.issuedAt = Date.now();
           r.issuedBy = issuingAdmin && issuingAdmin.role === 'admin' ? issuingAdmin.name : 'Admin';
@@ -2878,7 +2960,10 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
           r.letterDeliveredTo = r.requestedBy || r.nip;
         }, 'Surat diterbitkan dan PDF tersedia di riwayat akun pemohon.', function () {
           return issuingAdmin && issuingAdmin.role === 'admin';
-        });
+        })) {
+          notifyApplicant(readyForIssue, 'Surat cuti diterbitkan',
+            'Surat cuti Anda (No. ' + readyForIssue.letterNumber + ') telah diterbitkan. Unduh PDF di riwayat pengajuan.');
+        }
         break;
     }
   });

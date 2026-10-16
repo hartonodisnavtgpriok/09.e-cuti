@@ -1,0 +1,9 @@
+try {
+  if (window.AndroidBridge) {
+    console.log('Mode Android: pakai Bridge native, skip OneSignal Web');
+    resolve(null);
+    return;
+  }
+  if (!appConfig.oneSignalAppId) throw new Error('ID aplikasi OneSignal belum diisi');
+  await OneSignal.init({ appId: appConfig.oneSignalAppId });
+  // ... sisa kode bawahnya biarin aja

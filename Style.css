@@ -1,0 +1,18 @@
+.adm-sum{list-style:none}.adm-sum::-webkit-details-marker{display:none}
+  .adm-sum:hover{background:#f8fafc}
+  .adm-state::after{content:"Buka"}
+  details[open]>.adm-sum .adm-state::after{content:"Minimize"}
+  .adm-chev{transition:transform .2s}details[open]>.adm-sum .adm-chev{transform:rotate(180deg)}
+  details[open]>.adm-sum{border-bottom:1px solid #e2e8f0;border-bottom-left-radius:0;border-bottom-right-radius:0;margin-bottom:1rem}
+  .nav-btn.active{background:#fff;color:#1e3a8a;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  html{overflow-y:scroll;scrollbar-gutter:stable}
+  body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100vh;height:100lvh;transform:translateZ(0);z-index:-1;background-color:#e2e8f0;
+    background-image:linear-gradient(rgba(241,245,249,.30),rgba(241,245,249,.30)),url("https://drive.google.com/thumbnail?id=1hSLwh9aK_DBPUfCbktVL_8M1mLohwLOp&sz=w1920"),url("https://drive.google.com/uc?export=view&id=1hSLwh9aK_DBPUfCbktVL_8M1mLohwLOp");
+    background-position:center center;background-size:cover;background-repeat:no-repeat}
+  .lb{display:block;font-size:.875rem;font-weight:500;margin-bottom:.25rem}
+  .inp{width:100%;border:1px solid #cbd5e1;border-radius:.5rem;padding:.5rem .75rem}
+  .inp:focus{outline:2px solid #3b82f6;outline-offset:-1px}
+  .auth-tab.active{background:#fff;color:#1e3a8a;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .view{display:none}.view.active{display:block}
+  .toast{transition:all .3s;transform:translateY(20px);opacity:0;pointer-events:none}
+  .toast.show{transform:translateY(0);opacity:1}

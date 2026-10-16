@@ -1,0 +1,5 @@
+/config.js
+.env
+.env.*
+supabase/.env
+supabase/.env.*
