@@ -2892,6 +2892,16 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'xlsx_' + xlsxName, 'File Excel berhasil dibuat.');
     });
   }
+  function nipForApproverName(name) {
+    var key = String(name || '').trim().toLowerCase();
+    if (!key) return '';
+    var pools = [APPROVERS, ADMINS, CORRESPONDENCE, EMP.map(function (e) { return { name: e.n, nip: e.nip }; })];
+    for (var i = 0; i < pools.length; i++) {
+      var hit = pools[i].filter(function (p) { return String(p.name || '').trim().toLowerCase() === key; })[0];
+      if (hit && hit.nip) return hit.nip;
+    }
+    return '';
+  }
   function downloadEmployeePdf(id) {
     var user = activeUser();
     if (!user) { toast('Masuk ke akun untuk mengunduh surat.'); return; }
@@ -2930,22 +2940,33 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       cell(margin, y, width, 6, title, { bold: true, fill: band, size: 8 });
       y += 6;
     }
-    function signatureBlock(x, top, w, h, title, name, nip) {
+    function signatureBlock(x, top, w, h, title, name, nip, signature) {
       cell(x, top, w, h, '', {});
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
       doc.setTextColor(15, 23, 42);
       doc.text(title, x + w / 2, top + 4, { align: 'center' });
-      doc.setDrawColor(148, 163, 184);
-      doc.setLineDashPattern([1, 1], 0);
-      doc.rect(x + 3, top + 6, w - 6, Math.max(8, h - 16));
-      doc.setLineDashPattern([], 0);
+      /* tanda tangan digambar: diperbesar semaksimal mungkin di area atas nama (tanpa garis tepi) */
+      if (signature) {
+        try {
+          var props = doc.getImageProperties(signature);
+          var areaW = w - 8, areaH = Math.max(8, h - 15);
+          var sc = Math.min(areaW / props.width, areaH / props.height);
+          var iw = props.width * sc, ih = props.height * sc;
+          doc.addImage(signature, 'PNG', x + (w - iw) / 2, top + 5 + (areaH - ih) / 2, iw, ih);
+        } catch (e) { console.error('Tanda tangan gagal dimasukkan ke PDF:', e); }
+      }
+      /* nama dan NIP: ukuran huruf sama, sejajar di tengah; mengecil bersama bila terlalu panjang */
+      var nameText = String(name || ' '), nipText = String(nip || '');
+      var size = 7;
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.text(String(name || ' '), x + w / 2, top + h - 7, { align: 'center', maxWidth: w - 4 });
+      while (size > 5 && (doc.setFontSize(size), doc.getTextWidth(nameText) > w - 4)) size -= 0.25;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(size);
+      doc.text(nameText, x + w / 2, top + h - 7.5, { align: 'center' });
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6);
-      if (nip) doc.text(String(nip), x + w / 2, top + h - 3, { align: 'center' });
+      doc.setFontSize(size);
+      if (nipText) doc.text(nipText, x + w / 2, top + h - 3.5, { align: 'center' });
     }
     function decisionSection(top, title, labels, selected, role, name, nip, signature) {
       var sectionHeight = 48, col = width / 4;
@@ -2960,10 +2981,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         cell(x, top + 13, col, 6, selected[i] ? 'X' : '', { bold: true, size: 10 });
       }
       cell(margin, top + 19, width / 2, sectionHeight - 19, 'CATATAN / PERTIMBANGAN', { size: 7, valign: 'top' });
-      signatureBlock(margin + width / 2, top + 19, width / 2, sectionHeight - 19, role, name, nip);
-      if (signature) {
-        doc.addImage(signature, 'PNG', margin + width / 2 + 12, top + 21, 36, 11);
-      }
+      signatureBlock(margin + width / 2, top + 19, width / 2, sectionHeight - 19, role, name, nip, signature);
       return top + sectionHeight;
     }
     var typeIdx = { Annual: 1, Besar: 2, Sick: 3, Melahirkan: 4, Personal: 5, LuarTanggungan: 6 }[r.type] || 0;
@@ -3049,24 +3067,23 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     });
 
     section('VI. ALAMAT SELAMA MENJALANKAN CUTI');
-    var addressHeight = 34;
+    var addressHeight = 38;
     cell(margin, y, width * 0.62, addressHeight, r.alamat || '', { valign: 'top' });
     cell(margin + width * 0.62, y, width * 0.38, 7, 'TELP : ' + (r.telp || ''));
     signatureBlock(margin + width * 0.62, y + 7, width * 0.38, addressHeight - 7,
-      'HORMAT SAYA,', r.name, 'NIP. ' + (r.nip || ''));
-    if (r.sig) doc.addImage(r.sig, 'PNG', margin + width * 0.62 + 13, y + 14, 34, 6);
+      'HORMAT SAYA,', r.name, 'NIP. ' + (r.nip || ''), r.sig);
     y += addressHeight;
 
     var decisionLabels = ['DISETUJUI', 'PERUBAHAN****', 'DITANGGUHKAN****', 'TIDAK DISETUJUI****'];
     y = decisionSection(y, 'VII. PERSETUJUAN TAHAP 1**', decisionLabels,
       [!!r.firstApprovedAt, false, false, rejectedAtStage(r, 'first')],
-      r.firstApproverPosition || 'Penyetuju Tahap 1', r.firstApprover, 'NIP. ' + (r.atasanNip || ''), null);
+      r.firstApproverPosition || 'Penyetuju Tahap 1', r.firstApprover, 'NIP. ' + (r.atasanNip || nipForApproverName(r.firstApprover) || ''), null);
     y = decisionSection(y, 'VIII. PERSETUJUAN TAHAP 2**', decisionLabels,
       [!!r.secondApprovedAt, false, false, rejectedAtStage(r, 'second')],
-      r.secondApproverPosition || 'Penyetuju Tahap 2', r.secondApprover, '', null);
+      r.secondApproverPosition || 'Penyetuju Tahap 2', r.secondApprover, nipForApproverName(r.secondApprover) ? 'NIP. ' + nipForApproverName(r.secondApprover) : '', null);
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(7);
-    doc.text('Keterangan: tanda X pada kotak menunjukkan pilihan. Area bertanda garis putus-putus disediakan untuk tanda tangan basah.', margin, Math.min(y + 4, 288));
+    doc.text('Keterangan: tanda X pada kotak menunjukkan pilihan. Ruang kosong di atas nama disediakan untuk tanda tangan.', margin, Math.min(y + 4, 288));
     var filename = String(r.name || 'Pemohon').replace(/[\\\/:*?"<>|]/g, '').trim().replace(/\s+/g, '_') || 'Pemohon';
     deliverFile(doc.output('blob'), 'Surat_Cuti_' + filename + '.pdf', 'application/pdf', 'surat_' + r.id, 'PDF surat cuti berhasil diunduh.');
   }

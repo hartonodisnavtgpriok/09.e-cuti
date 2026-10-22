@@ -318,6 +318,7 @@
     if (!s) s = STATUS.pending_direct;
     var label = s.label;
     if (r.status === 'rejected' && r.rejectedBy) label = 'Ditolak oleh ' + r.rejectedBy;
+    if (r.status === 'draft' && r.returnedBy) { label = 'Dikembalikan oleh ' + r.returnedBy; return '<span class="inline-block whitespace-nowrap text-xs font-semibold px-2.5 py-1 rounded-full border bg-amber-50 text-amber-800 border-amber-300">' + esc(label) + '</span>'; }
     return '<span class="inline-block whitespace-nowrap text-xs font-semibold px-2.5 py-1 rounded-full border ' + s.cls + '">' + esc(label) + '</span>';
   }
   function rejectedAtStage(r, stage) {
@@ -356,7 +357,8 @@
   }
   function periodCell(r) {
     return fmtDate(r.start) + ' &ndash; ' + fmtDate(r.end) +
-      '<div class="text-xs text-slate-500">' + days(r.start, r.end) + ' hari</div>';
+      '<div class="text-xs text-slate-500">' + days(r.start, r.end) + ' hari</div>' +
+      ((r.attachments && r.attachments.length) ? '<div class="mt-1">' + btn('view-attach', r.id, '📎 Lampiran (' + r.attachments.length + ')', 'draft') + '</div>' : '');
   }
   function reasonCell(r) {
     return '<div class="max-w-xs break-words">' + esc(r.reason) + '</div>';
@@ -454,7 +456,7 @@
     renderQueue('approver-second-pending', secondPending, 'second');
 
     var history = all.filter(function (r) {
-      return r.firstApprovedBy === name || r.secondApprovedBy === name || r.rejectedBy === name ||
+      return r.firstApprovedBy === name || r.secondApprovedBy === name || r.rejectedBy === name || r.returnedBy === name ||
         (r.firstApprover === name && r.firstApprovedAt && !r.firstApprovedBy) ||
         (r.secondApprover === name && r.secondApprovedAt && !r.secondApprovedBy);
     });
@@ -462,7 +464,7 @@
       ['Tahap', 'Karyawan', 'Jenis', 'Periode', 'Status', 'Keputusan', 'Formulir'],
       history.map(function (r) {
         var stage = r.rejectedStage === 'second' || r.secondApprovedBy === name ? 'Tahap 2' : 'Tahap 1';
-        var decidedAt = stage === 'Tahap 2' ? r.secondApprovedAt : r.firstApprovedAt;
+        var decidedAt = stage === 'Tahap 2' ? r.secondApprovedAt : (r.firstApprovedAt || r.returnedAt);
         return [stage, '<span class="font-medium">' + esc(r.name) + '</span>', esc(TYPE_LABEL[r.type] || r.type),
           periodCell(r), badge(r), decidedAt ? new Date(decidedAt).toLocaleDateString('id-ID') : '-',
           canExportExcel() ? btn('export', r.id, '⬇ Excel', 'ex') : '<span class="text-slate-400">—</span>'];
@@ -476,6 +478,139 @@
       .sort(function (a, b) { return a.createdAt - b.createdAt; });
     var seq = siblings.indexOf(request) + 1;
     return 'CUTI/' + year + '/' + String(seq).padStart(4, '0');
+  }
+
+  /* ---------- Template catatan Penyetuju 1 ---------- */
+  var FD_TEMPLATES = {
+    A1: { kind: 'approve', text: 'Disetujui sesuai permohonan, pekerjaan telah didelegasikan kepada pegawai pengganti' },
+    A2: { kind: 'approve', text: 'Disetujui, sisa hak cuti tahun berjalan mencukupi' },
+    A3: { kind: 'approve', text: 'Disetujui, tidak mengganggu operasional dan pelayanan unit kerja' },
+    A4: { kind: 'approve', text: 'Disetujui, telah melengkapi dokumen pendukung yang dipersyaratkan' },
+    C1: { kind: 'return', text: 'Disetujui dengan perubahan tanggal, disesuaikan dengan jadwal operasional unit kerja' },
+    C2: { kind: 'dates', text: 'Disetujui dengan perubahan, jumlah hari cuti dikurangi menjadi ... hari' },
+    C3: { kind: 'return', text: 'Disetujui dengan perubahan, agar mengajukan kembali setelah menyelesaikan tugas prioritas' },
+    C4: { kind: 'conditional', text: 'Disetujui bersyarat, menunggu penunjukan pegawai pengganti' }
+  };
+  var fdModal = document.getElementById('first-decision-modal');
+  var fdRequestId = null, fdAutoNote = '';
+  function fdEl(id) { return document.getElementById(id); }
+  function closeFirstDecisionModal() {
+    if (!fdModal) return;
+    fdModal.classList.add('hidden'); fdModal.classList.remove('flex');
+    fdRequestId = null; fdAutoNote = '';
+  }
+  function fdError(msg) {
+    var el = fdEl('fd-error');
+    el.textContent = msg || '';
+    el.classList.toggle('hidden', !msg);
+  }
+  function fdCurrentRequest() { return load().filter(function (r) { return r.id === fdRequestId; })[0] || null; }
+  function fdRefreshDates() {
+    var r = fdCurrentRequest(), t = FD_TEMPLATES[fdEl('fd-template').value];
+    if (!r || !t || t.kind !== 'dates') return;
+    var s = fdEl('fd-start').value, e = fdEl('fd-end').value;
+    var n = hitungHariKerja(s, e), old = hitungHariKerja(r.start, r.end);
+    fdEl('fd-days-info').textContent = (s && e && n)
+      ? 'Hari kerja baru: ' + n + ' hari (semula ' + old + ' hari kerja, ' + fmtDate(r.start) + ' s.d. ' + fmtDate(r.end) + ').'
+      : 'Pilih tanggal mulai dan selesai yang baru (semula ' + fmtDate(r.start) + ' s.d. ' + fmtDate(r.end) + ', ' + old + ' hari kerja).';
+    var noteEl = fdEl('fd-note');
+    if (n && (noteEl.value === fdAutoNote || !noteEl.value.trim())) {
+      fdAutoNote = t.text.replace('...', String(n));
+      noteEl.value = fdAutoNote;
+    }
+  }
+  function fdApplyTemplate() {
+    var key = fdEl('fd-template').value, t = FD_TEMPLATES[key], r = fdCurrentRequest();
+    var hint = fdEl('fd-hint'), submit = fdEl('fd-submit');
+    fdError('');
+    fdEl('fd-dates').classList.toggle('hidden', !(t && t.kind === 'dates'));
+    if (!t) { fdEl('fd-note').value = ''; fdAutoNote = ''; hint.classList.add('hidden'); submit.textContent = 'Setujui & Teruskan'; return; }
+    fdAutoNote = t.text; fdEl('fd-note').value = t.text;
+    hint.classList.remove('hidden');
+    if (t.kind === 'return') {
+      hint.textContent = 'Permohonan akan dikembalikan kepada pengaju untuk menyesuaikan tanggal dan diajukan ulang. Belum diteruskan ke Penyetuju Tahap 2.';
+      submit.textContent = 'Kembalikan ke Pengaju';
+    } else if (t.kind === 'dates') {
+      hint.textContent = 'Tanggal cuti pengaju akan diubah sesuai tanggal baru di bawah, lalu permohonan diteruskan ke tahap berikutnya.';
+      submit.textContent = 'Ubah Tanggal & Teruskan';
+      if (r) { fdEl('fd-start').value = r.start || ''; fdEl('fd-end').value = r.end || ''; }
+      fdRefreshDates();
+    } else if (t.kind === 'conditional') {
+      hint.textContent = 'Permohonan diteruskan dengan catatan bersyarat; pengaju akan menerima catatan ini.';
+      submit.textContent = 'Setujui Bersyarat & Teruskan';
+    } else {
+      hint.classList.add('hidden');
+      submit.textContent = 'Setujui & Teruskan';
+    }
+  }
+  function openFirstDecisionModal(id) {
+    var user = activeUser();
+    var r = load().filter(function (x) { return x.id === id; })[0];
+    if (!user || user.role !== 'approver' || !r || r.firstApprover !== user.name) { toast('Tugas ini tidak ditugaskan kepada petugas yang sedang masuk.'); return; }
+    if (r.status !== 'pending_direct') { renderAll(); toast('Status pengajuan sudah berubah. Muat ulang antrean sebelum memprosesnya.'); return; }
+    fdRequestId = id; fdAutoNote = '';
+    fdEl('fd-info').textContent = r.name + ' · ' + (TYPE_LABEL[r.type] || r.type) + ' · ' + fmtDate(r.start) + ' s.d. ' + fmtDate(r.end) + ' (' + hitungHariKerja(r.start, r.end) + ' hari kerja)';
+    fdEl('fd-template').value = '';
+    fdEl('fd-note').value = '';
+    fdApplyTemplate();
+    fdModal.classList.remove('hidden'); fdModal.classList.add('flex');
+  }
+  if (fdModal) {
+    fdEl('fd-template').addEventListener('change', fdApplyTemplate);
+    fdEl('fd-start').addEventListener('change', fdRefreshDates);
+    fdEl('fd-end').addEventListener('change', fdRefreshDates);
+    fdEl('fd-cancel').addEventListener('click', closeFirstDecisionModal);
+    fdModal.addEventListener('click', function (e) { if (e.target === fdModal) closeFirstDecisionModal(); });
+    fdEl('fd-submit').addEventListener('click', function () {
+      var key = fdEl('fd-template').value, t = FD_TEMPLATES[key], r = fdCurrentRequest();
+      var me = activeUser(), note = fdEl('fd-note').value.trim();
+      if (!t) { fdError('Pilih template catatan terlebih dahulu.'); return; }
+      if (!r || !me || me.role !== 'approver') { fdError('Pengajuan tidak ditemukan atau Anda tidak berwenang.'); return; }
+      if (!note) { fdError('Catatan tidak boleh kosong.'); return; }
+      var newStart = '', newEnd = '';
+      if (t.kind === 'dates') {
+        newStart = fdEl('fd-start').value; newEnd = fdEl('fd-end').value;
+        if (!newStart || !newEnd) { fdError('Pilih tanggal mulai dan selesai yang baru.'); return; }
+        if (newEnd < newStart) { fdError('Tanggal selesai tidak boleh sebelum tanggal mulai.'); return; }
+        var nNew = hitungHariKerja(newStart, newEnd), nOld = hitungHariKerja(r.start, r.end);
+        if (nNew < 1) { fdError('Rentang tanggal baru tidak memuat hari kerja.'); return; }
+        if (nNew >= nOld) { fdError('Jumlah hari kerja baru (' + nNew + ') harus kurang dari semula (' + nOld + ').'); return; }
+      }
+      var snapshot = r, approverName = me.name, nowTs = Date.now();
+      var ok = update(fdRequestId, 'pending_direct', function (x) {
+        if (t.kind === 'return') {
+          x.status = 'draft';
+          x.returnedBy = approverName; x.returnedAt = nowTs; x.returnedNote = note;
+          x.updatedAt = nowTs;
+          return;
+        }
+        if (t.kind === 'dates') {
+          if (!x.originalStart) { x.originalStart = x.start; x.originalEnd = x.end; }
+          x.start = newStart; x.end = newEnd; x.datesChangedBy = approverName;
+        }
+        x.firstNote = note;
+        x.firstDecision = (t.kind === 'approve') ? 'approve' : 'change';
+        x.firstApprovedAt = nowTs;
+        x.firstApprovedBy = approverName;
+        x.status = x.secondApprover ? 'pending_next' : 'pending_correspondence';
+      }, t.kind === 'return' ? 'Permohonan dikembalikan kepada pengaju.' : 'Persetujuan tahap 1 selesai dan pengajuan diteruskan.', function (x) {
+        return x.firstApprover === approverName;
+      });
+      if (!ok) return;
+      closeFirstDecisionModal();
+      showView('approver');
+      if (t.kind === 'return') {
+        notifyApplicant(snapshot, 'Pengajuan dikembalikan', 'Pengajuan cuti Anda dikembalikan oleh ' + approverName + ': ' + note + ' Silakan ubah tanggal dan ajukan ulang.');
+        return;
+      }
+      notifyApplicant(snapshot, 'Pengajuan disetujui Tahap 1',
+        'Pengajuan cuti Anda disetujui oleh ' + approverName + ' (Tahap 1). Catatan: ' + note +
+        (t.kind === 'dates' ? ' Tanggal cuti diubah menjadi ' + fmtDate(newStart) + ' s.d. ' + fmtDate(newEnd) + '.' : ''));
+      if (snapshot.secondApprover) {
+        notifyByNip(nipFromName(snapshot.secondApprover, APPROVERS), 'Pengajuan menunggu persetujuan Anda',
+          'Pengajuan cuti dari ' + snapshot.name + ' menunggu persetujuan Anda (Tahap 2).');
+      }
+    });
   }
 
   var letterNumberRequestId = null;
@@ -767,18 +902,139 @@
   });
 
   /* ---------- Form ---------- */
+  /* ---------- Dokumen persyaratan (unggah berkas / ambil foto) untuk jenis cuti selain Tahunan ---------- */
+  var ATTACH_REQS = {
+    Besar: { label: 'Cuti Besar', text: 'Formulir, dan surat keterangan masa kerja minimal 5 tahun terus-menerus' },
+    Sick: { label: 'Cuti Sakit', text: 'Surat keterangan dokter pemerintah / puskesmas / rumah sakit, wajib jika lebih dari 1 hari' },
+    Melahirkan: { label: 'Cuti Melahirkan', text: 'Surat keterangan dokter / bidan tentang perkiraan kelahiran, dan surat keterangan kelahiran setelah melahirkan' },
+    Personal: { label: 'Cuti Karena Alasan Penting', text: 'Tergantung alasan: surat kematian keluarga, surat keterangan sakit keras keluarga, undangan pernikahan, surat tugas bencana, dan dokumen pendukung lainnya' },
+    LuarTanggungan: { label: 'Cuti Di Luar Tanggungan Negara', text: 'Formulir, SK CPNS/PNS, SK pangkat terakhir, dan surat pernyataan tidak terikat ikatan dinas' }
+  };
+  var ATTACH_MAX_FILES = 3, ATTACH_MAX_PDF = 600 * 1024, ATTACH_MAX_TOTAL = 1000 * 1024;
+  var attachState = [];
+  function attachBytes(a) { return Math.round(String(a.data || '').length * 0.75); }
+  function attachSizeLabel(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+  function renderAttachSection() {
+    var wrap = document.getElementById('f-attach-wrap');
+    if (!wrap) return;
+    var type = document.getElementById('f-type').value, req = ATTACH_REQS[type];
+    wrap.classList.toggle('hidden', !req);
+    if (!req) return;
+    document.getElementById('f-attach-type').textContent = '— ' + req.label;
+    document.getElementById('f-attach-req').textContent = req.text;
+    var list = document.getElementById('f-attach-list');
+    list.innerHTML = attachState.map(function (a, i) {
+      var thumb = a.type === 'image'
+        ? '<img src="' + a.data + '" alt="" class="h-20 w-full rounded object-cover">'
+        : '<div class="flex h-20 w-full items-center justify-center rounded bg-white text-3xl">📄</div>';
+      return '<div class="rounded-lg border border-slate-200 bg-white p-2">' + thumb +
+        '<div class="mt-1 truncate text-xs text-slate-700" title="' + esc(a.name) + '">' + esc(a.name) + '</div>' +
+        '<div class="flex items-center justify-between text-xs text-slate-500"><span>' + attachSizeLabel(attachBytes(a)) + '</span>' +
+        '<button type="button" data-attach-del="' + i + '" class="font-semibold text-red-600 hover:underline">Hapus</button></div></div>';
+    }).join('');
+  }
+  function readAsDataUrl(file) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () { resolve(fr.result); };
+      fr.onerror = function () { reject(new Error('Gagal membaca berkas')); };
+      fr.readAsDataURL(file);
+    });
+  }
+  function compressImage(file) {
+    return readAsDataUrl(file).then(function (src) {
+      return new Promise(function (resolve, reject) {
+        var img = new Image();
+        img.onload = function () {
+          var max = 1280, sc = Math.min(1, max / Math.max(img.width, img.height));
+          var c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(img.width * sc)); c.height = Math.max(1, Math.round(img.height * sc));
+          var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL('image/jpeg', 0.65));
+        };
+        img.onerror = function () { reject(new Error('Gambar tidak dapat dibaca')); };
+        img.src = src;
+      });
+    });
+  }
+  function addAttachmentFiles(files) {
+    var arr = Array.prototype.slice.call(files || []);
+    return arr.reduce(function (chain, file) {
+      return chain.then(function () {
+        if (attachState.length >= ATTACH_MAX_FILES) { toast('Maksimal ' + ATTACH_MAX_FILES + ' berkas.'); return; }
+        var isImg = /^image\//.test(file.type), isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+        if (!isImg && !isPdf) { toast('Format ' + file.name + ' tidak didukung. Gunakan foto atau PDF.'); return; }
+        if (isPdf && file.size > ATTACH_MAX_PDF) { toast('PDF ' + file.name + ' lebih dari 600 KB. Kecilkan ukuran atau gunakan foto.'); return; }
+        var job = isImg ? compressImage(file) : readAsDataUrl(file);
+        return job.then(function (data) {
+          var item = { name: isImg ? file.name.replace(/\.[^.]+$/, '') + '.jpg' : file.name, type: isImg ? 'image' : 'pdf', data: data };
+          var total = attachState.reduce(function (n, a) { return n + attachBytes(a); }, 0) + attachBytes(item);
+          if (total > ATTACH_MAX_TOTAL) { toast('Total ukuran lampiran melebihi 1 MB. Hapus berkas lain atau gunakan foto yang lebih kecil.'); return; }
+          attachState.push(item);
+        }).catch(function (err) { toast(err.message || 'Berkas gagal diproses.'); });
+      });
+    }, Promise.resolve()).then(renderAttachSection);
+  }
+  function attachmentProblem(data) {
+    var req = ATTACH_REQS[data.type];
+    if (!req) return '';
+    if (attachState.length) return '';
+    if (data.type === 'Sick' && hitungHariKerja(data.start, data.end) <= 1) return '';
+    return 'Lengkapi dokumen persyaratan ' + req.label + ' (unggah berkas atau ambil foto): ' + req.text + '.';
+  }
+  (function initAttachUi() {
+    var typeEl = document.getElementById('f-type');
+    if (!typeEl) return;
+    typeEl.addEventListener('change', renderAttachSection);
+    document.getElementById('f-attach-upload').addEventListener('click', function () { document.getElementById('f-attach-file').click(); });
+    document.getElementById('f-attach-camera').addEventListener('click', function () { document.getElementById('f-attach-photo').click(); });
+    ['f-attach-file', 'f-attach-photo'].forEach(function (id) {
+      var inp = document.getElementById(id);
+      inp.addEventListener('change', function () { var files = inp.files; addAttachmentFiles(files).then(function () { inp.value = ''; }); });
+    });
+    document.getElementById('f-attach-list').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-attach-del]');
+      if (!b) return;
+      attachState.splice(parseInt(b.getAttribute('data-attach-del'), 10), 1);
+      renderAttachSection();
+    });
+    document.getElementById('leave-form').addEventListener('reset', function () { attachState = []; setTimeout(renderAttachSection, 0); });
+    renderAttachSection();
+  })();
+  function openAttachModal(id) {
+    var r = load().filter(function (x) { return x.id === id; })[0];
+    var items = (r && r.attachments) || [];
+    if (!items.length) { toast('Tidak ada lampiran pada pengajuan ini.'); return; }
+    document.getElementById('attach-title').textContent = r.name + ' · ' + (TYPE_LABEL[r.type] || r.type);
+    document.getElementById('attach-view').innerHTML = items.map(function (a) {
+      var body = a.type === 'image'
+        ? '<img src="' + a.data + '" alt="' + esc(a.name) + '" class="max-h-[60vh] w-full rounded-lg border border-slate-200 object-contain bg-slate-50">'
+        : '<a href="' + a.data + '" download="' + esc(a.name) + '" class="inline-block rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">📄 Unduh / buka PDF</a>';
+      return '<div><p class="mb-1 text-sm font-medium text-slate-700">' + esc(a.name) + '</p>' + body + '</div>';
+    }).join('');
+    var m = document.getElementById('attach-modal');
+    m.classList.remove('hidden'); m.classList.add('flex');
+  }
+  (function initAttachModal() {
+    var m = document.getElementById('attach-modal');
+    if (!m) return;
+    function close() { m.classList.add('hidden'); m.classList.remove('flex'); document.getElementById('attach-view').innerHTML = ''; }
+    document.getElementById('attach-close').addEventListener('click', close);
+    m.addEventListener('click', function (e) { if (e.target === m) close(); });
+  })();
+
   var form = document.getElementById('leave-form');
   var errEl = document.getElementById('form-error');
   function showErr(m) { errEl.textContent = m; errEl.classList.remove('hidden'); }
 
   var editingDraftId = null;
   function collectFormData() { return { name: document.getElementById('f-name').value.trim(), type: document.getElementById('f-type').value, start: document.getElementById('f-start').value, end: document.getElementById('f-end').value, reason: document.getElementById('f-reason').value.trim(), alamat: document.getElementById('f-alamat').value.trim(), telp: document.getElementById('f-telp').value.trim(), atasanNip: document.getElementById('f-atasan-nip').value.trim() }; }
-  function validateForm(requireSig) { var user = activeUser(); var prof = testUser ? (document.getElementById('f-nip').value ? testApplicant : null) : applicantProfile(user); if (testUser && !prof) { return { ok:false, msg:'Mode uji: ketik 3 huruf nama atau NIP pegawai, lalu pilih dari saran.', prof:null }; } if (!user || !prof) { return { ok:false, msg:'Silakan masuk dengan akun yang terdaftar.', prof:null, needLogin:true }; } var data = collectFormData(); if (!document.getElementById('f-nip').value) { return { ok:false, msg:'Ketik minimal 3 huruf nama atau NIP Anda.', prof:prof }; } if (!data.name || !data.start || !data.end || !data.reason) { return { ok:false, msg:'Nama, tanggal, dan alasan wajib diisi.', prof:prof }; } if (requireSig && !inked) { return { ok:false, msg:'Tanda tangan wajib diisi.', prof:prof }; } if (data.end < data.start) { return { ok:false, msg:'Tanggal selesai tidak boleh sebelum tanggal mulai.', prof:prof }; } var route = resolveRoute(prof); if (!route.first) { return { ok:false, msg:'Rute persetujuan belum diatur.', prof:prof }; } return { ok:true, prof:prof, data:data, route:route }; }
-  function buildRequestObject(prof, data, route, status) { var draftIdEl = document.getElementById('f-draft-id'); var id = (draftIdEl && draftIdEl.value) ? draftIdEl.value : ('r' + Date.now() + Math.floor(Math.random() * 1000)); return { id: id, name: prof.n, type: data.type, start: data.start, end: data.end, reason: data.reason, nip: prof.nip, masa: masaKerja(prof.nip), jabatan: prof.j, alamat: data.alamat, telp: data.telp, atasan: route.first, atasanNip: data.atasanNip, sig: cv.toDataURL('image/png'), unit: prof.unit, unitCode: prof.unitCode, firstApprover: route.first, firstApproverPosition: route.firstPosition, secondApprover: route.second, secondApproverPosition: route.secondPosition, status: status, createdAt: Date.now(), updatedAt: Date.now(), requestedBy: prof.nip }; }
+  function validateForm(requireSig) { var user = activeUser(); var prof = testUser ? (document.getElementById('f-nip').value ? testApplicant : null) : applicantProfile(user); if (testUser && !prof) { return { ok:false, msg:'Mode uji: ketik 3 huruf nama atau NIP pegawai, lalu pilih dari saran.', prof:null }; } if (!user || !prof) { return { ok:false, msg:'Silakan masuk dengan akun yang terdaftar.', prof:null, needLogin:true }; } var data = collectFormData(); if (!document.getElementById('f-nip').value) { return { ok:false, msg:'Ketik minimal 3 huruf nama atau NIP Anda.', prof:prof }; } if (!data.name || !data.start || !data.end || !data.reason) { return { ok:false, msg:'Nama, tanggal, dan alasan wajib diisi.', prof:prof }; } if (requireSig && !inked) { return { ok:false, msg:'Tanda tangan wajib diisi.', prof:prof }; } if (data.end < data.start) { return { ok:false, msg:'Tanggal selesai tidak boleh sebelum tanggal mulai.', prof:prof }; } if (requireSig) { var attProblem = attachmentProblem(data); if (attProblem) { return { ok:false, msg:attProblem, prof:prof }; } } var route = resolveRoute(prof); if (!route.first) { return { ok:false, msg:'Rute persetujuan belum diatur.', prof:prof }; } return { ok:true, prof:prof, data:data, route:route }; }
+  function buildRequestObject(prof, data, route, status) { var draftIdEl = document.getElementById('f-draft-id'); var id = (draftIdEl && draftIdEl.value) ? draftIdEl.value : ('r' + Date.now() + Math.floor(Math.random() * 1000)); return { id: id, name: prof.n, type: data.type, start: data.start, end: data.end, reason: data.reason, nip: prof.nip, masa: masaKerja(prof.nip), jabatan: prof.j, alamat: data.alamat, telp: data.telp, atasan: route.first, atasanNip: data.atasanNip, sig: cv.toDataURL('image/png'), unit: prof.unit, unitCode: prof.unitCode, firstApprover: route.first, firstApproverPosition: route.firstPosition, secondApprover: route.second, secondApproverPosition: route.secondPosition, status: status, createdAt: Date.now(), updatedAt: Date.now(), requestedBy: prof.nip, attachments: ATTACH_REQS[data.type] ? attachState.slice() : [] }; }
   function saveAsDraft() { var errEl = document.getElementById('form-error'); errEl.classList.add('hidden'); var user = activeUser(); var prof = testUser ? (document.getElementById('f-nip').value ? testApplicant : null) : applicantProfile(user); if (!user || !prof) { errEl.textContent = 'Silakan masuk terlebih dahulu.'; errEl.classList.remove('hidden'); return; } var data = collectFormData(); if (!data.start || !data.end) { errEl.textContent = 'Tanggal mulai dan selesai wajib diisi untuk draft.'; errEl.classList.remove('hidden'); return; } var route = resolveRoute(prof); var list = load(); var draftIdEl = document.getElementById('f-draft-id'); var existingId = draftIdEl ? draftIdEl.value : null; var newReq = buildRequestObject(prof, data, route, 'draft'); if (existingId) { var found=false; list = list.map(function(r){ if (r.id === existingId) { found=true; newReq.createdAt = r.createdAt; return newReq; } return r; }); if (!found) list.push(newReq); } else { list.push(newReq); } if (!save(list)) return; form.reset(); clearSig(); if (draftIdEl) draftIdEl.value=''; editingDraftId=null; fillApplicant(); renderAll(); toast('Draft berhasil disimpan.'); showView('employee'); empShow('history'); }
   form.addEventListener('submit', function (e) { e.preventDefault(); var errEl = document.getElementById('form-error'); errEl.classList.add('hidden'); var vres = validateForm(true); if (!vres.ok) { errEl.textContent = vres.msg; errEl.classList.remove('hidden'); if (vres.needLogin) showView(vres.prof ? 'employee' : 'login'); return; } var prof = vres.prof, data = vres.data, route = vres.route; var list = load(); var draftIdEl = document.getElementById('f-draft-id'); var existingId = draftIdEl ? draftIdEl.value : null; var newReq = buildRequestObject(prof, data, route, 'pending_direct'); if (existingId) { list = list.map(function(r){ if (r.id === existingId) { newReq.createdAt = r.createdAt; return newReq; } return r; }); } else { list.push(newReq); } if (!save(list)) return; form.reset(); clearSig(); fillApplicant(); if (draftIdEl) draftIdEl.value=''; editingDraftId=null; renderAll(); toast('Pengajuan terkirim kepada ' + (route.first || 'penyetuju tahap 1') + '.'); notifyByNip(nipFromName(route.first, APPROVERS), 'Pengajuan cuti baru', prof.n + ' mengajukan cuti ' + (TYPE_LABEL[data.type] || data.type) + ' menunggu persetujuan Anda (Tahap 1).'); showView('employee'); empShow('history'); });
   var draftBtn = document.getElementById('btn-save-draft'); if (draftBtn) draftBtn.addEventListener('click', function(){ saveAsDraft(); });
-  window.editDraft = function(id) { var r = load().filter(function(x){ return x.id === id && x.status === 'draft'; })[0]; if (!r) { toast('Draft tidak ditemukan.'); return; } showView('employee'); empShow('form'); setTimeout(function(){ document.getElementById('f-name').value = r.name || ''; document.getElementById('f-nip').value = r.nip || ''; document.getElementById('f-jab').value = r.jabatan || ''; document.getElementById('f-masa').value = r.masa || ''; document.getElementById('f-type').value = r.type || 'Annual'; document.getElementById('f-start').value = r.start || ''; document.getElementById('f-end').value = r.end || ''; document.getElementById('f-reason').value = r.reason || ''; document.getElementById('f-alamat').value = r.alamat || ''; document.getElementById('f-telp').value = r.telp || ''; document.getElementById('f-atasan').value = r.firstApprover || ''; document.getElementById('f-atasan-nip').value = r.atasanNip || ''; var draftIdEl = document.getElementById('f-draft-id'); if (draftIdEl) draftIdEl.value = r.id; editingDraftId = r.id; if (typeof updateHariKerjaInfo === 'function') updateHariKerjaInfo(); if (typeof updateRuleWarning === 'function') updateRuleWarning(); toast('Draft dimuat.'); },200); };
+  window.editDraft = function(id) { var r = load().filter(function(x){ return x.id === id && x.status === 'draft'; })[0]; if (!r) { toast('Draft tidak ditemukan.'); return; } showView('employee'); empShow('form'); setTimeout(function(){ document.getElementById('f-name').value = r.name || ''; document.getElementById('f-nip').value = r.nip || ''; document.getElementById('f-jab').value = r.jabatan || ''; document.getElementById('f-masa').value = r.masa || ''; document.getElementById('f-type').value = r.type || 'Annual'; document.getElementById('f-start').value = r.start || ''; document.getElementById('f-end').value = r.end || ''; document.getElementById('f-reason').value = r.reason || ''; document.getElementById('f-alamat').value = r.alamat || ''; document.getElementById('f-telp').value = r.telp || ''; document.getElementById('f-atasan').value = r.firstApprover || ''; document.getElementById('f-atasan-nip').value = r.atasanNip || ''; var draftIdEl = document.getElementById('f-draft-id'); if (draftIdEl) draftIdEl.value = r.id; editingDraftId = r.id; attachState = (r.attachments || []).slice(); renderAttachSection(); if (typeof updateHariKerjaInfo === 'function') updateHariKerjaInfo(); if (typeof updateRuleWarning === 'function') updateRuleWarning(); toast('Draft dimuat.'); },200); };
   window.sendDraft = function(id) { var list = load(); var r = list.filter(function(x){ return x.id === id && x.status === 'draft'; })[0]; if (!r) { toast('Draft tidak ditemukan.'); return; } if (!confirm('Kirim draft ini menjadi pengajuan resmi?')) return; r.status = 'pending_direct'; r.createdAt = Date.now(); r.updatedAt = Date.now(); if (!save(list)) return; renderAll(); toast('Draft berhasil dikirim.'); notifyByNip(nipFromName(r.firstApprover, APPROVERS), 'Pengajuan cuti baru (dari draft)', r.name + ' mengajukan cuti ' + (TYPE_LABEL[r.type] || r.type)); };
 
 
@@ -2531,7 +2787,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       var isDraft = r.status === 'draft';
       var letter = '';
       if (isDraft) {
-        letter = '<div class="flex flex-col gap-2"><span class="text-xs text-slate-500">Draft belum dikirim.</span><div class="flex gap-2">' + btn('edit-draft', r.id, '✏️ Edit', 'draft') + btn('send-draft', r.id, '📤 Kirim', 'ok') + btn('delete-draft', r.id, '🗑️ Hapus', 'del') + '</div></div>';
+        letter = '<div class="flex flex-col gap-2"><span class="text-xs text-slate-500">' + (r.returnedBy ? '<b>Dikembalikan oleh ' + esc(r.returnedBy) + ':</b> ' + esc(r.returnedNote || '') + ' Ubah tanggal lalu ajukan ulang.' : 'Draft belum dikirim.') + '</span><div class="flex gap-2">' + btn('edit-draft', r.id, '✏️ Edit', 'draft') + (r.returnedBy ? '' : btn('send-draft', r.id, '📤 Kirim', 'ok')) + btn('delete-draft', r.id, '🗑️ Hapus', 'del') + '</div></div>';
       } else if (r.status === 'issued') {
         letter = '<div class="font-semibold text-slate-800">' + esc(r.letterNumber || 'Nomor belum tersedia') + '</div>' +
           '<div class="text-xs text-green-700 mb-2">Surat PDF telah tersedia sejak ' +
@@ -2812,7 +3068,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       ws.addImage(img, { tl: { col: 5.4, row: 34.1 }, ext: { width: 200, height: 75 } });
     }
 
-    function decision(top, title, ticks, role, nm, nip) {
+    function decision(top, title, ticks, role, nm, nip, note) {
       head(top, title);
       var lab = ['DISETUJUI', 'PERUBAHAN****', 'DITANGGUHKAN****', 'TIDAK DISETUJUI****'], cols = ['A:B', 'C:D', 'E:F', 'G:H'];
       for (var k = 0; k < 4; k++) {
@@ -2820,14 +3076,14 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         put(cs[0] + (top + 1) + ':' + cs[1] + (top + 1), lab[k], { b: true, h: 'center' });
         put(cs[0] + (top + 2) + ':' + cs[1] + (top + 2), ticks[k] ? '√' : '', { b: true, h: 'center', size: 14 });
       }
-      put('A' + (top + 3) + ':D' + (top + 8), '');
+      put('A' + (top + 3) + ':D' + (top + 8), note ? 'Catatan: ' + note : '', { size: 8, v: 'top' });
       put('E' + (top + 3) + ':H' + (top + 3), role, { h: 'center' });
       put('E' + (top + 4) + ':H' + (top + 6), '');
       put('E' + (top + 7) + ':H' + (top + 7), nm, { h: 'center', b: true, u: true });
       put('E' + (top + 8) + ':H' + (top + 8), nip, { h: 'center' });
     }
-    decision(41, 'VII. PERSETUJUAN TAHAP 1**', [!!r.firstApprovedAt, false, false, rejectedAtStage(r, 'first')],
-      f(r.firstApproverPosition) || 'Penyetuju Tahap 1', f(r.firstApprover), 'NIP. ' + f(r.atasanNip));
+    decision(41, 'VII. PERSETUJUAN TAHAP 1**', [!!r.firstApprovedAt && r.firstDecision !== 'change', r.firstDecision === 'change', false, rejectedAtStage(r, 'first')],
+      f(r.firstApproverPosition) || 'Penyetuju Tahap 1', f(r.firstApprover), 'NIP. ' + f(r.atasanNip), f(r.firstNote));
     decision(51, 'VIII. PERSETUJUAN TAHAP 2**', [!!r.secondApprovedAt, false, false, rejectedAtStage(r, 'second')],
       f(r.secondApproverPosition) || 'Penyetuju Tahap 2', f(r.secondApprover), '');
     put('A61:H61', 'Keterangan: tanda √ pada kotak menunjukkan pilihan.', { i: true, size: 8, box: false });
@@ -2968,7 +3224,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       doc.setFontSize(size);
       if (nipText) doc.text(nipText, x + w / 2, top + h - 3.5, { align: 'center' });
     }
-    function decisionSection(top, title, labels, selected, role, name, nip, signature) {
+    function decisionSection(top, title, labels, selected, role, name, nip, signature, note) {
       var sectionHeight = 48, col = width / 4;
       if (top + sectionHeight > 285) {
         doc.addPage();
@@ -2981,6 +3237,12 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         cell(x, top + 13, col, 6, selected[i] ? 'X' : '', { bold: true, size: 10 });
       }
       cell(margin, top + 19, width / 2, sectionHeight - 19, 'CATATAN / PERTIMBANGAN', { size: 7, valign: 'top' });
+      if (note) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(15, 23, 42);
+        doc.text(doc.splitTextToSize(String(note), width / 2 - 5).slice(0, 6), margin + 2, top + 19 + 8.5);
+      }
       signatureBlock(margin + width / 2, top + 19, width / 2, sectionHeight - 19, role, name, nip, signature);
       return top + sectionHeight;
     }
@@ -3076,8 +3338,8 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
 
     var decisionLabels = ['DISETUJUI', 'PERUBAHAN****', 'DITANGGUHKAN****', 'TIDAK DISETUJUI****'];
     y = decisionSection(y, 'VII. PERSETUJUAN TAHAP 1**', decisionLabels,
-      [!!r.firstApprovedAt, false, false, rejectedAtStage(r, 'first')],
-      r.firstApproverPosition || 'Penyetuju Tahap 1', r.firstApprover, 'NIP. ' + (r.atasanNip || nipForApproverName(r.firstApprover) || ''), null);
+      [!!r.firstApprovedAt && r.firstDecision !== 'change', r.firstDecision === 'change', false, rejectedAtStage(r, 'first')],
+      r.firstApproverPosition || 'Penyetuju Tahap 1', r.firstApprover, 'NIP. ' + (r.atasanNip || nipForApproverName(r.firstApprover) || ''), null, r.firstNote || '');
     y = decisionSection(y, 'VIII. PERSETUJUAN TAHAP 2**', decisionLabels,
       [!!r.secondApprovedAt, false, false, rejectedAtStage(r, 'second')],
       r.secondApproverPosition || 'Penyetuju Tahap 2', r.secondApprover, nipForApproverName(r.secondApprover) ? 'NIP. ' + nipForApproverName(r.secondApprover) : '', null);
@@ -3403,29 +3665,12 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       case 'export':
         if (!canExportExcel()) { toast('Hanya Admin 1 yang dapat mengekspor Excel.'); break; }
         exportBook(load().filter(function (r) { return r.id === id; })); break;
+      case 'view-attach':
+        openAttachModal(id); break;
       case 'employee-pdf':
         downloadEmployeePdf(id); break;
       case 'first-approve':
-        var firstApproverUser = activeUser();
-        var firstReq = load().filter(function (r) { return r.id === id; })[0];
-        if (update(id, 'pending_direct', function (r) {
-          r.firstApprovedAt = Date.now();
-          r.firstApprovedBy = firstApproverUser.name;
-          r.status = r.secondApprover ? 'pending_next' : 'pending_correspondence';
-        }, 'Persetujuan tahap 1 selesai dan pengajuan diteruskan.', function (r) {
-          return firstApproverUser && firstApproverUser.role === 'approver' && r.firstApprover === firstApproverUser.name;
-        })) {
-          showView('approver');
-          if (firstReq) {
-            notifyApplicant(firstReq, 'Pengajuan disetujui Tahap 1',
-              'Pengajuan cuti Anda disetujui oleh ' + (firstApproverUser.name) + ' (Tahap 1).');
-            if (firstReq.secondApprover) {
-              notifyByNip(nipFromName(firstReq.secondApprover, APPROVERS),
-                'Pengajuan menunggu persetujuan Anda',
-                'Pengajuan cuti dari ' + firstReq.name + ' menunggu persetujuan Anda (Tahap 2).');
-            }
-          }
-        }
+        openFirstDecisionModal(id);
         break;
       case 'first-reject':
         var firstRejectingUser = activeUser();
