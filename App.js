@@ -1564,10 +1564,31 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       })
       .catch(function (error) { console.error('Sisa cuti gagal dimuat dari server:', error); });
   }
-  /* Baris N-2, N-1, N untuk formulir Excel/PDF */
-  function balanceForForm(nip) {
-    var b = getLeaveBalance(nip);
-    if (!b) return { head: '1. CUTI TAHUNAN 2025/2026', rows: [{ y: 'N-2', s: '', k: '' }, { y: 'N-1', s: '', k: '' }, { y: 'N', s: '', k: '' }] };
+  /* Sisa cuti efektif: nilai dasar (diisi Admin 1, bawaan N = 12 hari) dikurangi cuti tahunan yang sudah disetujui
+     (dihitung hari kerja). Pemakaian dipotong dari N-2, lalu N-1, lalu N. Total sisa = N + N-1 + N-2.
+     Pengajuan yang disetujui sebelum Admin 1 terakhir mengedit tidak dipotong lagi (sudah termasuk dalam angka editan). */
+  var DEDUCT_STATUSES = ['pending_correspondence', 'pending_admin_issue', 'issued'];
+  function approvalTime(r) { return r.secondApprovedAt || r.firstApprovedAt || r.updatedAt || r.createdAt || 0; }
+  function effectiveBalance(nip, excludeId, reqs) {
+    var key = nipKey(nip), stored = getLeaveBalance(nip), year = new Date().getFullYear();
+    var base = stored
+      ? { tahun: stored.tahun || year, n: stored.n || 0, n1: stored.n1 || 0, n2: stored.n2 || 0, since: stored.updatedAt || 0 }
+      : { tahun: year, n: 12, n1: 0, n2: 0, since: 0 };
+    var rem = [base.n2, base.n1, base.n];
+    (reqs || load()).forEach(function (r) {
+      if (excludeId && r.id === excludeId) return;
+      var owner = nipKey(r.requestedBy || r.nip);
+      if (owner !== key || r.type !== 'Annual' || DEDUCT_STATUSES.indexOf(r.status) === -1) return;
+      if (!r.start || !r.end || new Date(r.start + 'T00:00:00').getFullYear() !== base.tahun) return;
+      if (approvalTime(r) <= base.since) return;
+      var d = hitungHariKerja(r.start, r.end);
+      for (var i = 0; i < 3 && d > 0; i++) { var take = Math.min(rem[i], d); rem[i] -= take; d -= take; }
+    });
+    return Object.assign({}, stored || {}, { nip: nip, tahun: base.tahun, n2: rem[0], n1: rem[1], n: rem[2], isDefault: !stored });
+  }
+  /* Baris N-2, N-1, N untuk formulir Excel/PDF (sisa sebelum pengajuan ini) */
+  function balanceForForm(nip, req) {
+    var b = effectiveBalance(nip, req && req.id);
     var t = b.tahun;
     return {
       head: '1. CUTI TAHUNAN ' + t + ' (N=' + t + ', N-1=' + (t - 1) + ', N-2=' + (t - 2) + ')',
@@ -1581,61 +1602,8 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
   function renderLeaveBalanceAdmin() {
     var sec = document.getElementById('admin-balance-section');
     if (!sec) return;
-    var allowed = canExportExcel();
-    sec.classList.toggle('hidden', !allowed);
-    if (!allowed) return;
-    var el = document.getElementById('admin-leave-balance');
-    var keys = Object.keys(leaveBalances);
-    if (!keys.length) { el.innerHTML = '<p class="text-sm text-slate-500">Belum ada data sisa cuti.</p>'; return; }
-    var rows = keys.map(function (k) { var b = leaveBalances[k]; return '<tr class="border-t"><td class="p-2">' + esc(b.name || '') + '<div class="text-xs text-slate-500">' + esc(b.nip || k) + '</div></td>' +
-      '<td class="p-2 text-center">' + esc(b.tahun) + '</td><td class="p-2 text-center font-semibold">' + esc(b.n) + '</td><td class="p-2 text-center">' + esc(b.n1) + '</td><td class="p-2 text-center">' + esc(b.n2) + '</td>' +
-      '<td class="p-2">' + btn('edit-balance', esc(k), 'Edit', 'ex') + '</td></tr>'; }).join('');
-    el.innerHTML = '<table class="min-w-full text-sm"><thead><tr class="bg-slate-100 text-left"><th class="p-2">Pegawai</th><th class="p-2 text-center">Tahun</th><th class="p-2 text-center">N</th><th class="p-2 text-center">N-1</th><th class="p-2 text-center">N-2</th><th class="p-2">Aksi</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    sec.classList.toggle('hidden', !canExportExcel());
   }
-  function fillLeaveBalanceForm(nip) {
-    var emp = findEmployee(nip);
-    var b = emp ? getLeaveBalance(emp.nip) : getLeaveBalance(nip);
-    if (emp) { document.getElementById('lb-nip').value = emp.nip; document.getElementById('lb-name').value = emp.n; }
-    else if (b) { document.getElementById('lb-nip').value = b.nip || nip; document.getElementById('lb-name').value = b.name || ''; }
-    else { document.getElementById('lb-name').value = ''; return; }
-    document.getElementById('lb-tahun').value = b ? b.tahun : new Date().getFullYear();
-    document.getElementById('lb-n').value = b ? b.n : '';
-    document.getElementById('lb-n1').value = b ? b.n1 : '';
-    document.getElementById('lb-n2').value = b ? b.n2 : '';
-    document.getElementById('lb-ket-n').value = b ? (b.ket_n || '') : '';
-    document.getElementById('lb-ket-n1').value = b ? (b.ket_n1 || '') : '';
-    document.getElementById('lb-ket-n2').value = b ? (b.ket_n2 || '') : '';
-  }
-  (function initLeaveBalanceForm() {
-    var form = document.getElementById('admin-leave-balance-form');
-    if (!form) return;
-    var nipInput = document.getElementById('lb-nip');
-    nipInput.addEventListener('change', function () { fillLeaveBalanceForm(nipInput.value); });
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      if (!canExportExcel()) { toast('Hanya Admin 1 yang dapat mengisi sisa cuti.'); return; }
-      var emp = findEmployee(nipInput.value);
-      if (!emp) { toast('Pegawai tidak ditemukan. Ketik NIP atau nama sesuai daftar pegawai.'); return; }
-      var tahun = parseInt(document.getElementById('lb-tahun').value, 10) || new Date().getFullYear();
-      var entry = {
-        nip: emp.nip, name: emp.n, tahun: tahun,
-        n: cleanDays(document.getElementById('lb-n').value),
-        n1: cleanDays(document.getElementById('lb-n1').value),
-        n2: cleanDays(document.getElementById('lb-n2').value),
-        ket_n: cleanNote(document.getElementById('lb-ket-n').value),
-        ket_n1: cleanNote(document.getElementById('lb-ket-n1').value),
-        ket_n2: cleanNote(document.getElementById('lb-ket-n2').value),
-        updatedAt: Date.now()
-      };
-      saveLeaveBalance(emp.nip, entry).then(function (ok) {
-        if (!ok) return;
-        toast('Sisa cuti ' + emp.n + ' tersimpan dan terlihat di akun yang bersangkutan.');
-        renderLeaveBalanceAdmin();
-        hitungSaldoCuti();
-      });
-    });
-  })();
-
   /* ---------- Nominatif pegawai: edit roster (mutasi, tambah, hapus) + sisa cuti massal (Admin 1) ---------- */
   var ROSTER_KEY = 'cuti_roster_v1';
   var BASE_EMP = EMP.map(function (e) { return Object.assign({}, e); });
@@ -1683,6 +1651,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     var countEl = document.getElementById('nom-count');
     var searchEl = document.getElementById('nom-search');
     var tahunEl = document.getElementById('nom-tahun');
+    var nomReqs = null;
     var unitOptions = Object.keys(UNIT_LABEL).map(function (code) { return { code: code, label: UNIT_LABEL[code] }; });
 
     function unitSelect(selectedCode) {
@@ -1694,7 +1663,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       return '<input type="number" min="0" max="999" class="' + cls + ' w-16 rounded border border-slate-300 px-2 py-1 text-sm text-center" value="' + esc(val === undefined || val === null ? '' : val) + '">';
     }
     function rowHtml(e, idx) {
-      var b = getLeaveBalance(e.nip) || {};
+      var b = effectiveBalance(e.nip, null, nomReqs);
       return '<tr class="nom-row border-t" data-nip="' + esc(e.nip) + '" data-base="' + (BASE_EMP.some(function (x) { return x.nip === e.nip; }) ? '1' : '0') + '">' +
         '<td class="p-2 text-center text-slate-500 nom-no">' + idx + '</td>' +
         '<td class="p-2"><input type="text" class="nom-name w-56 rounded border border-slate-300 px-2 py-1 text-sm" value="' + esc(e.n) + '"></td>' +
@@ -1713,7 +1682,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         '<td class="p-2">' + unitSelect('K') + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n2', '') + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n1', '') + '</td>' +
-        '<td class="p-2 text-center">' + numInput('nom-n', '') + '</td>' +
+        '<td class="p-2 text-center">' + numInput('nom-n', 12) + '</td>' +
         '<td class="p-2"><button type="button" class="nom-del px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100">Batal</button></td></tr>';
     }
     function renumber() {
@@ -1727,6 +1696,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       countEl.textContent = 'Jumlah pegawai: ' + i + (shown !== i ? ' (tampil ' + shown + ')' : '');
     }
     function renderNominatif() {
+      nomReqs = load();
       var head = '<table class="min-w-full text-sm"><thead class="sticky top-0 bg-slate-100 z-10"><tr class="text-left"><th class="p-2 text-center">No</th><th class="p-2">Nama</th><th class="p-2">NIP</th><th class="p-2">Unit Kerja</th><th class="p-2 text-center">N-2</th><th class="p-2 text-center">N-1</th><th class="p-2 text-center">N</th><th class="p-2">Aksi</th></tr></thead><tbody id="nom-body">';
       tableEl.innerHTML = head + EMP.map(function (e, i) { return rowHtml(e, i + 1); }).join('') + '</tbody></table>';
       tahunEl.value = tahunEl.value || new Date().getFullYear();
@@ -1780,6 +1750,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
 
     document.getElementById('nom-save').addEventListener('click', function () {
       if (!canExportExcel()) { toast('Hanya Admin 1 yang dapat menyimpan nominatif.'); return; }
+      nomReqs = load();
       var tahun = parseInt(tahunEl.value, 10) || new Date().getFullYear();
       var cfg = rosterNorm(JSON.parse(JSON.stringify(rosterCfg)));
       var balanceRows = [], errors = [], seenNew = {};
@@ -1815,7 +1786,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
           }
         }
         var vN = tr.querySelector('.nom-n').value, v1 = tr.querySelector('.nom-n1').value, v2 = tr.querySelector('.nom-n2').value;
-        var existing = getLeaveBalance(nip);
+        var existing = effectiveBalance(nip, null, nomReqs);
         var touched = tr.dataset.dirty === '1' && (vN !== '' || v1 !== '' || v2 !== '' || existing);
         if (touched || (isNew && (vN !== '' || v1 !== '' || v2 !== ''))) {
           var e0 = existing || {};
@@ -2495,7 +2466,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         used += hitungHariKerja(r.start, r.end);
       });
     }
-    var bal = hn ? getLeaveBalance(hn) : null;
+    var bal = hn ? effectiveBalance(hn) : null;
     var usedLabel = document.getElementById('leave-balance-used-label');
     var totalLabel = document.getElementById('leave-balance-total-label');
     var detail = document.getElementById('leave-balance-detail');
@@ -2818,7 +2789,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     put('D23:H23', 'Tanggal  ' + fmtDate(r.start) + '  s.d.  ' + fmtDate(r.end));
 
     head(25, 'V. CATATAN CUTI');
-    var balForm = balanceForForm(r.nip);
+    var balForm = balanceForForm(r.nip, r);
     put('A26:D26', balForm.head, { b: true }); put('E26:G26', 'CUTI BESAR'); put('H26', '');
     put('A27', 'Tahun', { b: true, h: 'center' }); put('B27', 'Sisa', { b: true, h: 'center' }); put('C27:D27', 'Keterangan', { b: true, h: 'center' });
     put('E27:G27', 'CUTI SAKIT'); put('H27', '');
@@ -3060,7 +3031,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
 
     section('V. CATATAN CUTI');
     var half = width / 2;
-    var balForm = balanceForForm(r.nip);
+    var balForm = balanceForForm(r.nip, r);
     cell(margin, y, half, 5, balForm.head, { bold: true, size: 7 });
     cell(margin + half, y, half, 5, 'CUTI LAINNYA', { bold: true, size: 7 });
     y += 5;
@@ -3415,11 +3386,6 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       case 'export':
         if (!canExportExcel()) { toast('Hanya Admin 1 yang dapat mengekspor Excel.'); break; }
         exportBook(load().filter(function (r) { return r.id === id; })); break;
-      case 'edit-balance':
-        if (!canExportExcel()) { toast('Hanya Admin 1 yang dapat mengisi sisa cuti.'); break; }
-        fillLeaveBalanceForm(id);
-        document.getElementById('admin-leave-balance-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
-        break;
       case 'employee-pdf':
         downloadEmployeePdf(id); break;
       case 'first-approve':
