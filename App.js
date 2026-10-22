@@ -994,8 +994,6 @@
     var typeEl = document.getElementById('f-type');
     if (!typeEl) return;
     typeEl.addEventListener('change', renderAttachSection);
-    document.getElementById('f-attach-upload').addEventListener('click', function () { document.getElementById('f-attach-file').click(); });
-    document.getElementById('f-attach-camera').addEventListener('click', function () { document.getElementById('f-attach-photo').click(); });
     ['f-attach-file', 'f-attach-photo'].forEach(function (id) {
       var inp = document.getElementById(id);
       inp.addEventListener('change', function () { var files = inp.files; addAttachmentFiles(files).then(function () { inp.value = ''; }); });
