@@ -3204,7 +3204,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       cell(margin, y, width, 6, title, { bold: true, fill: band, size: 8 });
       y += 6;
     }
-    function signatureBlock(x, top, w, h, title, name, nip, signature) {
+    function signatureBlock(x, top, w, h, title, name, nip, signature, stamp) {
       cell(x, top, w, h, '', {});
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
@@ -3220,6 +3220,24 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
           doc.addImage(signature, 'PNG', x + (w - iw) / 2, top + 5 + (areaH - ih) / 2, iw, ih);
         } catch (e) { console.error('Tanda tangan gagal dimasukkan ke PDF:', e); }
       }
+      /* stempel kotak APPROVED di atas nama penyetuju */
+      if (stamp) {
+        var sw = 34, sh = 11, sx = x + (w - sw) / 2, sy = top + 6.5;
+        doc.setDrawColor(22, 128, 60);
+        doc.setTextColor(22, 128, 60);
+        doc.setLineWidth(0.7);
+        doc.roundedRect(sx, sy, sw, sh, 1, 1);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('APPROVED', x + w / 2, sy + 5.2, { align: 'center' });
+        if (stamp.date) {
+          doc.setFontSize(6);
+          doc.text(new Date(stamp.date).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }), x + w / 2, sy + 9, { align: 'center' });
+        }
+        doc.setLineWidth(0.2);
+        doc.setDrawColor.apply(doc, lineColor);
+        doc.setTextColor(15, 23, 42);
+      }
       /* nama dan NIP: ukuran huruf sama, sejajar di tengah; mengecil bersama bila terlalu panjang */
       var nameText = String(name || ' '), nipText = String(nip || '');
       var size = 7;
@@ -3232,7 +3250,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       doc.setFontSize(size);
       if (nipText) doc.text(nipText, x + w / 2, top + h - 3.5, { align: 'center' });
     }
-    function decisionSection(top, title, labels, selected, role, name, nip, signature, note) {
+    function decisionSection(top, title, labels, selected, role, name, nip, signature, note, stamp) {
       var sectionHeight = 48, col = width / 4;
       if (top + sectionHeight > 285) {
         doc.addPage();
@@ -3251,7 +3269,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         doc.setTextColor(15, 23, 42);
         doc.text(doc.splitTextToSize(String(note), width / 2 - 5).slice(0, 6), margin + 2, top + 19 + 8.5);
       }
-      signatureBlock(margin + width / 2, top + 19, width / 2, sectionHeight - 19, role, name, nip, signature);
+      signatureBlock(margin + width / 2, top + 19, width / 2, sectionHeight - 19, role, name, nip, signature, stamp);
       return top + sectionHeight;
     }
     var typeIdx = { Annual: 1, Besar: 2, Sick: 3, Melahirkan: 4, Personal: 5, LuarTanggungan: 6 }[r.type] || 0;
@@ -3347,10 +3365,10 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     var decisionLabels = ['DISETUJUI', 'PERUBAHAN****', 'DITANGGUHKAN****', 'TIDAK DISETUJUI****'];
     y = decisionSection(y, 'VII. PERSETUJUAN TAHAP 1**', decisionLabels,
       [!!r.firstApprovedAt && r.firstDecision !== 'change', r.firstDecision === 'change', false, rejectedAtStage(r, 'first')],
-      r.firstApproverPosition || 'Penyetuju Tahap 1', r.firstApprover, 'NIP. ' + (r.atasanNip || nipForApproverName(r.firstApprover) || ''), null, r.firstNote || '');
+      r.firstApproverPosition || 'Penyetuju Tahap 1', r.firstApprover, 'NIP. ' + (r.atasanNip || nipForApproverName(r.firstApprover) || ''), null, r.firstNote || '', r.firstApprovedAt ? { date: r.firstApprovedAt } : null);
     y = decisionSection(y, 'VIII. PERSETUJUAN TAHAP 2**', decisionLabels,
       [!!r.secondApprovedAt, false, false, rejectedAtStage(r, 'second')],
-      r.secondApproverPosition || 'Penyetuju Tahap 2', r.secondApprover, nipForApproverName(r.secondApprover) ? 'NIP. ' + nipForApproverName(r.secondApprover) : '', null);
+      r.secondApproverPosition || 'Penyetuju Tahap 2', r.secondApprover, nipForApproverName(r.secondApprover) ? 'NIP. ' + nipForApproverName(r.secondApprover) : '', null, '', r.secondApprovedAt ? { date: r.secondApprovedAt } : null);
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(7);
     doc.text('Keterangan: tanda X pada kotak menunjukkan pilihan. Ruang kosong di atas nama disediakan untuk tanda tangan.', margin, Math.min(y + 4, 288));
