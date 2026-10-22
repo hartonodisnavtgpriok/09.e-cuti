@@ -910,7 +910,7 @@
     Personal: { label: 'Cuti Karena Alasan Penting', text: 'Tergantung alasan: surat kematian keluarga, surat keterangan sakit keras keluarga, undangan pernikahan, surat tugas bencana, dan dokumen pendukung lainnya' },
     LuarTanggungan: { label: 'Cuti Di Luar Tanggungan Negara', text: 'Formulir, SK CPNS/PNS, SK pangkat terakhir, dan surat pernyataan tidak terikat ikatan dinas' }
   };
-  var ATTACH_MAX_FILES = 3, ATTACH_MAX_PDF = 600 * 1024, ATTACH_MAX_TOTAL = 1000 * 1024;
+  var ATTACH_MAX_FILES = 3, ATTACH_MAX_PDF = 300 * 1024, ATTACH_MAX_TOTAL = 500 * 1024, ATTACH_IMG_TARGET = 120 * 1024;
   var attachState = [];
   function attachBytes(a) { return Math.round(String(a.data || '').length * 0.75); }
   function attachSizeLabel(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
@@ -941,16 +941,24 @@
       fr.readAsDataURL(file);
     });
   }
+  /* Foto dikecilkan bertahap (dimensi dan kualitas) sampai di bawah ATTACH_IMG_TARGET agar hemat penyimpanan */
   function compressImage(file) {
     return readAsDataUrl(file).then(function (src) {
       return new Promise(function (resolve, reject) {
         var img = new Image();
         img.onload = function () {
-          var max = 1280, sc = Math.min(1, max / Math.max(img.width, img.height));
-          var c = document.createElement('canvas');
-          c.width = Math.max(1, Math.round(img.width * sc)); c.height = Math.max(1, Math.round(img.height * sc));
-          var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
-          resolve(c.toDataURL('image/jpeg', 0.65));
+          var dim = Math.min(1000, Math.max(img.width, img.height)), quality = 0.6, out = '', tries = 0;
+          do {
+            var sc = Math.min(1, dim / Math.max(img.width, img.height));
+            var c = document.createElement('canvas');
+            c.width = Math.max(1, Math.round(img.width * sc)); c.height = Math.max(1, Math.round(img.height * sc));
+            var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+            out = c.toDataURL('image/jpeg', quality);
+            if (Math.round(out.length * 0.75) <= ATTACH_IMG_TARGET) break;
+            if (quality > 0.4) quality -= 0.1; else dim = Math.round(dim * 0.8);
+            tries++;
+          } while (tries < 12 && dim > 400);
+          resolve(out);
         };
         img.onerror = function () { reject(new Error('Gambar tidak dapat dibaca')); };
         img.src = src;
@@ -964,12 +972,12 @@
         if (attachState.length >= ATTACH_MAX_FILES) { toast('Maksimal ' + ATTACH_MAX_FILES + ' berkas.'); return; }
         var isImg = /^image\//.test(file.type), isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
         if (!isImg && !isPdf) { toast('Format ' + file.name + ' tidak didukung. Gunakan foto atau PDF.'); return; }
-        if (isPdf && file.size > ATTACH_MAX_PDF) { toast('PDF ' + file.name + ' lebih dari 600 KB. Kecilkan ukuran atau gunakan foto.'); return; }
+        if (isPdf && file.size > ATTACH_MAX_PDF) { toast('PDF ' + file.name + ' lebih dari 300 KB. Kecilkan ukuran PDF atau gunakan foto.'); return; }
         var job = isImg ? compressImage(file) : readAsDataUrl(file);
         return job.then(function (data) {
           var item = { name: isImg ? file.name.replace(/\.[^.]+$/, '') + '.jpg' : file.name, type: isImg ? 'image' : 'pdf', data: data };
           var total = attachState.reduce(function (n, a) { return n + attachBytes(a); }, 0) + attachBytes(item);
-          if (total > ATTACH_MAX_TOTAL) { toast('Total ukuran lampiran melebihi 1 MB. Hapus berkas lain atau gunakan foto yang lebih kecil.'); return; }
+          if (total > ATTACH_MAX_TOTAL) { toast('Total ukuran lampiran melebihi 500 KB. Hapus berkas lain atau gunakan foto yang lebih kecil.'); return; }
           attachState.push(item);
         }).catch(function (err) { toast(err.message || 'Berkas gagal diproses.'); });
       });
