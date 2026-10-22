@@ -329,8 +329,28 @@
       <button type="button" data-staff-emp="history" class="px-4 py-2 rounded-lg text-sm font-semibold bg-white border border-blue-300 text-blue-800 hover:bg-blue-50">📄 Riwayat Saya</button>
     </div>
     <div id="admin-balance-section" class="hidden bg-white rounded-xl shadow p-5 mb-5">
-      <h3 class="font-semibold text-lg text-blue-900">Sisa Cuti Pegawai (N, N-1, N-2)</h3>
+      <div class="flex flex-wrap items-center gap-3 mb-1">
+        <h3 class="font-semibold text-lg text-blue-900 mr-auto">Sisa Cuti Pegawai (N, N-1, N-2)</h3>
+        <button type="button" id="btn-open-nominatif" class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 hover:bg-blue-800 text-white">📋 Nominatif Pegawai</button>
+      </div>
       <p class="text-xs text-slate-500 mb-4">Hanya Admin 1 yang dapat mengisi. Tersimpan otomatis di server dan langsung terlihat di akun pegawai yang bersangkutan serta pada formulir Excel/PDF.</p>
+      <div id="nominatif-panel" class="hidden mb-5 rounded-xl border border-blue-200 bg-blue-50/40 p-4">
+        <div class="flex flex-wrap items-end gap-3 mb-3">
+          <div class="mr-auto">
+            <p class="font-semibold text-blue-900">Nominatif Pegawai</p>
+            <p class="text-xs text-slate-500">Ubah nama, unit kerja (mutasi/penempatan), sisa cuti N-2, N-1, N; tambah atau hapus pegawai. Klik <b>Simpan Semua</b> untuk menyimpan.</p>
+          </div>
+          <div><label class="block text-xs font-semibold text-slate-600 mb-1" for="nom-search">Cari</label>
+            <input id="nom-search" type="text" autocomplete="off" class="rounded-lg border border-slate-300 px-3 py-2 text-sm w-44" placeholder="Nama / NIP / unit"></div>
+          <div><label class="block text-xs font-semibold text-slate-600 mb-1" for="nom-tahun">Tahun (N)</label>
+            <input id="nom-tahun" type="number" min="2000" max="2100" class="rounded-lg border border-slate-300 px-3 py-2 text-sm w-24"></div>
+          <button type="button" id="nom-add" class="px-4 py-2 rounded-lg text-sm font-semibold bg-white border border-blue-300 text-blue-800 hover:bg-blue-50">➕ Tambah Pegawai</button>
+          <button type="button" id="nom-save" class="px-4 py-2 rounded-lg text-sm font-semibold bg-green-600 hover:bg-green-700 text-white">💾 Simpan Semua</button>
+          <button type="button" id="nom-close" class="px-4 py-2 rounded-lg text-sm font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50">Tutup</button>
+        </div>
+        <div id="nom-count" class="text-xs text-slate-500 mb-2"></div>
+        <div id="nom-table" class="overflow-x-auto max-h-[70vh] overflow-y-auto rounded-lg border border-slate-200 bg-white"></div>
+      </div>
       <form id="admin-leave-balance-form" class="grid grid-cols-2 md:grid-cols-4 gap-3" novalidate>
         <div class="col-span-2"><label class="block text-xs font-semibold text-slate-600 mb-1" for="lb-nip">NIP / Nama Pegawai</label>
           <input id="lb-nip" type="text" autocomplete="off" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Ketik NIP atau nama pegawai"></div>
