@@ -910,7 +910,7 @@
     Personal: { label: 'Cuti Karena Alasan Penting', text: 'Tergantung alasan: surat kematian keluarga, surat keterangan sakit keras keluarga, undangan pernikahan, surat tugas bencana, dan dokumen pendukung lainnya' },
     LuarTanggungan: { label: 'Cuti Di Luar Tanggungan Negara', text: 'Formulir, SK CPNS/PNS, SK pangkat terakhir, dan surat pernyataan tidak terikat ikatan dinas' }
   };
-  var ATTACH_MAX_FILES = 3, ATTACH_MAX_PDF = 300 * 1024, ATTACH_MAX_TOTAL = 500 * 1024, ATTACH_IMG_TARGET = 120 * 1024;
+  var ATTACH_MAX_FILES = 3, ATTACH_MAX_PDF = 500 * 1024, ATTACH_MAX_TOTAL = 600 * 1024, ATTACH_IMG_TARGET = 120 * 1024;
   var attachState = [];
   function attachBytes(a) { return Math.round(String(a.data || '').length * 0.75); }
   function attachSizeLabel(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
@@ -972,12 +972,12 @@
         if (attachState.length >= ATTACH_MAX_FILES) { toast('Maksimal ' + ATTACH_MAX_FILES + ' berkas.'); return; }
         var isImg = /^image\//.test(file.type), isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
         if (!isImg && !isPdf) { toast('Format ' + file.name + ' tidak didukung. Gunakan foto atau PDF.'); return; }
-        if (isPdf && file.size > ATTACH_MAX_PDF) { toast('PDF ' + file.name + ' lebih dari 300 KB. Kecilkan ukuran PDF atau gunakan foto.'); return; }
+        if (isPdf && file.size > ATTACH_MAX_PDF) { toast('PDF ' + file.name + ' lebih dari 500 KB. Kecilkan ukuran PDF atau gunakan foto.'); return; }
         var job = isImg ? compressImage(file) : readAsDataUrl(file);
         return job.then(function (data) {
           var item = { name: isImg ? file.name.replace(/\.[^.]+$/, '') + '.jpg' : file.name, type: isImg ? 'image' : 'pdf', data: data };
           var total = attachState.reduce(function (n, a) { return n + attachBytes(a); }, 0) + attachBytes(item);
-          if (total > ATTACH_MAX_TOTAL) { toast('Total ukuran lampiran melebihi 500 KB. Hapus berkas lain atau gunakan foto yang lebih kecil.'); return; }
+          if (total > ATTACH_MAX_TOTAL) { toast('Total ukuran lampiran melebihi 600 KB. Hapus berkas lain atau gunakan foto yang lebih kecil.'); return; }
           attachState.push(item);
         }).catch(function (err) { toast(err.message || 'Berkas gagal diproses.'); });
       });
