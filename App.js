@@ -2080,6 +2080,15 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     document.getElementById('nom-add').addEventListener('click', function () {
       var body = document.getElementById('nom-body');
       if (!body) return;
+      /* Satu baris baru dulu: isi, lalu Simpan Semua, baru bisa tambah lagi */
+      var pending = body.querySelector('tr.nom-new');
+      if (pending) {
+        toast('Isi nama dan NIP pegawai baru, lalu klik Simpan Semua dulu sebelum menambah lagi.');
+        tableEl.scrollTop = 0;
+        var pf = pending.querySelector('.nom-name');
+        if (pf) pf.focus();
+        return;
+      }
       body.insertAdjacentHTML('afterbegin', newRowHtml());
       tableEl.scrollTop = 0;
       var first = body.querySelector('tr.nom-new .nom-name');
