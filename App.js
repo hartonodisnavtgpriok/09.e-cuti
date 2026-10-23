@@ -1866,9 +1866,11 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     if (!sec) return;
     sec.classList.toggle('hidden', !canExportExcel());
   }
-  /* ---------- Nominatif pegawai: edit roster (mutasi, tambah, hapus) + sisa cuti massal (Admin 1) ---------- */
+  /* ---------- Nominatif pegawai: edit roster (nama, NIP, jabatan, unit, tambah, hapus) + sisa cuti massal (Admin 1) ---------- */
   var ROSTER_KEY = 'cuti_roster_v1';
   var BASE_EMP = EMP.map(function (e) { return Object.assign({}, e); });
+  var HEAD_BASE = JSON.parse(JSON.stringify(HEAD));
+  var APPROVERS_BASE = APPROVERS.map(function (p) { return Object.assign({}, p); });
   var rosterCfg = (function () {
     try { var v = JSON.parse(localStorage.getItem(ROSTER_KEY) || '{}'); return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {}; } catch (e) { return {}; }
   })();
@@ -1880,15 +1882,70 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     for (var code in UNIT_LABEL) if (UNIT_LABEL[code] === label) return code;
     return 'K';
   }
+  /* Admin 1 dan Admin 2 tidak boleh dihapus / diganti NIP-nya dari nominatif (akun login dan hak aksesnya terikat NIP). */
+  function isProtectedNip(nip) {
+    var k = nipKey(nip);
+    return !!k && ADMINS.slice(0, 2).some(function (p) { return nipKey(p.nip) === k; });
+  }
+  function staffGroups() {
+    return [
+      { list: APPROVERS, adds: additionalApprovers, lsKey: ADDITIONAL_APPROVERS_KEY, serverKey: 'additional_approvers' },
+      { list: CORRESPONDENCE, adds: additionalCorrespondence, lsKey: ADDITIONAL_CORRESPONDENCE_KEY, serverKey: 'additional_correspondence' },
+      { list: ADMINS, adds: additionalAdmins, lsKey: ADDITIONAL_ADMINS_KEY, serverKey: 'additional_admins' }
+    ];
+  }
+  /* Pegawai yang dihapus dari nominatif otomatis hilang dari daftar Penyetuju / Persuratan / Admin dan dari kursi kepala unit. */
+  function purgeRemovedStaff(keys) {
+    var dirty = [];
+    if (!keys || !keys.length) return dirty;
+    function gone(p) { return p && keys.indexOf(nipKey(p.nip)) !== -1 && !isProtectedNip(p.nip); }
+    staffGroups().forEach(function (g) {
+      for (var i = g.list.length - 1; i >= 0; i--) if (gone(g.list[i])) g.list.splice(i, 1);
+      var before = g.adds.length;
+      for (var j = g.adds.length - 1; j >= 0; j--) if (gone(g.adds[j])) g.adds.splice(j, 1);
+      if (g.adds.length !== before) dirty.push(g);
+    });
+    Object.keys(HEAD).forEach(function (code) {
+      if (HEAD[code][1] && keys.indexOf(nipKey(HEAD[code][1])) !== -1) HEAD[code] = ['', ''];
+    });
+    return dirty;
+  }
+  /* NIP berubah: perbarui semua rujukan (kursi kepala, penyetuju, persuratan, admin, konfigurasi akun, atasan langsung). */
+  function renameNipInStaff(oldNip, newNip) {
+    var ok = nipKey(oldNip), dirty = [], cfgChanged = false;
+    Object.keys(HEAD).forEach(function (code) { if (nipKey(HEAD[code][1]) === ok) HEAD[code][1] = newNip; });
+    staffGroups().forEach(function (g) {
+      var ch = false;
+      g.adds.forEach(function (p) { if (nipKey(p.nip) === ok) { p.nip = newNip; ch = true; } });
+      g.list.forEach(function (p) { if (nipKey(p.nip) === ok) p.nip = newNip; });
+      if (ch) dirty.push(g);
+    });
+    Object.keys(staffConfig).forEach(function (key) {
+      if (nipKey(key) === ok && nipKey(key) !== nipKey(newNip)) { staffConfig[newNip] = staffConfig[key]; delete staffConfig[key]; cfgChanged = true; }
+    });
+    EMP.forEach(function (e) { if (nipKey(e.anip) === ok) e.anip = newNip; });
+    return { dirty: dirty, cfgChanged: cfgChanged };
+  }
+  function restoreBaseRoles(k, name) {
+    Object.keys(HEAD_BASE).forEach(function (code) {
+      if (HEAD_BASE[code][1] && nipKey(HEAD_BASE[code][1]) === k) HEAD[code] = [name || HEAD_BASE[code][0], HEAD_BASE[code][1]];
+    });
+    APPROVERS_BASE.forEach(function (p) {
+      if (nipKey(p.nip) === k && !APPROVERS.some(function (x) { return nipKey(x.nip) === k; })) APPROVERS.push(Object.assign({}, p, name ? { name: name } : {}));
+    });
+  }
   function applyRoster() {
-    var c = rosterNorm(rosterCfg), out = [];
+    var c = rosterNorm(rosterCfg), out = [], nipMap = {};
     BASE_EMP.forEach(function (b) {
       var k = nipKey(b.nip);
       if (c.removed.indexOf(k) !== -1) return;
       var e = Object.assign({}, b), ed = c.edits[k];
+      e.origNip = b.nip;
       if (ed) {
         if (ed.n) e.n = ed.n;
+        if (typeof ed.j === 'string') e.j = ed.j;
         if (ed.unitCode && UNIT_LABEL[ed.unitCode]) { e.unitCode = ed.unitCode; e.unit = UNIT_LABEL[ed.unitCode]; }
+        if (ed.nip && nipKey(ed.nip) !== k) { nipMap[k] = ed.nip; e.nip = ed.nip; }
       }
       out.push(e);
     });
@@ -1898,10 +1955,24 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       if (c.removed.indexOf(k) !== -1) return;
       if (out.some(function (e) { return nipKey(e.nip) === k; })) return;
       var uc = (a.unitCode && UNIT_LABEL[a.unitCode]) ? a.unitCode : 'K', h = HEAD[uc];
-      out.push({ n: a.n, nip: a.nip, j: a.j || '', an: h ? h[0] : '', anip: h ? h[1] : '', unitCode: uc, unit: UNIT_LABEL[uc] });
+      out.push({ n: a.n, nip: a.nip, j: a.j || '', an: h ? h[0] : '', anip: h ? h[1] : '', unitCode: uc, unit: UNIT_LABEL[uc], origNip: a.nip });
     });
     EMP.length = 0;
     out.forEach(function (e) { EMP.push(e); });
+    Object.keys(nipMap).forEach(function (k) { renameNipInStaff(k, nipMap[k]); });
+    /* nama/jabatan hasil edit nominatif ikut ke kursi kepala dan daftar penyetuju/persuratan/admin */
+    BASE_EMP.forEach(function (b) {
+      var ed = c.edits[nipKey(b.nip)];
+      if (!ed || c.removed.indexOf(nipKey(b.nip)) !== -1) return;
+      var curNip = ed.nip || b.nip, ck = nipKey(curNip);
+      if (ed.n && ed.n !== b.n) {
+        EMP.forEach(function (x) { if (x.an === b.n) x.an = ed.n; });
+        Object.keys(HEAD).forEach(function (code) { if (nipKey(HEAD[code][1]) === ck) HEAD[code][0] = ed.n; });
+        staffGroups().forEach(function (g) { g.list.forEach(function (p) { if (nipKey(p.nip) === ck) p.name = ed.n; }); });
+      }
+      if (typeof ed.j === 'string' && ed.j) APPROVERS.forEach(function (p) { if (nipKey(p.nip) === ck) p.title = ed.j; });
+    });
+    purgeRemovedStaff(c.removed);
   }
   applyRoster();
 
@@ -1926,21 +1997,25 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     }
     function rowHtml(e, idx) {
       var b = effectiveBalance(e.nip, null, nomReqs);
-      return '<tr class="nom-row border-t" data-nip="' + esc(e.nip) + '" data-base="' + (BASE_EMP.some(function (x) { return x.nip === e.nip; }) ? '1' : '0') + '">' +
+      var orig = nipKey(e.origNip || e.nip), prot = isProtectedNip(e.nip);
+      var isBase = BASE_EMP.some(function (x) { return nipKey(x.nip) === orig; });
+      return '<tr class="nom-row border-t" data-nip="' + esc(e.nip) + '" data-orig="' + esc(orig) + '" data-base="' + (isBase ? '1' : '0') + '">' +
         '<td class="p-2 text-center text-slate-500 nom-no">' + idx + '</td>' +
         '<td class="p-2"><input type="text" class="nom-name w-56 rounded border border-slate-300 px-2 py-1 text-sm" value="' + esc(e.n) + '"></td>' +
-        '<td class="p-2 whitespace-nowrap text-xs">' + esc(e.nip) + '</td>' +
+        '<td class="p-2"><input type="text" class="nom-nipedit w-48 rounded border border-slate-300 px-2 py-1 text-xs"' + (prot ? ' readonly title="NIP Admin tidak dapat diubah dari nominatif" style="background:#f1f5f9"' : '') + ' value="' + esc(e.nip) + '"></td>' +
+        '<td class="p-2"><input type="text" class="nom-jab w-72 rounded border border-slate-300 px-2 py-1 text-xs" placeholder="Jabatan" value="' + esc(e.j || '') + '"></td>' +
         '<td class="p-2">' + unitSelect(e.unitCode) + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n2', b.n2) + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n1', b.n1) + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n', b.n) + '</td>' +
-        '<td class="p-2"><button type="button" class="nom-del px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100">Hapus</button></td></tr>';
+        '<td class="p-2">' + (prot ? '<span class="text-xs text-slate-400">Admin</span>' : '<button type="button" class="nom-del px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100">Hapus</button>') + '</td></tr>';
     }
     function newRowHtml() {
-      return '<tr class="nom-row nom-new border-t bg-yellow-50" data-nip="" data-base="0" data-new="1">' +
+      return '<tr class="nom-row nom-new border-t bg-yellow-50" data-nip="" data-orig="" data-base="0" data-new="1">' +
         '<td class="p-2 text-center text-slate-500 nom-no">+</td>' +
-        '<td class="p-2"><input type="text" class="nom-name w-56 rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Nama lengkap"><input type="text" class="nom-jab mt-1 w-56 rounded border border-slate-300 px-2 py-1 text-xs" placeholder="Jabatan (opsional)"></td>' +
-        '<td class="p-2"><input type="text" class="nom-nip w-44 rounded border border-slate-300 px-2 py-1 text-xs" placeholder="NIP"></td>' +
+        '<td class="p-2"><input type="text" class="nom-name w-56 rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Nama lengkap"></td>' +
+        '<td class="p-2"><input type="text" class="nom-nipedit w-48 rounded border border-slate-300 px-2 py-1 text-xs" placeholder="NIP"></td>' +
+        '<td class="p-2"><input type="text" class="nom-jab w-72 rounded border border-slate-300 px-2 py-1 text-xs" placeholder="Jabatan (opsional)"></td>' +
         '<td class="p-2">' + unitSelect('K') + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n2', '') + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n1', '') + '</td>' +
@@ -1959,7 +2034,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     }
     function renderNominatif() {
       nomReqs = load();
-      var head = '<table class="min-w-full text-sm"><thead class="sticky top-0 bg-slate-100 z-10"><tr class="text-left"><th class="p-2 text-center">No</th><th class="p-2">Nama</th><th class="p-2">NIP</th><th class="p-2">Unit Kerja</th><th class="p-2 text-center">N-2</th><th class="p-2 text-center">N-1</th><th class="p-2 text-center">N</th><th class="p-2">Aksi</th></tr></thead><tbody id="nom-body">';
+      var head = '<table class="min-w-full text-sm"><thead class="sticky top-0 bg-slate-100 z-10"><tr class="text-left"><th class="p-2 text-center">No</th><th class="p-2">Nama</th><th class="p-2">NIP</th><th class="p-2">Jabatan</th><th class="p-2">Unit Kerja</th><th class="p-2 text-center">N-2</th><th class="p-2 text-center">N-1</th><th class="p-2 text-center">N</th><th class="p-2">Aksi</th></tr></thead><tbody id="nom-body">';
       tableEl.innerHTML = head + EMP.map(function (e, i) { return rowHtml(e, i + 1); }).join('') + '</tbody></table>';
       tahunEl.value = tahunEl.value || new Date().getFullYear();
       renumber();
@@ -1970,8 +2045,9 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       tableEl.querySelectorAll('tr.nom-row').forEach(function (tr) {
         if (tr.dataset.new === '1') return;
         var name = (tr.querySelector('.nom-name').value || '').toLowerCase();
+        var jab = (tr.querySelector('.nom-jab').value || '').toLowerCase();
         var unit = tr.querySelector('.nom-unit').selectedOptions[0].textContent.toLowerCase();
-        var ok = !q || name.indexOf(q) !== -1 || unit.indexOf(q) !== -1 || normId(tr.dataset.nip).indexOf(qn) !== -1;
+        var ok = !q || name.indexOf(q) !== -1 || jab.indexOf(q) !== -1 || unit.indexOf(q) !== -1 || normId(tr.querySelector('.nom-nipedit').value).indexOf(qn) !== -1;
         tr.classList.toggle('hidden', !ok);
       });
       renumber();
@@ -1986,8 +2062,8 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     document.getElementById('nom-close').addEventListener('click', function () { panel.classList.add('hidden'); });
     searchEl.addEventListener('input', applySearch);
     tableEl.addEventListener('input', function (e) {
-      if (e.target.classList.contains('nom-name')) { var tr = e.target.closest('tr'); tr.dataset.dirty = '1'; }
-      else if (e.target.closest('tr.nom-row')) e.target.closest('tr').dataset.dirty = '1';
+      var tr = e.target.closest('tr.nom-row');
+      if (tr) tr.dataset.dirty = '1';
     });
     tableEl.addEventListener('change', function (e) { var tr = e.target.closest('tr.nom-row'); if (tr) tr.dataset.dirty = '1'; });
     tableEl.addEventListener('click', function (e) {
@@ -2015,68 +2091,143 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       nomReqs = load();
       var tahun = parseInt(tahunEl.value, 10) || new Date().getFullYear();
       var cfg = rosterNorm(JSON.parse(JSON.stringify(rosterCfg)));
-      var balanceRows = [], errors = [], seenNew = {};
-      tableEl.querySelectorAll('tr.nom-row').forEach(function (tr) {
-        var isNew = tr.dataset.new === '1', isBase = tr.dataset.base === '1';
+      var rows = Array.prototype.slice.call(tableEl.querySelectorAll('tr.nom-row'));
+      var balanceRows = [], errors = [], seenKeys = {}, nipChanges = [], removedKeys = [], removedNames = [], readded = [];
+      function cleanNip(tr) { return tr.querySelector('.nom-nipedit').value.trim().replace(/\s+/g, ' '); }
+
+      /* 1. Pemeriksaan: NIP tidak boleh kosong / ganda di antara baris yang dipertahankan */
+      rows.forEach(function (tr) {
+        if (tr.dataset.removed === '1') return;
+        var isNew = tr.dataset.new === '1';
+        var name = tr.querySelector('.nom-name').value.trim(), nip = cleanNip(tr), nk = nipKey(nip);
+        if (isNew && !name && !nk) return;
+        if (!name) { errors.push('Nama pegawai' + (nip ? ' dengan NIP ' + nip : '') + ' tidak boleh kosong.'); return; }
+        if (!nk) { errors.push('NIP ' + name + ' tidak boleh kosong.'); return; }
+        if (seenKeys[nk]) { errors.push('NIP ' + nip + ' dipakai lebih dari satu pegawai.'); return; }
+        seenKeys[nk] = true;
+        if (!isNew && nk !== nipKey(tr.dataset.nip) && isProtectedNip(tr.dataset.nip)) errors.push('NIP Admin tidak dapat diubah dari nominatif.');
+      });
+      if (errors.length) { toast(errors[0]); return; }
+
+      /* 2. Pegawai yang dihapus: keluar dari daftar dan dari seluruh peran sistem */
+      rows.forEach(function (tr) {
+        if (tr.dataset.new === '1' || tr.dataset.removed !== '1') return;
+        var cur = tr.dataset.nip, ck = nipKey(cur), ok = tr.dataset.orig || ck;
+        if (isProtectedNip(cur)) { errors.push('Admin 1 / Admin 2 tidak dapat dihapus dari nominatif.'); return; }
+        [ok, ck].forEach(function (key) {
+          if (cfg.removed.indexOf(key) === -1) cfg.removed.push(key);
+          if (removedKeys.indexOf(key) === -1) removedKeys.push(key);
+        });
+        cfg.added = cfg.added.filter(function (a) { return nipKey(a.nip) !== ck && nipKey(a.nip) !== ok; });
+        delete cfg.edits[ok];
+        removedNames.push(tr.querySelector('.nom-name').value.trim() || cur);
+      });
+      if (errors.length) { toast(errors[0]); return; }
+
+      /* 3. Baris baru, perubahan nama/NIP/jabatan/unit, dan sisa cuti */
+      rows.forEach(function (tr) {
+        if (tr.dataset.removed === '1') return;
+        var isNew = tr.dataset.new === '1';
         var name = tr.querySelector('.nom-name').value.trim().replace(/\s+/g, ' ');
+        var jab = tr.querySelector('.nom-jab').value.trim();
         var unitCode = tr.querySelector('.nom-unit').value;
-        var nip = isNew ? tr.querySelector('.nom-nip').value.trim().replace(/\s+/g, ' ') : tr.dataset.nip;
-        var k = nipKey(nip);
+        var nip = cleanNip(tr), k = nipKey(nip);
+        if (isNew && !name && !k) return;
+        var vN = tr.querySelector('.nom-n').value, v1 = tr.querySelector('.nom-n1').value, v2 = tr.querySelector('.nom-n2').value;
+        var nipChanged = false, oldNip = '';
         if (isNew) {
-          if (!name && !nip) return;
-          if (!name || !nip) { errors.push('Pegawai baru wajib diisi nama dan NIP.'); return; }
-          if (EMP.some(function (x) { return nipKey(x.nip) === k; }) || seenNew[k]) { errors.push('NIP ' + nip + ' sudah ada di daftar.'); return; }
-          seenNew[k] = true;
+          var baseHit = BASE_EMP.filter(function (x) { return nipKey(x.nip) === k; })[0];
           cfg.removed = cfg.removed.filter(function (x) { return x !== k; });
-          cfg.added.push({ n: name, nip: nip, j: tr.querySelector('.nom-jab').value.trim(), unitCode: unitCode });
+          if (baseHit) { cfg.edits[k] = { n: name, unitCode: unitCode, j: jab }; readded.push({ k: k, name: name }); }
+          else cfg.added.push({ n: name, nip: nip, j: jab, unitCode: unitCode });
         } else {
-          if (tr.dataset.removed === '1') {
-            if (cfg.removed.indexOf(k) === -1) cfg.removed.push(k);
-            cfg.added = cfg.added.filter(function (a) { return nipKey(a.nip) !== k; });
-            delete cfg.edits[k];
-            return;
-          }
-          if (!name) { errors.push('Nama pegawai dengan NIP ' + nip + ' tidak boleh kosong.'); return; }
-          if (tr.dataset.dirty === '1') {
-            var added = cfg.added.filter(function (a) { return nipKey(a.nip) === k; })[0];
-            if (added) { added.n = name; added.unitCode = unitCode; }
+          oldNip = tr.dataset.nip;
+          var origKey = tr.dataset.orig || nipKey(oldNip);
+          nipChanged = k !== nipKey(oldNip);
+          if (tr.dataset.dirty === '1' || nipChanged) {
+            var added = cfg.added.filter(function (a) { return nipKey(a.nip) === nipKey(oldNip); })[0];
+            if (added) { added.n = name; added.unitCode = unitCode; added.j = jab; added.nip = nip; }
             else {
-              var base = BASE_EMP.filter(function (x) { return nipKey(x.nip) === k; })[0];
-              if (base && base.n === name && base.unitCode === unitCode) delete cfg.edits[k];
-              else cfg.edits[k] = { n: name, unitCode: unitCode };
+              var base = BASE_EMP.filter(function (x) { return nipKey(x.nip) === origKey; })[0];
+              var ed = { n: name, unitCode: unitCode, j: jab };
+              if (base && k !== origKey) ed.nip = nip;
+              if (base && base.n === name && base.unitCode === unitCode && (base.j || '') === jab && !ed.nip) delete cfg.edits[origKey];
+              else cfg.edits[origKey] = ed;
             }
           }
+          if (nipChanged) nipChanges.push({ oldNip: oldNip, newNip: nip, name: name });
         }
-        var vN = tr.querySelector('.nom-n').value, v1 = tr.querySelector('.nom-n1').value, v2 = tr.querySelector('.nom-n2').value;
-        var existing = effectiveBalance(nip, null, nomReqs);
-        var touched = tr.dataset.dirty === '1' && (vN !== '' || v1 !== '' || v2 !== '' || existing);
+        var existing = effectiveBalance(isNew ? nip : oldNip, null, nomReqs);
+        var touched = nipChanged || (tr.dataset.dirty === '1' && (vN !== '' || v1 !== '' || v2 !== '' || existing));
         if (touched || (isNew && (vN !== '' || v1 !== '' || v2 !== ''))) {
           var e0 = existing || {};
-          var changed = !existing || String(e0.n) !== String(cleanDays(vN)) || String(e0.n1) !== String(cleanDays(v1)) || String(e0.n2) !== String(cleanDays(v2)) || e0.tahun !== tahun;
+          var changed = nipChanged || !existing || String(e0.n) !== String(cleanDays(vN)) || String(e0.n1) !== String(cleanDays(v1)) || String(e0.n2) !== String(cleanDays(v2)) || e0.tahun !== tahun;
           if (changed) balanceRows.push({ nip: k, data: { nip: nip, name: name, tahun: tahun, n: cleanDays(vN), n1: cleanDays(v1), n2: cleanDays(v2),
             ket_n: e0.ket_n || '', ket_n1: e0.ket_n1 || '', ket_n2: e0.ket_n2 || '', updatedAt: Date.now() }, updated_at: new Date().toISOString() });
         }
       });
-      if (errors.length) { toast(errors[0]); return; }
       if (!supabaseClient) { toast('Server belum terhubung, nominatif tidak dapat disimpan.'); return; }
       var rosterChanged = JSON.stringify(cfg) !== JSON.stringify(rosterNorm(rosterCfg));
       if (!rosterChanged && !balanceRows.length) { toast('Tidak ada perubahan untuk disimpan.'); return; }
+      if (removedNames.length && !confirm('Pegawai berikut akan dihapus dari nominatif dan otomatis dihapus dari seluruh sistem (akun tidak bisa masuk lagi, peran penyetuju/persuratan dicabut):\n\n- ' + removedNames.join('\n- ') + '\n\nAdmin dapat menambahkannya kembali kapan saja. Lanjutkan?')) return;
       var saveBtn = document.getElementById('nom-save');
       saveBtn.disabled = true;
       var p1 = rosterChanged ? pushSetting('employee_roster', cfg) : Promise.resolve(true);
       p1.then(function (ok1) {
         if (!ok1) return { ok: false, step: 'roster' };
-        if (rosterChanged) { rosterCfg = cfg; cacheLocal(ROSTER_KEY, cfg); applyRoster(); }
-        if (!balanceRows.length) return { ok: true };
-        return supabaseClient.from('leave_balances').upsert(balanceRows).then(function (res) {
-          if (res.error) throw res.error;
-          balanceRows.forEach(function (r) { leaveBalances[r.nip] = r.data; });
-          cacheLocal(LEAVE_BAL_KEY, leaveBalances);
-          return { ok: true };
+        if (rosterChanged) {
+          rosterCfg = cfg; cacheLocal(ROSTER_KEY, cfg);
+          var dirtyGroups = [], cfgChanged = false;
+          nipChanges.forEach(function (ch) { var r = renameNipInStaff(ch.oldNip, ch.newNip); dirtyGroups = dirtyGroups.concat(r.dirty); cfgChanged = cfgChanged || r.cfgChanged; });
+          readded.forEach(function (r) { restoreBaseRoles(r.k, r.name); });
+          dirtyGroups = dirtyGroups.concat(purgeRemovedStaff(removedKeys));
+          applyRoster();
+          var pushed = {};
+          dirtyGroups.forEach(function (g) {
+            if (pushed[g.serverKey]) return;
+            pushed[g.serverKey] = true;
+            cacheLocal(g.lsKey, g.adds);
+            pushSetting(g.serverKey, g.adds);
+          });
+          if (cfgChanged) saveStaffConfig();
+          /* riwayat pengajuan ikut pindah ke NIP baru */
+          if (nipChanges.length) {
+            var reqs = load(), reqChanged = false;
+            reqs.forEach(function (r) {
+              nipChanges.forEach(function (ch) {
+                var ok = nipKey(ch.oldNip);
+                if (nipKey(r.nip) === ok) { r.nip = ch.newNip; reqChanged = true; }
+                if (nipKey(r.requestedBy) === ok) { r.requestedBy = ch.newNip; reqChanged = true; }
+                if (nipKey(r.atasanNip) === ok) { r.atasanNip = ch.newNip; reqChanged = true; }
+              });
+            });
+            if (reqChanged) save(reqs);
+          }
+        }
+        /* sisa cuti: hapus data pegawai yang dihapus / berganti NIP */
+        var staleKeys = removedKeys.concat(nipChanges.map(function (ch) { return nipKey(ch.oldNip); }));
+        var delStale = Promise.resolve();
+        if (staleKeys.length) {
+          staleKeys.forEach(function (key) { delete leaveBalances[key]; });
+          delStale = Promise.resolve(supabaseClient.from('leave_balances').delete().in('nip', staleKeys))
+            .then(function (res) { if (res && res.error) console.warn('Sisa cuti lama tidak terhapus:', res.error); })
+            .catch(function (err) { console.warn('Sisa cuti lama tidak terhapus:', err); });
+        }
+        return delStale.then(function () {
+          if (!balanceRows.length) { cacheLocal(LEAVE_BAL_KEY, leaveBalances); return { ok: true }; }
+          return supabaseClient.from('leave_balances').upsert(balanceRows).then(function (res) {
+            if (res.error) throw res.error;
+            balanceRows.forEach(function (r) { leaveBalances[r.nip] = r.data; });
+            cacheLocal(LEAVE_BAL_KEY, leaveBalances);
+            return { ok: true };
+          });
         });
       }).then(function (r) {
         if (r && r.ok) {
-          toast('Nominatif tersimpan (' + (rosterChanged ? 'daftar pegawai' : '') + (rosterChanged && balanceRows.length ? ' + ' : '') + (balanceRows.length ? balanceRows.length + ' sisa cuti' : '') + ').');
+          var parts = [];
+          if (rosterChanged) parts.push('daftar pegawai');
+          if (balanceRows.length) parts.push(balanceRows.length + ' sisa cuti');
+          toast('Nominatif tersimpan (' + parts.join(' + ') + ').');
           renderNominatif();
           renderLeaveBalanceAdmin();
           hitungSaldoCuti();
@@ -2115,6 +2266,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       if (JSON.stringify(mergedCfg) !== JSON.stringify(serverCfg)) pushSetting('staff_config', mergedCfg);
       applyStaffConfig();
       if (s.employee_roster) { rosterCfg = s.employee_roster; cacheLocal(ROSTER_KEY, rosterCfg); applyRoster(); }
+      else purgeRemovedStaff(rosterNorm(rosterCfg).removed);
       /* Pulihkan sesi lokal agar user tetap bisa keluar-masuk Beranda tanpa login ulang */
   try {
     var cached = restoreSessionUser();
