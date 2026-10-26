@@ -87,10 +87,6 @@
           <label class="lb" for="login-password">Kata sandi</label>
           <input id="login-password" class="inp" type="password" autocomplete="off" required>
         </div>
-        <div id="login-link-wrap" class="hidden">
-          <label class="lb" for="login-link">NIP Pegawai</label>
-          <input id="login-link" class="inp" type="text" autocomplete="off" placeholder="Masukkan NIP untuk menghubungkan akun">
-        </div>
         <p id="login-info" class="hidden"></p>
         <p id="login-error" class="hidden"></p>
         <button id="login-submit" type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition">Masuk</button>
@@ -101,10 +97,6 @@
       </form>
 
       <form id="signup-form" class="hidden space-y-4" novalidate autocomplete="off">
-        <div>
-          <label class="lb" for="signup-name">NIP Pegawai</label>
-          <input id="signup-name" class="inp" type="text" autocomplete="off" placeholder="Masukkan NIP pegawai">
-        </div>
         <div>
           <label class="lb" for="signup-email">Email</label>
           <input id="signup-email" class="inp" type="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="nama@email.com" required>
@@ -117,12 +109,37 @@
           <label class="lb" for="signup-password2">Ulangi kata sandi</label>
           <input id="signup-password2" class="inp" type="password" autocomplete="new-password" required>
         </div>
-        <p class="text-xs text-slate-500 bg-blue-50 rounded-lg p-3">Setelah mendaftar, verifikasi email Anda. Penautan otomatis memerlukan NIP dan email yang cocok dengan data pegawai; jika belum cocok, Admin perlu memverifikasi permintaan Anda.</p>
+        <p class="text-xs text-slate-500 bg-blue-50 rounded-lg p-3">Setelah mendaftar, verifikasi email dan masuk. Nama serta NIP diisi pada profil; akun harus terverifikasi Admin sebelum dapat mengajukan cuti.</p>
         <p id="signup-error" class="hidden"></p>
         <button id="signup-submit" type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition">Daftar</button>
       </form>
 
       <button type="button" data-view="home" class="go-btn mt-4 text-sm text-blue-700 hover:underline">&larr; Kembali ke Beranda</button>
+    </div>
+  </section>
+
+  <section id="view-profile-setup" class="view">
+    <div class="max-w-xl mx-auto bg-white rounded-2xl shadow p-6 md:p-8">
+      <div class="text-center mb-6">
+        <div class="text-4xl mb-2">👤</div>
+        <h2 class="text-2xl font-bold text-blue-900">Lengkapi Profil Pegawai</h2>
+        <p class="text-sm text-slate-500 mt-1">Login menggunakan email Anda. Isi nama dan NIP untuk menghubungkan akun dengan data pegawai.</p>
+      </div>
+      <p id="profile-setup-status" class="hidden mb-4"></p>
+      <form id="profile-setup-form" class="space-y-4" novalidate>
+        <div>
+          <label class="lb" for="profile-full-name">Nama lengkap</label>
+          <input id="profile-full-name" class="inp" type="text" autocomplete="name" maxlength="200" required>
+        </div>
+        <div>
+          <label class="lb" for="profile-nip">NIP Pegawai</label>
+          <input id="profile-nip" class="inp" type="text" inputmode="numeric" autocomplete="off" maxlength="50" placeholder="Masukkan NIP pegawai" required>
+        </div>
+        <p class="text-xs text-slate-500 bg-blue-50 rounded-lg p-3">Jika email dan NIP cocok dengan data pegawai, akun dapat tertaut otomatis. Jika tidak cocok atau NIP belum terdaftar, permintaan harus diperiksa Admin. Anda belum dapat melanjutkan ke pengajuan cuti sebelum akun disetujui.</p>
+        <p id="profile-setup-error" class="hidden"></p>
+        <button id="profile-setup-submit" type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition">Simpan profil &amp; cek verifikasi</button>
+      </form>
+      <button type="button" id="profile-setup-logout" class="mt-4 text-sm text-red-700 hover:underline">Keluar dari akun</button>
     </div>
   </section>
 

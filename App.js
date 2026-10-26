@@ -832,7 +832,7 @@
   var navFromPop = false;
   function showView(v) {
     var user = activeUser();
-    if (v !== 'home' && v !== 'login' && !user) v = 'login';
+    if (v !== 'home' && v !== 'login' && !user && !(v === 'profile-setup' && pendingProfileUser)) v = 'login';
     var roleView = user && { employee: 'employee', approver: 'approver', correspondence: 'correspondence', admin: 'admin' }[user.role];
     var allViews = ['employee', 'approver', 'correspondence', 'admin'];
     if (user && v === 'login') v = roleView || 'employee';
@@ -2066,7 +2066,7 @@
   document.getElementById('btn-stop-test').addEventListener('click', stopTestMode);
   populateTestActors();
   /* ---------- Login & pendaftaran mandiri (Supabase Auth) ---------- */
-  var pendingUser = null, authRestored = false;
+  var pendingUser = null, pendingProfileUser = null, authRestored = false;
   function normId(v) { return String(v || '').toLowerCase().replace(/\s+/g, ''); }
   function findEmployee(q) {
     var n = normId(q);
@@ -2129,16 +2129,34 @@
     return supabaseClient.rpc('claim_employee_link').then(function (linkResult) {
       if (linkResult.error) throw linkResult.error;
       if (linkResult.data !== 'linked') {
-        var messages = {
-          pending: 'Akun belum terhubung. Masukkan NIP pegawai untuk mengajukan penautan; permintaan yang belum cocok perlu diverifikasi Admin.',
-          rejected: 'Permintaan pendaftaran ditolak. Hubungi Admin untuk bantuan.',
-          unconfirmed: 'Email belum diverifikasi. Buka tautan verifikasi di email Anda, lalu masuk lagi.'
-        };
         currentUser = null;
         currentLinkedNip = '';
         clearSessionUser();
-        if (linkResult.data === 'pending') document.getElementById('login-link-wrap').classList.remove('hidden');
-        authMsg('login-error', messages[linkResult.data] || 'Akun belum dapat ditautkan ke data pegawai.');
+        pendingProfileUser = null;
+        if (linkResult.data === 'unconfirmed') {
+          pendingUser = { email: user.email };
+          document.getElementById('btn-resend').classList.remove('hidden');
+          if (!silent) authMsg('login-error', 'Email belum diverifikasi. Buka tautan verifikasi di email Anda, lalu masuk lagi.');
+          showView('login');
+          return false;
+        }
+        pendingUser = null;
+        pendingProfileUser = user;
+        var fullNameInput = document.getElementById('profile-full-name');
+        var nipInput = document.getElementById('profile-nip');
+        if (!fullNameInput.value) fullNameInput.value = user.user_metadata && user.user_metadata.full_name || '';
+        if (!nipInput.value) nipInput.value = user.user_metadata && user.user_metadata.claimed_nip || '';
+        var statusMessage = linkResult.data === 'rejected'
+          ? 'Permintaan penautan ditolak. Hubungi Admin untuk memverifikasi identitas Anda.'
+          : user.user_metadata && user.user_metadata.full_name && user.user_metadata.claimed_nip
+            ? 'Profil tersimpan. Akun belum tertaut; Admin perlu memeriksa nama dan NIP Anda sebelum Anda dapat melanjutkan.'
+            : 'Login berhasil. Lengkapi nama dan NIP, lalu simpan profil agar akun dapat ditautkan atau diverifikasi Admin.';
+        var statusEl = document.getElementById('profile-setup-status');
+        statusEl.textContent = statusMessage;
+        statusEl.className = 'text-sm rounded-lg px-3 py-2 border ' + (linkResult.data === 'rejected'
+          ? 'text-red-600 bg-red-50 border-red-200'
+          : 'text-amber-800 bg-amber-50 border-amber-200');
+        showView('profile-setup');
         return false;
       }
       return supabaseClient.from('employee_links').select('nip').eq('user_id', user.id).maybeSingle()
@@ -2154,7 +2172,6 @@
   }
   function finishLoginCore(user, silent) {
     var resendBtn = document.getElementById('btn-resend');
-    var linkWrap = document.getElementById('login-link-wrap');
     if (!user.email_confirmed_at) {
       pendingUser = { email: user.email };
       resendBtn.classList.remove('hidden');
@@ -2165,13 +2182,12 @@
     if (!u) {
       pendingUser = { email: user.email };
       if (!silent) {
-        linkWrap.classList.remove('hidden');
-        linkWrap.classList.remove('hidden');
-        authMsg('login-error', 'Akun belum terhubung ke data pegawai. Masukkan NIP pegawai di bawah, lalu klik Masuk lagi.');
+        authMsg('login-error', 'Akun sudah tertaut, tetapi data pegawai tidak ditemukan. Hubungi Admin untuk pemeriksaan.');
       }
       return Promise.resolve(false);
     }
     pendingUser = null;
+    pendingProfileUser = null;
     currentUser = u;
     saveSessionUser(u);
     if (isAdmin1Or2()) loadRegistrationRequests();
@@ -2179,7 +2195,6 @@
     registerPush(false);
     updatePushButton();
     resendBtn.classList.add('hidden');
-    linkWrap.classList.add('hidden');
     document.getElementById('login-form').reset();
     ['login-error', 'login-info'].forEach(function (id) { authMsg(id, ''); });
     safeRender();
@@ -2196,22 +2211,12 @@
     if (!supabaseClient) { authMsg('login-error', supabaseInitError || 'Supabase Authentication tidak tersedia.'); return; }
     var email = document.getElementById('login-email').value.trim();
     var password = document.getElementById('login-password').value;
-    var linkInput = document.getElementById('login-link');
-    var linkVisible = !document.getElementById('login-link-wrap').classList.contains('hidden');
     if (!email || !password) { authMsg('login-error', 'Email dan kata sandi wajib diisi.'); return; }
     var btn = document.getElementById('login-submit');
     btn.disabled = true; btn.textContent = 'Memeriksa...';
     supabaseClient.auth.signInWithPassword({ email: email, password: password }).then(function (result) {
       if (result.error) throw result.error;
-      var user = result.data.user;
-      if (linkVisible && linkInput.value.trim() && !staffAccountByEmail(user.email) && !staffAccountByNip(user.user_metadata && user.user_metadata.claimed_nip)) {
-        var claimedNip = linkInput.value.trim().replace(/\s+/g, ' ');
-        return supabaseClient.auth.updateUser({ data: { claimed_nip: claimedNip } }).then(function (updateResult) {
-          if (updateResult.error) throw updateResult.error;
-          return finishLogin(updateResult.data.user);
-        });
-      }
-      return finishLogin(user);
+      return finishLogin(result.data.user);
     }).catch(function (error) {
       console.error('Login gagal:', error);
       if (error.code === 'email_not_confirmed') {
@@ -2233,11 +2238,7 @@
     var email = document.getElementById('signup-email').value.trim();
     var pw = document.getElementById('signup-password').value;
     var pw2 = document.getElementById('signup-password2').value;
-    var nameVal = document.getElementById('signup-name').value;
     if (!email) { authMsg('signup-error', 'Email wajib diisi.'); return; }
-    var staff = staffAccountByEmail(email);
-    var nip = staff ? staff.person.nip : nameVal.trim().replace(/\s+/g, ' ');
-    if (!nip) { authMsg('signup-error', 'NIP pegawai wajib diisi.'); return; }
     if (pw.length < 8) { authMsg('signup-error', 'Kata sandi minimal 8 karakter.'); return; }
     if (pw !== pw2) { authMsg('signup-error', 'Kata sandi dan pengulangannya tidak sama.'); return; }
     var btn = document.getElementById('signup-submit');
@@ -2246,7 +2247,7 @@
     supabaseClient.auth.signUp({
       email: email,
       password: pw,
-      options: { data: { claimed_nip: nip }, emailRedirectTo: window.location.href.split('#')[0] }
+      options: { emailRedirectTo: window.location.href.split('#')[0] }
     }).then(function (result) {
       if (result.error) throw result.error;
       signupHadSession = !!result.data.session;
@@ -2291,6 +2292,35 @@
       authMsg('login-error', authErrorMessage(error));
     });
   });
+  document.getElementById('profile-setup-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    authMsg('profile-setup-error', '');
+    if (!supabaseClient || !pendingProfileUser) {
+      authMsg('profile-setup-error', 'Sesi login tidak tersedia. Silakan masuk kembali dengan email dan kata sandi.');
+      return;
+    }
+    var fullName = document.getElementById('profile-full-name').value.trim();
+    var nip = document.getElementById('profile-nip').value.trim().replace(/\s+/g, ' ');
+    if (!fullName || !nip) {
+      authMsg('profile-setup-error', 'Nama lengkap dan NIP wajib diisi.');
+      return;
+    }
+    var button = document.getElementById('profile-setup-submit');
+    button.disabled = true;
+    button.textContent = 'Menyimpan...';
+    supabaseClient.auth.updateUser({ data: { full_name: fullName, claimed_nip: nip } }).then(function (result) {
+      if (result.error) throw result.error;
+      pendingProfileUser = result.data.user;
+      return finishLogin(result.data.user);
+    }).catch(function (error) {
+      console.error('Penyimpanan profil pegawai gagal:', error);
+      authMsg('profile-setup-error', authErrorMessage(error));
+    }).finally(function () {
+      button.disabled = false;
+      button.textContent = 'Simpan profil & cek verifikasi';
+    });
+  });
+  document.getElementById('profile-setup-logout').addEventListener('click', doLogout);
 
   function doLogout() {
     /* Keluar langsung: pembersihan (push, realtime, sesi Supabase) berjalan di latar
@@ -2300,12 +2330,14 @@
     };
     var client = supabaseClient;
     try { stopRequestsSync(); } catch (e) { console.error('Hentikan sinkronisasi gagal:', e); }
-    currentUser = null; currentLinkedNip = ''; testUser = null; pendingUser = null;
+    currentUser = null; currentLinkedNip = ''; testUser = null; pendingUser = null; pendingProfileUser = null;
     clearSessionUser();
     try {
       document.getElementById('login-form').reset();
       document.getElementById('signup-form').reset();
-      document.getElementById('login-link-wrap').classList.add('hidden');
+      document.getElementById('profile-setup-form').reset();
+      authMsg('profile-setup-status', '');
+      authMsg('profile-setup-error', '');
     } catch (e) { console.error(e); }
     try { updatePushButton(); } catch (e) { console.error(e); }
     try { history.replaceState({ view: 'home', sub: 'menu' }, ''); } catch (e) {}
