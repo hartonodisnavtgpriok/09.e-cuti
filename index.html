@@ -563,9 +563,10 @@
     </div>
     <form id="letter-number-form" class="space-y-4">
       <div>
-        <label for="letter-number-value" class="lb">Nomor Surat</label>
-        <input id="letter-number-value" type="text" required class="inp" autocomplete="off" placeholder="Masukkan nomor surat">
-        <p class="mt-1 text-xs text-slate-500">Nomor ini akan tercantum otomatis pada formulir cuti yang dapat diunduh.</p>
+        <label for="letter-number-value" class="lb">Nomor Bagian</label>
+        <input id="letter-number-value" type="text" required class="inp" autocomplete="off" placeholder="Contoh: 011/23/9" pattern="[0-9]{3}/[0-9]+/[0-9]+" title="Masukkan nomor dengan format seperti 011/23/9">
+        <p class="mt-1 text-xs text-slate-500">Isi bagian nomor saja. Awalan KP., akhiran /DNG.TPK/tahun, dan tanggal terbit akan terisi otomatis saat disimpan.</p>
+        <p id="letter-number-preview" class="rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700" aria-live="polite"></p>
       </div>
       <p id="letter-number-error" class="hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"></p>
       <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

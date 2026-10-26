@@ -475,12 +475,8 @@
     ) : empty('🗂️', 'Belum ada riwayat keputusan', 'Keputusan yang Anda ambil akan tercatat di sini.');
   }
 
-  function suggestedLetterNumber(request, all) {
-    var year = new Date(request.createdAt).getFullYear();
-    var siblings = all.filter(function (r) { return new Date(r.createdAt).getFullYear() === year; })
-      .sort(function (a, b) { return a.createdAt - b.createdAt; });
-    var seq = siblings.indexOf(request) + 1;
-    return 'CUTI/' + year + '/' + String(seq).padStart(4, '0');
+  function fullLetterNumber(numberPart, issuedAt) {
+    return 'KP.' + numberPart + '/DNG.TPK/' + new Date(issuedAt).getFullYear();
   }
 
   /* ---------- Template catatan Penyetuju 1 ---------- */
@@ -640,7 +636,8 @@
     if (!request) { toast('Pengajuan tidak ditemukan atau sudah diproses.'); renderAll(); return; }
     letterNumberRequestId = id;
     document.getElementById('letter-number-requester').textContent = request.name + ' · ' + (request.unit || 'Unit kerja tidak tersedia');
-    letterNumberValue.value = suggestedLetterNumber(request, all);
+    letterNumberValue.value = '';
+    updateLetterNumberPreview();
     document.getElementById('letter-number-error').classList.add('hidden');
     letterNumberModal.classList.remove('hidden');
     letterNumberModal.classList.add('flex');
@@ -649,6 +646,18 @@
     try { history.pushState({ modal: 'letter', view: (history.state && history.state.view) || 'home' }, ''); } catch (e) {}
   }
   document.getElementById('letter-number-cancel').addEventListener('click', function () { closeLetterNumberModal(); });
+  function updateLetterNumberPreview() {
+    var preview = document.getElementById('letter-number-preview');
+    var numberPart = letterNumberValue.value.trim();
+    if (!preview) return;
+    if (!numberPart) {
+      preview.textContent = 'NOMOR: KP.<nomor bagian>/DNG.TPK/' + new Date().getFullYear() + ' · Tanggal terbit mengikuti waktu nomor disimpan.';
+      return;
+    }
+    preview.textContent = 'NOMOR: ' + fullLetterNumber(numberPart, Date.now()) +
+      ' · TANGGAL: ' + new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+  letterNumberValue.addEventListener('input', updateLetterNumberPreview);
   letterNumberModal.addEventListener('click', function (e) {
     if (e.target === letterNumberModal) closeLetterNumberModal();
   });
@@ -664,22 +673,30 @@
       return;
     }
     var id = letterNumberRequestId;
-    var number = letterNumberValue.value.trim();
+    var numberPart = letterNumberValue.value.trim();
     var error = document.getElementById('letter-number-error');
-    if (!id || !number) {
-      error.textContent = 'Nomor surat wajib diisi.';
+    if (!id || !numberPart) {
+      error.textContent = 'Nomor bagian wajib diisi (contoh: 011/23/9).';
       error.classList.remove('hidden');
       return;
     }
+    if (!/^\d{3}\/\d+\/\d+$/.test(numberPart)) {
+      error.textContent = 'Format nomor bagian harus seperti 011/23/9.';
+      error.classList.remove('hidden');
+      return;
+    }
+    var issuedAt = Date.now();
+    var number = fullLetterNumber(numberPart, issuedAt);
     if (load().some(function (r) { return r.id !== id && r.letterNumber === number; })) {
-      error.textContent = 'Nomor surat tersebut sudah digunakan. Masukkan nomor yang berbeda.';
+      error.textContent = 'Nomor surat tersebut sudah digunakan. Masukkan nomor bagian yang berbeda.';
       error.classList.remove('hidden');
       return;
     }
     var numberedReq = load().filter(function (r) { return r.id === id; })[0];
     var issued = update(id, 'pending_correspondence', function (r) {
+      r.letterNumberPart = numberPart;
       r.letterNumber = number;
-      r.letterNumberIssuedAt = Date.now();
+      r.letterNumberIssuedAt = issuedAt;
       r.correspondenceOfficer = user && user.role === 'correspondence' ? user.name : 'Persuratan';
       r.status = 'pending_admin_issue';
     }, 'Nomor surat diterbitkan. Nomor ini otomatis tercantum di formulir cuti.');
@@ -2976,7 +2993,7 @@
     var typeIdx = { Annual: 1, Besar: 2, Sick: 3, Melahirkan: 4, Personal: 5, LuarTanggungan: 6 }[r.type] || 0;
     var tk = function (n) { return typeIdx === n ? '√' : ''; };
     var n = days(r.start, r.end);
-    var tgl = new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    var tgl = new Date(r.letterNumberIssuedAt || r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
     var f = function (x) { return x || ''; };
 
     put('E1:H1', 'Kepada', NB); put('E2:H2', 'Yth. Kepala Distrik Navigasi Tipe B Tg. Priok', NB);
@@ -3225,7 +3242,7 @@
     var typeIdx = { Annual: 1, Besar: 2, Sick: 3, Melahirkan: 4, Personal: 5, LuarTanggungan: 6 }[r.type] || 0;
     var typeLabels = ['Cuti Tahunan', 'Cuti Besar', 'Cuti Sakit', 'Cuti Melahirkan', 'Cuti Karena Alasan Penting', 'Cuti di Luar Tanggungan Negara'];
     var dayCount = days(r.start, r.end);
-    var createdDate = new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    var createdDate = new Date(r.letterNumberIssuedAt || r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
     var cols = [width / 8, width * 3 / 8, width / 8, width * 3 / 8];
 
     doc.setFont('helvetica', 'normal');
