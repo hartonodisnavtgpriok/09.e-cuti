@@ -50,8 +50,9 @@
   };
   var TYPE_LABEL = { Annual: 'Annual (Tahunan)', Sick: 'Sick (Sakit)', Personal: 'Personal (Alasan Penting)', Besar: 'Cuti Besar', Melahirkan: 'Cuti Melahirkan', LuarTanggungan: 'Cuti di Luar Tanggungan Negara' };
 
-  /* Pejabat yang sudah tidak menjabat: pengajuan yang masih menunggu mereka dialihkan ke jalur persetujuan terbaru. */
-  var RETIRED_APPROVERS = { 'Dr. Capt. MUGEN S. SARTOTO, M.Sc.': true, 'PADLANI, ST., M.MTr': true };
+  function isCurrentApprover(name) {
+    return !!name && APPROVERS.some(function (person) { return person.name === name; });
+  }
   function load() {
     try {
       return (JSON.parse(reqJson) || []).map(function (r) {
@@ -61,23 +62,25 @@
           r.firstApprovedAt = r.firstApprovedAt || r.createdAt;
           r.secondApprovedAt = r.secondApprovedAt || r.createdAt;
         }
-        if (!r.firstApprover || !Object.prototype.hasOwnProperty.call(r, 'secondApprover')) {
+        var routeNeedsRefresh = !r.firstApprover ||
+          !Object.prototype.hasOwnProperty.call(r, 'secondApprover') ||
+          (r.status === 'pending_direct' && !isCurrentApprover(r.firstApprover)) ||
+          ((r.status === 'pending_direct' || r.status === 'pending_next') &&
+            r.secondApprover && !isCurrentApprover(r.secondApprover));
+        if (routeNeedsRefresh) {
           var employee = EMP.filter(function (person) { return person.nip === r.nip; })[0];
           if (employee) {
             var route = resolveRoute(employee);
-            r.firstApprover = r.firstApprover || route.first;
-            if (!Object.prototype.hasOwnProperty.call(r, 'secondApprover')) r.secondApprover = route.second;
-          }
-        }
-        if ((r.status === 'pending_direct' && (RETIRED_APPROVERS[r.firstApprover] || RETIRED_APPROVERS[r.secondApprover])) ||
-            (r.status === 'pending_next' && RETIRED_APPROVERS[r.secondApprover])) {
-          var emp2 = EMP.filter(function (person) { return person.nip === r.nip; })[0];
-          if (emp2) {
-            var rt2 = resolveRoute(emp2);
-            if (r.status === 'pending_direct') {
-              r.firstApprover = rt2.first; r.firstApproverPosition = positionForApprover(rt2.first);
+            if (!r.firstApprover || (r.status === 'pending_direct' && !isCurrentApprover(r.firstApprover))) {
+              r.firstApprover = route.first;
+              r.firstApproverPosition = route.firstPosition;
             }
-            r.secondApprover = rt2.second; r.secondApproverPosition = positionForApprover(rt2.second);
+            if (!Object.prototype.hasOwnProperty.call(r, 'secondApprover') ||
+              ((r.status === 'pending_direct' || r.status === 'pending_next') &&
+                r.secondApprover && !isCurrentApprover(r.secondApprover))) {
+              r.secondApprover = route.second;
+              r.secondApproverPosition = route.secondPosition;
+            }
           }
         }
         if (!r.firstApproverPosition && r.firstApprover) r.firstApproverPosition = positionForApprover(r.firstApprover);
@@ -983,10 +986,11 @@
       });
     }, Promise.resolve()).then(renderAttachSection);
   }
-  function attachmentProblem(data) {
+  function attachmentProblem(data, attachments) {
     var req = ATTACH_REQS[data.type];
     if (!req) return '';
-    if (attachState.length) return '';
+    var files = typeof attachments === 'undefined' ? attachState : attachments;
+    if (files.length) return '';
     if (data.type === 'Sick' && hitungHariKerja(data.start, data.end) <= 1) return '';
     return 'Lengkapi dokumen persyaratan ' + req.label + ' (unggah berkas atau ambil foto): ' + req.text + '.';
   }
@@ -1035,13 +1039,98 @@
 
   var editingDraftId = null;
   function collectFormData() { return { name: document.getElementById('f-name').value.trim(), type: document.getElementById('f-type').value, start: document.getElementById('f-start').value, end: document.getElementById('f-end').value, reason: document.getElementById('f-reason').value.trim(), alamat: document.getElementById('f-alamat').value.trim(), telp: document.getElementById('f-telp').value.trim(), atasanNip: document.getElementById('f-atasan-nip').value.trim() }; }
-  function validateForm(requireSig) { var user = activeUser(); var prof = testUser ? (document.getElementById('f-nip').value ? testApplicant : null) : applicantProfile(user); if (testUser && !prof) { return { ok:false, msg:'Mode uji: ketik 3 huruf nama atau NIP pegawai, lalu pilih dari saran.', prof:null }; } if (!user || !prof) { return { ok:false, msg:'Silakan masuk dengan akun yang terdaftar.', prof:null, needLogin:true }; } var data = collectFormData(); if (!document.getElementById('f-nip').value) { return { ok:false, msg:'Ketik minimal 3 huruf nama atau NIP Anda.', prof:prof }; } if (!data.name || !data.start || !data.end || !data.reason) { return { ok:false, msg:'Nama, tanggal, dan alasan wajib diisi.', prof:prof }; } if (requireSig && !inked) { return { ok:false, msg:'Tanda tangan wajib diisi.', prof:prof }; } if (data.end < data.start) { return { ok:false, msg:'Tanggal selesai tidak boleh sebelum tanggal mulai.', prof:prof }; } if (requireSig) { var attProblem = attachmentProblem(data); if (attProblem) { return { ok:false, msg:attProblem, prof:prof }; } } var route = resolveRoute(prof); if (!route.first) { return { ok:false, msg:'Rute persetujuan belum diatur.', prof:prof }; } return { ok:true, prof:prof, data:data, route:route }; }
-  function buildRequestObject(prof, data, route, status) { var draftIdEl = document.getElementById('f-draft-id'); var id = (draftIdEl && draftIdEl.value) ? draftIdEl.value : ('r' + Date.now() + Math.floor(Math.random() * 1000)); return { id: id, name: prof.n, type: data.type, start: data.start, end: data.end, reason: data.reason, nip: prof.nip, masa: masaKerja(prof.nip), jabatan: prof.j, alamat: data.alamat, telp: data.telp, atasan: route.first, atasanNip: data.atasanNip, sig: cv.toDataURL('image/png'), unit: prof.unit, unitCode: prof.unitCode, firstApprover: route.first, firstApproverPosition: route.firstPosition, secondApprover: route.second, secondApproverPosition: route.secondPosition, status: status, createdAt: Date.now(), updatedAt: Date.now(), requestedBy: prof.nip, attachments: ATTACH_REQS[data.type] ? attachState.slice() : [] }; }
+  function validIsoDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false;
+    var date = new Date(value + 'T00:00:00');
+    return !isNaN(date.getTime()) && date.getFullYear() + '-' +
+      String(date.getMonth() + 1).padStart(2, '0') + '-' +
+      String(date.getDate()).padStart(2, '0') === value;
+  }
+  function validateSubmission(prof, data, requireSig, signatureProvided, attachments) {
+    if (!prof) return { ok: false, msg: 'Profil pegawai tidak ditemukan.' };
+    if (!data.name || !data.start || !data.end || !data.reason) {
+      return { ok: false, msg: 'Nama, tanggal, dan alasan wajib diisi.' };
+    }
+    if (!validIsoDate(data.start) || !validIsoDate(data.end)) {
+      return { ok: false, msg: 'Tanggal mulai dan selesai tidak valid.' };
+    }
+    if (data.end < data.start) {
+      return { ok: false, msg: 'Tanggal selesai tidak boleh sebelum tanggal mulai.' };
+    }
+    if (!hitungHariKerja(data.start, data.end)) {
+      return { ok: false, msg: 'Rentang tanggal harus memuat minimal satu hari kerja.' };
+    }
+    if (requireSig) {
+      if (!signatureProvided) return { ok: false, msg: 'Tanda tangan wajib diisi.' };
+      var attProblem = attachmentProblem(data, attachments);
+      if (attProblem) return { ok: false, msg: attProblem };
+    }
+    var route = resolveRoute(prof);
+    if (!route.first) return { ok: false, msg: 'Rute persetujuan belum diatur.' };
+    return { ok: true, prof: prof, data: data, route: route };
+  }
+  function validateForm(requireSig) {
+    var user = activeUser();
+    var prof = testUser ? (document.getElementById('f-nip').value ? testApplicant : null) : applicantProfile(user);
+    if (testUser && !prof) return { ok: false, msg: 'Mode uji: ketik 3 huruf nama atau NIP pegawai, lalu pilih dari saran.', prof: null };
+    if (!user || !prof) return { ok: false, msg: 'Silakan masuk dengan akun yang terdaftar.', prof: null, needLogin: true };
+    if (!document.getElementById('f-nip').value) return { ok: false, msg: 'Ketik minimal 3 huruf nama atau NIP Anda.', prof: prof };
+    var result = validateSubmission(prof, collectFormData(), requireSig, inked, attachState);
+    result.needLogin = false;
+    return result;
+  }
+  function buildRequestObject(prof, data, route, status) { var draftIdEl = document.getElementById('f-draft-id'); var id = (draftIdEl && draftIdEl.value) ? draftIdEl.value : ('r' + Date.now() + Math.floor(Math.random() * 1000)); return { id: id, name: prof.n, type: data.type, start: data.start, end: data.end, reason: data.reason, nip: prof.nip, masa: masaKerja(prof.nip), jabatan: prof.j, alamat: data.alamat, telp: data.telp, atasan: route.first, atasanNip: data.atasanNip, sig: cv.toDataURL('image/png'), signatureProvided: inked, unit: prof.unit, unitCode: prof.unitCode, firstApprover: route.first, firstApproverPosition: route.firstPosition, secondApprover: route.second, secondApproverPosition: route.secondPosition, status: status, createdAt: Date.now(), updatedAt: Date.now(), requestedBy: prof.nip, attachments: ATTACH_REQS[data.type] ? attachState.slice() : [] }; }
   function saveAsDraft() { var errEl = document.getElementById('form-error'); errEl.classList.add('hidden'); var user = activeUser(); var prof = testUser ? (document.getElementById('f-nip').value ? testApplicant : null) : applicantProfile(user); if (!user || !prof) { errEl.textContent = 'Silakan masuk terlebih dahulu.'; errEl.classList.remove('hidden'); return; } var data = collectFormData(); if (!data.start || !data.end) { errEl.textContent = 'Tanggal mulai dan selesai wajib diisi untuk draft.'; errEl.classList.remove('hidden'); return; } var route = resolveRoute(prof); var list = load(); var draftIdEl = document.getElementById('f-draft-id'); var existingId = draftIdEl ? draftIdEl.value : null; var newReq = buildRequestObject(prof, data, route, 'draft'); if (existingId) { var found=false; list = list.map(function(r){ if (r.id === existingId) { found=true; newReq.createdAt = r.createdAt; return newReq; } return r; }); if (!found) list.push(newReq); } else { list.push(newReq); } if (!save(list)) return; form.reset(); clearSig(); if (draftIdEl) draftIdEl.value=''; editingDraftId=null; fillApplicant(); renderAll(); toast('Draft berhasil disimpan.'); showView('employee'); empShow('history'); }
   form.addEventListener('submit', function (e) { e.preventDefault(); var errEl = document.getElementById('form-error'); errEl.classList.add('hidden'); var vres = validateForm(true); if (!vres.ok) { errEl.textContent = vres.msg; errEl.classList.remove('hidden'); if (vres.needLogin) showView(vres.prof ? 'employee' : 'login'); return; } var prof = vres.prof, data = vres.data, route = vres.route; var list = load(); var draftIdEl = document.getElementById('f-draft-id'); var existingId = draftIdEl ? draftIdEl.value : null; var newReq = buildRequestObject(prof, data, route, 'pending_direct'); if (existingId) { list = list.map(function(r){ if (r.id === existingId) { newReq.createdAt = r.createdAt; return newReq; } return r; }); } else { list.push(newReq); } if (!save(list)) return; form.reset(); clearSig(); fillApplicant(); if (draftIdEl) draftIdEl.value=''; editingDraftId=null; renderAll(); toast('Pengajuan terkirim kepada ' + (route.first || 'penyetuju tahap 1') + '.'); notifyByNip(nipFromName(route.first, APPROVERS), 'Pengajuan cuti baru', prof.n + ' mengajukan cuti ' + (TYPE_LABEL[data.type] || data.type) + ' menunggu persetujuan Anda (Tahap 1).'); showView('employee'); empShow('history'); });
   var draftBtn = document.getElementById('btn-save-draft'); if (draftBtn) draftBtn.addEventListener('click', function(){ saveAsDraft(); });
   window.editDraft = function(id) { var r = load().filter(function(x){ return x.id === id && x.status === 'draft'; })[0]; if (!r) { toast('Draft tidak ditemukan.'); return; } showView('employee'); empShow('form'); setTimeout(function(){ document.getElementById('f-name').value = r.name || ''; document.getElementById('f-nip').value = r.nip || ''; document.getElementById('f-jab').value = r.jabatan || ''; document.getElementById('f-masa').value = r.masa || ''; document.getElementById('f-type').value = r.type || 'Annual'; document.getElementById('f-start').value = r.start || ''; document.getElementById('f-end').value = r.end || ''; document.getElementById('f-reason').value = r.reason || ''; document.getElementById('f-alamat').value = r.alamat || ''; document.getElementById('f-telp').value = r.telp || ''; document.getElementById('f-atasan').value = r.firstApprover || ''; document.getElementById('f-atasan-nip').value = r.atasanNip || ''; var draftIdEl = document.getElementById('f-draft-id'); if (draftIdEl) draftIdEl.value = r.id; editingDraftId = r.id; attachState = (r.attachments || []).slice(); renderAttachSection(); if (typeof updateHariKerjaInfo === 'function') updateHariKerjaInfo(); if (typeof updateRuleWarning === 'function') updateRuleWarning(); toast('Draft dimuat.'); },200); };
-  window.sendDraft = function(id) { var list = load(); var r = list.filter(function(x){ return x.id === id && x.status === 'draft'; })[0]; if (!r) { toast('Draft tidak ditemukan.'); return; } if (!confirm('Kirim draft ini menjadi pengajuan resmi?')) return; r.status = 'pending_direct'; r.createdAt = Date.now(); r.updatedAt = Date.now(); if (!save(list)) return; renderAll(); toast('Draft berhasil dikirim.'); notifyByNip(nipFromName(r.firstApprover, APPROVERS), 'Pengajuan cuti baru (dari draft)', r.name + ' mengajukan cuti ' + (TYPE_LABEL[r.type] || r.type)); };
+  window.sendDraft = function(id) {
+    var list = load();
+    var request = list.filter(function (item) { return item.id === id && item.status === 'draft'; })[0];
+    if (!request) { toast('Draft tidak ditemukan.'); return; }
+    var user = activeUser();
+    var prof = testUser && testApplicant ? testApplicant : applicantProfile(user);
+    if (!user || !prof || nipKey(request.requestedBy || request.nip) !== nipKey(prof.nip)) {
+      toast('Draft ini bukan milik akun yang sedang masuk.');
+      return;
+    }
+    if (!request.signatureProvided) {
+      toast('Tanda tangan belum tercatat pada draft. Edit draft, bubuhkan tanda tangan, lalu simpan kembali.');
+      return;
+    }
+    var result = validateSubmission(prof, request, true, !!request.signatureProvided, request.attachments || []);
+    if (!result.ok) {
+      toast('Draft belum dapat dikirim: ' + result.msg);
+      return;
+    }
+    if (!confirm('Kirim draft ini menjadi pengajuan resmi?')) return;
+    request.name = prof.n;
+    request.nip = prof.nip;
+    request.requestedBy = prof.nip;
+    request.jabatan = prof.j;
+    request.masa = masaKerja(prof.nip);
+    request.unit = prof.unit;
+    request.unitCode = prof.unitCode;
+    request.firstApprover = result.route.first;
+    request.firstApproverPosition = result.route.firstPosition;
+    request.secondApprover = result.route.second;
+    request.secondApproverPosition = result.route.secondPosition;
+    request.atasan = result.route.first;
+    request.status = 'pending_direct';
+    request.createdAt = Date.now();
+    request.updatedAt = Date.now();
+    if (!save(list)) return;
+    requestWriteQueue.then(function (saved) {
+      if (!saved) {
+        loadRequestsFromServer();
+        return;
+      }
+      renderAll();
+      toast('Draft berhasil dikirim kepada ' + result.route.first + '.');
+      notifyByNip(nipFromName(result.route.first, APPROVERS), 'Pengajuan cuti baru (dari draft)',
+        prof.n + ' mengajukan cuti ' + (TYPE_LABEL[request.type] || request.type));
+    });
+  };
 
 
 /* ---------- Data pegawai & autofill ---------- */
@@ -1084,7 +1173,7 @@
     }
     if (/^Nakhoda Kapal/i.test(employee.j)) return { first: HEAD.K[0], second: '' };
     /* Manager VTS / Manager SROP: penyetuju 1 = Kepala Seksi sesuai seksinya (bila kosong, naik ke Kepala Bidang), penyetuju 2 = Kepala Distrik */
-    if (/^Manager\s+(VTS|SROP)/i.test(employee.j || '')) {
+    if (/^(?:Manager\s+(?:VTS|SROP)|Kasrop)\b/i.test(employee.j || '')) {
       var mgrFirst = (head && head[0]) ? head[0] : ((UP[code] && HEAD[UP[code]]) ? HEAD[UP[code]][0] : '');
       return {
         first: mgrFirst,
