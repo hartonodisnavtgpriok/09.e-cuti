@@ -2656,7 +2656,6 @@
       });
     }
     var bal = hn ? effectiveBalance(hn) : null;
-    var detail = document.getElementById('leave-balance-detail');
     if (bal) {
       /* sisa cuti yang diisi Admin 1 */
       var totalSisa = activeBalanceTotal(bal);
@@ -2666,14 +2665,9 @@
       document.getElementById('leave-balance-n1').textContent = bal.n1 || 0;
       document.getElementById('leave-balance-n').textContent = bal.n || 0;
       document.getElementById('leave-balance-year').textContent = '(' + bal.tahun + ')';
-      if (detail) {
-        detail.textContent = 'N-2 (' + (bal.tahun - 2) + '): ' + (bal.n2 || 0) + ' hari  |  N-1 (' + (bal.tahun - 1) + '): ' + (bal.n1 || 0) + ' hari  |  N (' + bal.tahun + '): ' + (bal.n || 0) + ' hari';
-        detail.classList.remove('hidden');
-      }
       document.getElementById('leave-balance-warning').classList.toggle('hidden', totalSisa !== 0);
       return { jatah: totalSisa, terpakai: 0, sisa: totalSisa };
     }
-    if (detail) detail.classList.add('hidden');
     var remaining = Math.max(0, JATAH_CUTI_TAHUNAN - used);
     elRemain.textContent = hn ? remaining : '-';
     elRemain.className = 'text-2xl font-bold ' + (hn && remaining === 0 ? 'text-red-600' : 'text-green-700');
