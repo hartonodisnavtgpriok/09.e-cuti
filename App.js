@@ -1722,9 +1722,11 @@
         return '<option value="' + u.code + '"' + (u.code === selectedCode ? ' selected' : '') + '>' + esc(u.label) + '</option>';
       }).join('') + '</select>';
     }
-    function numInput(cls, val) {
+    function numInput(cls, val, editable) {
       var max = cls === 'nom-active' ? 2997 : 999;
-      return '<input type="number" min="0" max="' + max + '" class="' + cls + ' w-16 rounded border border-slate-300 px-2 py-1 text-sm text-center" value="' + esc(val === undefined || val === null ? '' : val) + '">';
+      var balanceField = /^nom-(n2|n1|active|n)$/.test(cls);
+      var locked = balanceField && !editable ? ' readonly aria-readonly="true" title="Klik Edit saldo untuk mengubah nilai"' : '';
+      return '<input type="number" min="0" max="' + max + '" class="' + cls + ' w-16 rounded border border-slate-300 px-2 py-1 text-sm text-center' + (locked ? ' bg-slate-100' : '') + '"' + locked + ' value="' + esc(val === undefined || val === null ? '' : val) + '">';
     }
     function rowHtml(e, idx) {
       var b = effectiveBalance(e.nip, null, nomReqs);
@@ -1740,7 +1742,8 @@
         '<td class="p-2 text-center">' + numInput('nom-n1', b.n1) + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n', b.n) + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-active', activeBalanceTotal(b)) + '</td>' +
-        '<td class="p-2">' + (prot ? '<span class="text-xs text-slate-400">Admin</span>' : '<button type="button" class="nom-del px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100">Hapus</button>') + '</td></tr>';
+        '<td class="p-2 whitespace-nowrap"><button type="button" class="nom-edit-balance px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">Edit saldo</button>' +
+        (prot ? '<span class="ml-2 text-xs text-slate-400">Admin</span>' : '<button type="button" class="nom-del ml-2 px-2 py-1.5 rounded-lg text-xs font-semibold text-red-700 hover:bg-red-50" title="Hapus pegawai" aria-label="Hapus pegawai">Hapus pegawai</button>') + '</td></tr>';
     }
     function newRowHtml() {
       return '<tr class="nom-row nom-new border-t bg-yellow-50" data-nip="" data-orig="" data-base="0" data-new="1">' +
@@ -1749,10 +1752,10 @@
         '<td class="p-2"><input type="text" class="nom-jab w-72 rounded border border-slate-300 px-2 py-1 text-xs" placeholder="Jabatan (opsional)"></td>' +
         '<td class="p-2"><input type="text" class="nom-nipedit w-48 rounded border border-slate-300 px-2 py-1 text-xs" placeholder="NIP"></td>' +
         '<td class="p-2">' + unitSelect('K') + '</td>' +
-        '<td class="p-2 text-center">' + numInput('nom-n2', '') + '</td>' +
-        '<td class="p-2 text-center">' + numInput('nom-n1', '') + '</td>' +
-        '<td class="p-2 text-center">' + numInput('nom-n', 12) + '</td>' +
-        '<td class="p-2 text-center">' + numInput('nom-active', 12) + '</td>' +
+        '<td class="p-2 text-center">' + numInput('nom-n2', '', true) + '</td>' +
+        '<td class="p-2 text-center">' + numInput('nom-n1', '', true) + '</td>' +
+        '<td class="p-2 text-center">' + numInput('nom-n', 12, true) + '</td>' +
+        '<td class="p-2 text-center">' + numInput('nom-active', 12, true) + '</td>' +
         '<td class="p-2"><button type="button" class="nom-del px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100">Batal</button></td></tr>';
     }
     function renumber() {
@@ -1830,6 +1833,26 @@
       }
     });
     tableEl.addEventListener('click', function (e) {
+      var editBalance = e.target.closest('.nom-edit-balance');
+      if (editBalance) {
+        var balanceRow = editBalance.closest('tr.nom-row');
+        var editing = balanceRow.dataset.balanceEdit === '1';
+        balanceRow.dataset.balanceEdit = editing ? '0' : '1';
+        balanceRow.querySelectorAll('.nom-n2, .nom-n1, .nom-n, .nom-active').forEach(function (input) {
+          input.readOnly = editing;
+          input.classList.toggle('bg-slate-100', editing);
+          input.setAttribute('aria-readonly', editing ? 'true' : 'false');
+          input.title = editing ? 'Klik Edit saldo untuk mengubah nilai' : '';
+        });
+        editBalance.textContent = editing ? 'Edit saldo' : 'Selesai edit';
+        editBalance.classList.toggle('bg-blue-50', editing);
+        editBalance.classList.toggle('text-blue-700', editing);
+        editBalance.classList.toggle('border-blue-200', editing);
+        editBalance.classList.toggle('bg-green-50', !editing);
+        editBalance.classList.toggle('text-green-700', !editing);
+        editBalance.classList.toggle('border-green-200', !editing);
+        return;
+      }
       var del = e.target.closest('.nom-del');
       if (!del) return;
       var tr = del.closest('tr');
