@@ -200,10 +200,11 @@
         <h3 class="font-semibold text-lg mb-4">Form Pengajuan Cuti</h3>
         <div id="leave-balance-card" class="mb-5 rounded-xl border border-blue-200 bg-blue-50 p-4">
           <h4 class="text-sm font-semibold text-blue-900 mb-3">Info Saldo Cuti Tahunan <span id="leave-balance-year" class="font-normal text-blue-700"></span></h4>
-          <div class="grid grid-cols-3 gap-2 text-center">
-            <div class="rounded-lg bg-white p-3 shadow-sm"><div id="leave-balance-remaining" class="text-2xl font-bold text-green-700">-</div><div class="text-xs text-slate-500">Sisa Cuti Tahunan</div></div>
-            <div class="rounded-lg bg-white p-3 shadow-sm"><div id="leave-balance-used" class="text-2xl font-bold text-slate-800">-</div><div id="leave-balance-used-label" class="text-xs text-slate-500">Terpakai</div></div>
-            <div class="rounded-lg bg-white p-3 shadow-sm"><div id="leave-balance-total" class="text-2xl font-bold text-blue-800">12</div><div id="leave-balance-total-label" class="text-xs text-slate-500">Total Jatah (hari)</div></div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+            <div class="rounded-lg bg-white p-3 shadow-sm"><div id="leave-balance-n2" class="text-2xl font-bold text-slate-800">0</div><div class="text-xs text-slate-500">N-2</div></div>
+            <div class="rounded-lg bg-white p-3 shadow-sm"><div id="leave-balance-n1" class="text-2xl font-bold text-slate-800">0</div><div class="text-xs text-slate-500">N-1</div></div>
+            <div class="rounded-lg bg-white p-3 shadow-sm"><div id="leave-balance-n" class="text-2xl font-bold text-blue-800">12</div><div class="text-xs text-slate-500">N</div></div>
+            <div class="rounded-lg bg-white p-3 shadow-sm"><div id="leave-balance-remaining" class="text-2xl font-bold text-green-700">12</div><div class="text-xs text-slate-500">Cuti Aktif (Total)</div></div>
           </div>
           <p id="leave-balance-detail" class="hidden mt-3 text-xs text-slate-600"></p>
           <p id="leave-balance-warning" class="hidden mt-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">Saldo cuti habis</p>

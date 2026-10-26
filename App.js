@@ -156,7 +156,7 @@
         loadRequestsFromServer();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_balances' }, function () {
-        loadLeaveBalancesFromServer().then(function () { if (currentUser) safeRender(); });
+        loadLeaveBalancesFromServer().then(function (loaded) { if (loaded && currentUser) safeRender(); });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, function () {
         loadSettingsFromServer().then(function () { if (currentUser) safeRender(); });
@@ -1652,8 +1652,12 @@
         (res.data || []).forEach(function (row) { if (row && row.data) map[nipKey(row.nip)] = row.data; });
         leaveBalances = map;
         cacheLocal(LEAVE_BAL_KEY, map);
+        return true;
       })
-      .catch(function (error) { console.error('Sisa cuti gagal dimuat dari server:', error); });
+      .catch(function (error) {
+        console.error('Sisa cuti gagal dimuat dari server:', error);
+        return false;
+      });
   }
   /* Sisa cuti efektif: nilai dasar (diisi Admin 1, bawaan N = 12 hari) dikurangi cuti tahunan yang sudah disetujui
      (dihitung hari kerja). Pemakaian dipotong dari N-2, lalu N-1, lalu N. Total sisa = N + N-1 + N-2.
@@ -2652,18 +2656,15 @@
       });
     }
     var bal = hn ? effectiveBalance(hn) : null;
-    var usedLabel = document.getElementById('leave-balance-used-label');
-    var totalLabel = document.getElementById('leave-balance-total-label');
     var detail = document.getElementById('leave-balance-detail');
     if (bal) {
       /* sisa cuti yang diisi Admin 1 */
-      var totalSisa = (bal.n || 0) + (bal.n1 || 0) + (bal.n2 || 0);
+      var totalSisa = activeBalanceTotal(bal);
       elRemain.textContent = totalSisa;
       elRemain.className = 'text-2xl font-bold ' + (totalSisa === 0 ? 'text-red-600' : 'text-green-700');
-      document.getElementById('leave-balance-used').textContent = (bal.n1 || 0) + (bal.n2 || 0);
-      document.getElementById('leave-balance-total').textContent = bal.n || 0;
-      if (usedLabel) usedLabel.textContent = 'Sisa Tahun Lalu (N-1 + N-2)';
-      if (totalLabel) totalLabel.textContent = 'Sisa Tahun Ini (N)';
+      document.getElementById('leave-balance-n2').textContent = bal.n2 || 0;
+      document.getElementById('leave-balance-n1').textContent = bal.n1 || 0;
+      document.getElementById('leave-balance-n').textContent = bal.n || 0;
       document.getElementById('leave-balance-year').textContent = '(' + bal.tahun + ')';
       if (detail) {
         detail.textContent = 'N-2 (' + (bal.tahun - 2) + '): ' + (bal.n2 || 0) + ' hari  |  N-1 (' + (bal.tahun - 1) + '): ' + (bal.n1 || 0) + ' hari  |  N (' + bal.tahun + '): ' + (bal.n || 0) + ' hari';
@@ -2672,14 +2673,13 @@
       document.getElementById('leave-balance-warning').classList.toggle('hidden', totalSisa !== 0);
       return { jatah: totalSisa, terpakai: 0, sisa: totalSisa };
     }
-    if (usedLabel) usedLabel.textContent = 'Terpakai';
-    if (totalLabel) totalLabel.textContent = 'Total Jatah (hari)';
     if (detail) detail.classList.add('hidden');
     var remaining = Math.max(0, JATAH_CUTI_TAHUNAN - used);
     elRemain.textContent = hn ? remaining : '-';
     elRemain.className = 'text-2xl font-bold ' + (hn && remaining === 0 ? 'text-red-600' : 'text-green-700');
-    document.getElementById('leave-balance-used').textContent = hn ? used : '-';
-    document.getElementById('leave-balance-total').textContent = JATAH_CUTI_TAHUNAN;
+    document.getElementById('leave-balance-n2').textContent = 0;
+    document.getElementById('leave-balance-n1').textContent = 0;
+    document.getElementById('leave-balance-n').textContent = hn ? remaining : JATAH_CUTI_TAHUNAN;
     document.getElementById('leave-balance-year').textContent = '(' + year + ')';
     document.getElementById('leave-balance-warning').classList.toggle('hidden', !(hn && remaining === 0));
     return { jatah: JATAH_CUTI_TAHUNAN, terpakai: used, sisa: remaining };
@@ -2873,7 +2873,19 @@
     });
     if (p === 'rules') renderRules();
     if (p === 'history') renderEmployeeHistory();
-    if (p === 'form') { fillApplicant(); hitungSaldoCuti(); }
+    if (p === 'form') {
+      fillApplicant();
+      ['leave-balance-n2', 'leave-balance-n1', 'leave-balance-n', 'leave-balance-remaining'].forEach(function (id) {
+        document.getElementById(id).textContent = '...';
+      });
+      loadLeaveBalancesFromServer().then(function (loaded) {
+        if (!loaded) {
+          toast('Saldo cuti gagal diperbarui dari server. Muat ulang halaman sebelum mengajukan.');
+          return;
+        }
+        hitungSaldoCuti();
+      });
+    }
     if (!fromPop) {
       try {
         var cur = history.state || {};
