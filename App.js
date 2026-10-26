@@ -1299,7 +1299,9 @@
     { id: 'facebook', label: 'Facebook', color: 'text-blue-600', icon: '<svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M13.5 21v-8h2.7l.4-3.1h-3.1v-2c0-.9.3-1.5 1.6-1.5h1.7V3.6c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H7.3V13h2.8v8h3.4Z"/></svg>' },
     { id: 'instagram', label: 'Instagram', color: 'text-pink-600', icon: '<svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="18" cy="6" r=".8" fill="currentColor" stroke="none"/></svg>' },
     { id: 'x', label: 'X', color: 'text-slate-900', icon: '<svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-7.4L5.5 22H2.3l7.3-8.4L1.8 2h6.5l4.4 6.8L18.9 2Zm-1.1 18h1.7L7.3 3.9H5.5L17.8 20Z"/></svg>' },
-    { id: 'tiktok', label: 'TikTok', color: 'text-slate-900', icon: '<svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M16.5 3c.4 2.2 1.7 3.6 4 3.8v3.4c-1.5 0-2.8-.5-4-1.3v6.5a6.3 6.3 0 1 1-6.3-6.3c.4 0 .8 0 1.2.1v3.5a2.8 2.8 0 1 0 1.8 2.7V3h3.3Z"/></svg>' }
+    { id: 'tiktok', label: 'TikTok', color: 'text-slate-900', icon: '<svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M16.5 3c.4 2.2 1.7 3.6 4 3.8v3.4c-1.5 0-2.8-.5-4-1.3v6.5a6.3 6.3 0 1 1-6.3-6.3c.4 0 .8 0 1.2.1v3.5a2.8 2.8 0 1 0 1.8 2.7V3h3.3Z"/></svg>' },
+    { id: 'threads', label: 'Threads', color: 'text-slate-900', icon: '<svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M19.2 11.4c-.4-5.2-3-8-7.2-8-4.5 0-7.4 3.1-7.4 8.5 0 5.2 2.7 8.7 7.2 8.7 3.6 0 6-2 6-5.1 0-2.5-1.6-4-4.1-4-2 0-3.3 1-3.3 2.6 0 1.3 1 2.2 2.4 2.2 1.8 0 3.1-1.5 3.5-4.2"/></svg>' },
+    { id: 'whatsapp', label: 'WhatsApp', color: 'text-green-600', icon: '<svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M12 2a9.8 9.8 0 0 0-8.4 14.8L2.3 22l5.4-1.4A9.8 9.8 0 1 0 12 2Zm0 17.8a8 8 0 0 1-4.1-1.1l-.3-.2-3.2.8.9-3.1-.2-.3A8 8 0 1 1 12 19.8Zm4.4-6c-.2-.1-1.5-.7-1.7-.7s-.4-.1-.5.1-.6.7-.7.8-.2.2-.4.1a6.5 6.5 0 0 1-1.9-1.2 7 7 0 0 1-1.3-1.6c-.1-.2 0-.3.1-.4l.3-.4.2-.3c.1-.1 0-.3 0-.4s-.5-1.2-.7-1.6c-.2-.4-.4-.3-.5-.3h-.4c-.1 0-.4 0-.6.3s-.8.8-.8 1.9.8 2.2.9 2.4a9 9 0 0 0 3.5 3.1c.5.2.9.4 1.2.5.5.2 1 .2 1.4.1.4-.1 1.5-.6 1.7-1.1s.2-1 .2-1.1-.1-.2-.3-.3Z"/></svg>' }
   ];
   function normalizeSocialUrl(value) {
     if (!value) return '';
@@ -1338,8 +1340,8 @@
     alignWithLogo();
     container.innerHTML = SOCIAL_SITES.map(function (site) {
       var url = socialLinks[site.id];
-      var iconClass = 'inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white shadow-sm ' + site.color;
-      if (url) return '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" class="' + iconClass + ' transition hover:-translate-y-0.5 hover:shadow" aria-label="' + site.label + '" title="' + site.label + '">' + site.icon + '</a>';
+      var iconClass = 'social-link-icon inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/80 bg-white shadow-md ' + site.color;
+      if (url) return '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" class="' + iconClass + '" aria-label="' + site.label + '" title="' + site.label + '">' + site.icon + '</a>';
       return '<span class="' + iconClass + '" aria-disabled="true" aria-label="' + site.label + ', tautan belum diatur" title="' + site.label + ': tautan belum diatur">' + site.icon + '</span>';
     }).join('');
     if (logo && !logo.dataset.socialResizeBound) {
