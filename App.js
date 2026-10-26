@@ -1597,6 +1597,31 @@
   function nipKey(n) { return String(n || '').replace(/\s/g, ''); }
   function getLeaveBalance(nip) { return leaveBalances[nipKey(nip)] || null; }
   function cleanDays(v) { var n = parseInt(v, 10); return (isFinite(n) && n >= 0) ? Math.min(n, 999) : 0; }
+  function activeBalanceTotal(balance) { return cleanDays(balance.n) + cleanDays(balance.n1) + cleanDays(balance.n2); }
+  function allocateActiveBalanceTotal(balance, requestedTotal) {
+    var target = Math.max(0, Math.min(parseInt(requestedTotal, 10) || 0, 2997));
+    var current = activeBalanceTotal(balance), difference = target - current;
+    if (difference > 0) {
+      var add = Math.min(difference, 999 - cleanDays(balance.n));
+      balance.n = cleanDays(balance.n) + add;
+      difference -= add;
+      add = Math.min(difference, 999 - cleanDays(balance.n1));
+      balance.n1 = cleanDays(balance.n1) + add;
+      difference -= add;
+      add = Math.min(difference, 999 - cleanDays(balance.n2));
+      balance.n2 = cleanDays(balance.n2) + add;
+    } else if (difference < 0) {
+      var remove = Math.min(-difference, cleanDays(balance.n));
+      balance.n = cleanDays(balance.n) - remove;
+      difference += remove;
+      remove = Math.min(-difference, cleanDays(balance.n2));
+      balance.n2 = cleanDays(balance.n2) - remove;
+      difference += remove;
+      remove = Math.min(-difference, cleanDays(balance.n1));
+      balance.n1 = cleanDays(balance.n1) - remove;
+    }
+    return activeBalanceTotal(balance);
+  }
   function cleanNote(v) { return String(v || '').trim().slice(0, 120); }
   function saveLeaveBalance(nip, entry) {
     if (!canExportExcel()) { toast('Hanya Admin 1 yang dapat mengisi sisa cuti.'); return Promise.resolve(false); }
@@ -1617,7 +1642,10 @@
   }
   function loadLeaveBalancesFromServer() {
     if (!supabaseClient) return Promise.resolve();
-    return supabaseClient.from('leave_balances').select('nip,data')
+    return supabaseClient.rpc('rollover_leave_balances').then(function (rolloverResult) {
+      if (rolloverResult.error) throw rolloverResult.error;
+      return supabaseClient.from('leave_balances').select('nip,data');
+    })
       .then(function (res) {
         if (res.error) throw res.error;
         var map = {};
@@ -1691,7 +1719,8 @@
       }).join('') + '</select>';
     }
     function numInput(cls, val) {
-      return '<input type="number" min="0" max="999" class="' + cls + ' w-16 rounded border border-slate-300 px-2 py-1 text-sm text-center" value="' + esc(val === undefined || val === null ? '' : val) + '">';
+      var max = cls === 'nom-active' ? 2997 : 999;
+      return '<input type="number" min="0" max="' + max + '" class="' + cls + ' w-16 rounded border border-slate-300 px-2 py-1 text-sm text-center" value="' + esc(val === undefined || val === null ? '' : val) + '">';
     }
     function rowHtml(e, idx) {
       var b = effectiveBalance(e.nip, null, nomReqs);
@@ -1706,6 +1735,7 @@
         '<td class="p-2 text-center">' + numInput('nom-n2', b.n2) + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n1', b.n1) + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n', b.n) + '</td>' +
+        '<td class="p-2 text-center">' + numInput('nom-active', activeBalanceTotal(b)) + '</td>' +
         '<td class="p-2">' + (prot ? '<span class="text-xs text-slate-400">Admin</span>' : '<button type="button" class="nom-del px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100">Hapus</button>') + '</td></tr>';
     }
     function newRowHtml() {
@@ -1718,6 +1748,7 @@
         '<td class="p-2 text-center">' + numInput('nom-n2', '') + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n1', '') + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n', 12) + '</td>' +
+        '<td class="p-2 text-center">' + numInput('nom-active', 12) + '</td>' +
         '<td class="p-2"><button type="button" class="nom-del px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100">Batal</button></td></tr>';
     }
     function renumber() {
@@ -1732,12 +1763,19 @@
     }
     function renderNominatif() {
       nomReqs = load();
-      var head = '<table class="min-w-full text-sm"><thead class="sticky top-0 bg-slate-100 z-10"><tr class="text-left"><th class="p-2 text-center">No</th><th class="p-2">Nama</th><th class="p-2">Jabatan</th><th class="p-2">NIP</th><th class="p-2">Unit Kerja</th><th class="p-2 text-center">N-2</th><th class="p-2 text-center">N-1</th><th class="p-2 text-center">N</th><th class="p-2">Aksi</th></tr></thead><tbody id="nom-body">';
+      var currentYear = parseInt(tahunEl.value, 10) || new Date().getFullYear();
+      var head = '<table class="min-w-full text-sm"><thead class="sticky top-0 bg-slate-100 z-10"><tr class="text-left"><th class="p-2 text-center">No</th><th class="p-2">Nama</th><th class="p-2">Jabatan</th><th class="p-2">NIP</th><th class="p-2">Unit Kerja</th><th id="nom-n2-heading" class="p-2 text-center">N-2 (' + (currentYear - 2) + ')</th><th id="nom-n1-heading" class="p-2 text-center">N-1 (' + (currentYear - 1) + ')</th><th id="nom-n-heading" class="p-2 text-center">N (' + currentYear + ')</th><th class="p-2 text-center">Cuti Aktif</th><th class="p-2">Aksi</th></tr></thead><tbody id="nom-body">';
       tableEl.innerHTML = head + EMP.map(function (e, i) { return rowHtml(e, i + 1); }).join('') + '</tbody></table>';
       tahunEl.value = tahunEl.value || new Date().getFullYear();
       renumber();
       applySearch();
     }
+    tahunEl.addEventListener('input', function () {
+      var year = parseInt(tahunEl.value, 10) || new Date().getFullYear();
+      document.getElementById('nom-n2-heading').textContent = 'N-2 (' + (year - 2) + ')';
+      document.getElementById('nom-n1-heading').textContent = 'N-1 (' + (year - 1) + ')';
+      document.getElementById('nom-n-heading').textContent = 'N (' + year + ')';
+    });
     function applySearch() {
       var q = searchEl.value.trim().toLowerCase(), qn = normId(searchEl.value);
       tableEl.querySelectorAll('tr.nom-row').forEach(function (tr) {
@@ -1761,9 +1799,32 @@
     searchEl.addEventListener('input', applySearch);
     tableEl.addEventListener('input', function (e) {
       var tr = e.target.closest('tr.nom-row');
-      if (tr) tr.dataset.dirty = '1';
+      if (!tr) return;
+      tr.dataset.dirty = '1';
+      if (e.target.matches('.nom-n, .nom-n1, .nom-n2')) {
+        tr.querySelector('.nom-active').value = activeBalanceTotal({
+          n: tr.querySelector('.nom-n').value,
+          n1: tr.querySelector('.nom-n1').value,
+          n2: tr.querySelector('.nom-n2').value
+        });
+      }
     });
-    tableEl.addEventListener('change', function (e) { var tr = e.target.closest('tr.nom-row'); if (tr) tr.dataset.dirty = '1'; });
+    tableEl.addEventListener('change', function (e) {
+      var tr = e.target.closest('tr.nom-row');
+      if (!tr) return;
+      tr.dataset.dirty = '1';
+      if (e.target.matches('.nom-active')) {
+        var balance = {
+          n: cleanDays(tr.querySelector('.nom-n').value),
+          n1: cleanDays(tr.querySelector('.nom-n1').value),
+          n2: cleanDays(tr.querySelector('.nom-n2').value)
+        };
+        e.target.value = allocateActiveBalanceTotal(balance, e.target.value);
+        tr.querySelector('.nom-n').value = balance.n;
+        tr.querySelector('.nom-n1').value = balance.n1;
+        tr.querySelector('.nom-n2').value = balance.n2;
+      }
+    });
     tableEl.addEventListener('click', function (e) {
       var del = e.target.closest('.nom-del');
       if (!del) return;
