@@ -88,8 +88,8 @@
           <input id="login-password" class="inp" type="password" autocomplete="off" required>
         </div>
         <div id="login-link-wrap" class="hidden">
-          <label class="lb" for="login-link">Nama / NIP Pegawai</label>
-          <input id="login-link" class="inp" type="text" list="emp-list" autocomplete="off" placeholder="Ketik nama atau NIP untuk menghubungkan akun">
+          <label class="lb" for="login-link">NIP Pegawai</label>
+          <input id="login-link" class="inp" type="text" autocomplete="off" placeholder="Masukkan NIP untuk menghubungkan akun">
         </div>
         <p id="login-info" class="hidden"></p>
         <p id="login-error" class="hidden"></p>
@@ -102,9 +102,8 @@
 
       <form id="signup-form" class="hidden space-y-4" novalidate autocomplete="off">
         <div>
-          <label class="lb" for="signup-name">Nama / NIP Pegawai</label>
-          <input id="signup-name" class="inp" type="text" autocomplete="off" placeholder="Masukkan nama lengkap atau NIP pegawai">
-          <datalist id="emp-list"></datalist>
+          <label class="lb" for="signup-name">NIP Pegawai</label>
+          <input id="signup-name" class="inp" type="text" autocomplete="off" placeholder="Masukkan NIP pegawai">
         </div>
         <div>
           <label class="lb" for="signup-email">Email</label>
@@ -118,7 +117,7 @@
           <label class="lb" for="signup-password2">Ulangi kata sandi</label>
           <input id="signup-password2" class="inp" type="password" autocomplete="new-password" required>
         </div>
-        <p class="text-xs text-slate-500 bg-blue-50 rounded-lg p-3">Setelah mendaftar, kami mengirim tautan verifikasi ke email Anda. Akun baru bisa dipakai masuk setelah email diverifikasi.</p>
+        <p class="text-xs text-slate-500 bg-blue-50 rounded-lg p-3">Setelah mendaftar, verifikasi email Anda. Penautan otomatis memerlukan NIP dan email yang cocok dengan data pegawai; jika belum cocok, Admin perlu memverifikasi permintaan Anda.</p>
         <p id="signup-error" class="hidden"></p>
         <button id="signup-submit" type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition">Daftar</button>
       </form>
@@ -260,6 +259,14 @@
       <h2 class="text-2xl font-bold">Halaman Admin <span id="admin-person-name"></span></h2>
       <p class="text-slate-500 text-sm">Terbitkan surat yang sudah disetujui berjenjang dan diberi nomor oleh Persuratan.</p>
     </div>
+    <section id="registration-requests-section" class="hidden bg-white rounded-xl shadow p-5 mb-5">
+      <div class="flex flex-wrap items-center gap-3 mb-3">
+        <h3 class="font-semibold text-lg text-blue-900 mr-auto">Permintaan Penautan Akun</h3>
+        <button type="button" id="registration-requests-refresh" class="rounded-lg border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50">Muat ulang</button>
+      </div>
+      <p class="text-sm text-slate-600 mb-3">Periksa email dan NIP yang diajukan sebelum menyetujui penautan akun.</p>
+      <div id="registration-requests-list" class="overflow-x-auto"></div>
+    </section>
     <div id="admin2-approver-management" class="hidden mb-5 space-y-4">
     <details class="adm-sec bg-white rounded-xl shadow" data-sec="test"><summary class="adm-sum flex items-center justify-between gap-3 cursor-pointer select-none px-5 py-4 rounded-xl"><span class="min-w-0"><span class="block font-semibold text-lg text-amber-900">Mode Uji Live — Admin 2</span><span class="block text-xs text-slate-500">Uji alur sebagai peran lain</span></span><span class="flex items-center gap-2 shrink-0"><span class="adm-state text-xs font-medium text-blue-700"></span><svg class="adm-chev h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.2 7.7a1 1 0 0 1 1.4 0L10 11.1l3.4-3.4a1 1 0 1 1 1.4 1.4l-4.1 4.1a1 1 0 0 1-1.4 0L5.2 9.1a1 1 0 0 1 0-1.4z" clip-rule="evenodd"/></svg></span></summary>
       <div class="px-5 pb-5"><div class="rounded-xl border border-amber-300 bg-amber-50 p-4">

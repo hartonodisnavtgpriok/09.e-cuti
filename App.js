@@ -1046,298 +1046,13 @@
 
 /* ---------- Data pegawai & autofill ---------- */
   var HEAD = {
-    K: ['AMIR MAKBUL, M.T., M.Mar', '19760315 200212 1 001'], B: ['NI WIDANINGSIH, S.E', '19730730 199803 2 001'],
-    H: ['HENDAVINY KARTOMO, SE, M.Kom', '19730731 199302 2 001'], L: ['LUSI ANDAYANI, S.T., M.MTr', '19740601 200212 2 001'],
-    A: ['R. ACHMAD ANDRIAZ PRAMUDYA W, ST, M.Si', '19720918 199903 1 003'], R: ['ROHANI ALMUTMAINAH, S.SI, M.M.Tr', '19770801 200502 2 001'],
-    P: ['', ''], M: ['Capt. MARDIANTIKA SANGGUR, M.M.Tr.', '19700323 200212 2 002'],
-    S: ['JUNI TARULIASI HUTAPEA, S.Psi, M.MTr', '19750626 199703 2 001'], E: ['EVRINA HERMAWATI, S.E., M.B.A.', '19790111 200212 2 001'],
-    T: ['TAUFIK CHAHYADI, SH, M.H', '19820906 200604 1 005'], I: ['ILMIYAWAN SYAF AGUS, S.T, M.MTr', '19790817 199903 1 002']
+    K: ['', ''], B: ['', ''], H: ['', ''], L: ['', ''], A: ['', ''], R: ['', ''],
+    P: ['', ''], M: ['', ''], S: ['', ''], E: ['', ''], T: ['', ''], I: ['', '']
   };
   var UP = { S: 'B', E: 'B', T: 'B', I: 'K', P: 'H', M: 'H', R: 'L', A: 'L', H: 'K', L: 'K', B: 'K' };
   var JC = { a: 'Penelaah Teknis Kebijakan', b: 'Petugas Telkompel', c: 'Penguji Peralatan Keselamatan Pelayaran', d: 'Teknisi Menara Suar (TMS)',
     e: 'Pengawas Keselamatan Pelayaran Penyelia', f: 'Pengawas Sarana dan Prasarana Kenavigasian', g: 'Penilik Kenavigasian',
     h: 'Surveyor Kenavigasian', i: 'Operator VTS', j: 'Penjaga Menara Suar' };
-  /* format baris: NAMA;NIP;kode jabatan (atau teks jabatan);kode atasan (opsional) */
-  var RAW = [
-    ['B', `AMIR MAKBUL, M.T., M.Mar;19760315 200212 1 001;Kepala Distrik Navigasi Tipe B Tanjung Priok;K
-NI WIDANINGSIH, S.E;19730730 199803 2 001;Kepala Bagian Keuangan dan Umum;B
-HENDAVINY KARTOMO, SE, M.Kom;19730731 199302 2 001;Kepala Bidang Layanan Alur Pelayaran dan Telkompel;H
-LUSI ANDAYANI, S.T., M.MTr;19740601 200212 2 001;Kepala Bidang Layanan SBNP dan Armada;L
-R. ACHMAD ANDRIAZ PRAMUDYA W, ST, M.Si;19720918 199903 1 003;Kepala Seksi Layanan Armada;A
-ROHANI ALMUTMAINAH, S.SI, M.M.Tr;19770801 200502 2 001;Kepala Seksi Layanan Sarana Bantu Navigasi Pelayaran;R
-Capt. MARDIANTIKA SANGGUR, M.M.Tr.;19700323 200212 2 002;Kepala Seksi Layanan Telkompel;M
-JUNI TARULIASI HUTAPEA, S.Psi, M.MTr;19750626 199703 2 001;Kepala Sub Bagian Sumber Daya Manusia dan Umum;S
-EVRINA HERMAWATI, S.E., M.B.A.;19790111 200212 2 001;Kepala Sub Bagian Perencanaan dan Keuangan;E`],
-    ['S', `INTAN MULIA, SE;19740118 199303 2 001;a
-EKO TUGAS TRIONO, SE;19700707 199303 1 001;a
-SUDIBYO, SE;19770512 200604 1 001;a
-PARIYADI, SH;19740705 199703 1 002;a
-ADIH;19691107 199303 1 003;a
-EKA MARTINI, S.E;19820327 200502 2 002;a
-MUHAMAD SOBRI, S.AP;19850723 200604 1 002;a
-EDHART HARRY EDO SAMAD, S.Sos.;19780706 200312 1 002;a
-RAHMATIA, SE;19870526 201012 2 007;a
-HERDIAN, S. Kom;19860527 200604 1 003;a
-ADITIA MAHESA, S.I.P.;19880618 201402 1 005;a
-SLAMET RIYADI;19770214 199803 1 001;a
-NANDANG SUHENDAR;19880414 201012 1 006;a
-MIKE CARLY PERMATASARI;19901118 201012 2 001;a
-HERMANSYAH;19800204 201503 1 001;a
-MUHAMMAD IQBAL NAWAFI;19900226 201507 1 002;a
-SITI MAWADDAH;19940528 201402 2 001;a
-AHMAD HAFIZ;19940628 201503 1 001;a
-MOHAMMAD HASBI AKBAR, S.E;19870313 201801 1 002;a
-SIGIT SANTOSO PUTRA;19950516 201902 1 001;a
-DEFI MARLINA, S.Tr.Pel;20001212 202310 2 001;a`],
-    ['T', `TAUFIK CHAHYADI, SH, M.H;19820906 200604 1 005;Kepala Unit Pengembangan Usaha dan Kerja Sama;T
-DARMAWAN, S.AP;19811119 200604 1 002;a
-FITARA EMBUN RAMADHAN, S.I.Kom;19940303 201503 2 001;a
-NARDIYANTO, S.E;19780526 200604 1 001;c`],
-    ['E', `SITI HAERIYAH, S.Mn;19720126 199303 2 001;a
-LINY RUNTUWENE, SE;19730208 199303 2 001;a
-BACHRUDDIN, S.AP;19700724 199009 1 001;a
-KHOIRUL BAZAR, S. AP.;19720611 199703 1 004;a
-AJI AGUNG PERMADI, S.AP.;19880716 200712 1 001;a
-PUTUT PUDJANTORO, A.Md;19711011 199203 1 002;a
-PUTRI PRADNYA PARAMITA, S.AP;19870526 200912 2 002;a
-ROMI FAJRI ALQADRI, S.AP;19860909 200712 1 001;a
-HENDRAWAN, S.A.P.;19940329 201503 1 001;a
-MUHAMMAD FAIZAL FEBRIANTO;19860225 200812 1 001;a
-KUKUH ANGGORO, S.E;19950919 201801 1 002;a`],
-    ['I', `ILMIYAWAN SYAF AGUS, S.T, M.MTr;19790817 199903 1 002;Kepala SPI
-MOHAMAD YUSUF, S.AP;19781027 200912 1 001;a`],
-    ['P', `FITRIYANTI, S.PEL.;19840610 200812 2 002;h
-ANDI ARYANDI, S.IP;19750615 200212 1 005;g
-RONNY TANJUNG, S.E;19730209 200212 1001;f
-MULYANINGSIH, SE;19740330 199803 2 001;f
-ANNY FEBRIANINGSIH, SE;19720222 199303 2 002;g
-PARSAORAN AGUNG NUGRAHA, S.T;19880516 201402 1 005;g
-OKTAVIANI;19851013 200502 2 001;f
-HAYU MOHAMAD FATLIH, A.Md;19801126 200712 1 002;h
-HERMANTO SORMIN;19800722 200712 1 001;h
-BAYU KURNIAWAN;19850302 200712 1 002;h
-DEVI MITANINGRUM, S.Tr.Pel;20010518 202310 2 001;h
-DEWANTARI PANGESTIKA, S.Tr.Pel;19990809 202412 2 001;h`],
-    ['M', `ISRON, ST, MM;19890705 201403 1 001;g
-PRITA LESTARI, SE;19851216 200502 2 001;g
-FEBYANTI KUSUMA DEWI SOFYAN;19820223 200912 2 001;f
-SUPRAYITNO, A.Md;19741214 200604 1 001;g
-HIJRAH KHAQO, S.Kom;19870814 201402 1 006;Manager VTS
-TITIS EKA SUCIATY, S.SI;19910314 200912 2 001;i
-RUSDIYANTO;19691225 199703 1 001;b
-RENDY TRIO PRIHAMSYAH, S.AP;19900621 201012 1 003;i
-GINANJAR WARYANA, AMD;19861204 201801 1 002;Teknisi VTS
-VALCO JAMPI PARADONGAN HUTAURUK;19830520 201801 1 001;i
-DHANI RACHMAD JULIAN, A.Md.T.;19990725 202112 1 001;Teknisi VTS
-NUR AZIS;19790526 200604 1 002;b
-NABILLA ANDIKA PUTRI, S.Tr.Pel;20020318 202412 2 002;i
-RAFLY ADI YAHYA, A.Md.T;20020517 202412 1 001;b
-YAN BINTANG PRASETYO, A.Md.T;20020109 202412 1 001;b
-WAHYU HIDAYAT;19790505 200604 1 001;b
-RINTO ARIYANTO;19820406 200604 1 002;b
-TEGUH SUYATNO;19830312 200604 1 001;b
-RISKA PUTRI JAYANTI;19890112 200812 2 001;b
-RADEN MOHAMAD BARDAN GUNAWAN (HERI);19791111 201503 1 003;b
-ARYADI;19681001 198903 1 001;e
-SUMARNI, S. PEL;19750116 199803 2 001;e
-ROMASI LUMBANTORUAN, S.SOS;19790916 199903 2 001;b
-MUHANTO ADI RACHMAN;19710519 199103 1 001;e
-MARNI DWI YUDITA USPESSY, SE;19820926 200604 2 001;b
-HASUDUNGAN SIMAMORA;19721114 199303 1 003;e
-DIAN NURCHOLIDA HANAFIA, S.AP;19860214 200502 2 001;b
-RIANA YULSISCA SORONTO, SH;19760710 201012 2 002;b
-SUYATIK;19760320 200712 2 001;b
-NA DEWI IDHA HERYANI;19870805 200812 2 003;b
-SUHARNI;19800628 200812 2 001;b
-ACHMAD FAUZI;19870611 200712 1 001;b
-MUHAMMAD DARSONI;19711009 199103 1 001;e
-IBNU PRAKOSO AJI;19890806 200812 1 001;b
-ANISA DHABITAH MAULIDYA, A.Md.T;20010607 202412 2 001;i
-MUHAMMAD HARIS RENDIANSYAH, A.Md.T;20020629 202412 1 001;i
-DANANG ANGGRIH SETIAWAN, A.Md;19950305 202203 1 008;b
-ADI PURNOMO, A.Md;19971222 202203 1 005;b
-DWIKI INDRA PANGESTU, A.Md.Tra;19980104 202203 1 011;b
-PUTRI NIA ADELIA, A.Md.Tra;20000216 202210 2 001;b
-FAJAR ROSANDI, A.Md;20000401 202203 1 005;b
-DEA SAFUTRI ARYANI, A.Md.Tra;20000828 202210 2 001;b
-DAUD WIRANTO PURBA, A.Md.Tra;20011029 202210 1 002;b
-RIGEL NAUFAL AKRAM WICAKSANA, A.Md.Tra;20011107 202210 1 002;b
-WITNES WILY, A.Md.T;20020909 202412 1 002;i
-SUDIMAN;19701106 199103 1 001;e
-RAMSI NUKUHALY;19720103 199312 2 001;e
-NUR KHAYATI;19750415 199903 2 001;e
-ANANDA FIRSTA TEA RELEVANIA PURNAMA, S.Kom, M. T;19920927 201402 2 001;Manager VTS
-SUYADI;19750811 200812 1 002;b
-SUHADA;19780716 199903 1 003;e
-ELEN GUSFITA, SE;19810408 200812 2 002;i
-NADYA TRIS ANGGRAENI, A.MD;19850821 200812 2 002;i
-SULIASYONO, SE;19890807 201801 1 001;i
-YUSNITA;19851225 200909 2 001;b
-YOANNA VIRGIN LENZ;19951007 201503 2 001;b
-SUPRIADI;19790815 200212 1 001;b
-MUJIB ROHMAN FADHOLI;19741125 199703 1 001;b
-SOBARI;19790128 200604 1 001;Pengawas Keselamatan Pelayaran Pelaksana Lanjutan
-SUHERMANTO ERLAMBANG;19780907 201012 1 002;b
-NGALIMAN, SE;19750710 199703 1 002;e
-ELIN ZANERI;19700929 199103 2 002;e
-ZUBAIR NURSALIM;19860204 200812 1 001;b`],
-    ['R', `FEBBY SUHADI;19770225 199803 1 003;f
-RADEN HUNDRY NUGROHO, S.M;19761125 199803 1 001;g
-AUGUST MUVREDI SYAFRI;19810806 200502 1 001;g
-GUNAWAN BAGUS PANGIMPUN;19891210 200912 1 001;j
-M HAIKAL FADHLURRAHMAN, A.Md.T;20010606 202310 1 002;f
-AHMAD ROMDAN;19681218 199103 1 001;d
-MAD SOLEH;19690702 199011 1 001;d
-SUNDOYO EDI;19691215 199103 1 003;d
-ZAINAL ARIFIN;19690129 199012 1 001;d
-BAMBANG SETIAWARNO;19700307 199112 1 001;d
-ADANG KUSNADI;19701221 199103 1 003;d
-ERIYADI;19850618 200604 1 001;d
-SUKARI;19760601 200604 1 001;d
-WAHYU SULISTYO;19801121 200604 1 001;d
-JONO;19801225 200604 1 001;d
-SLAMET;19840309 200604 1 001;d
-KUSTO ROHADI;19850116 200604 1 001;d
-DODY ROSADY;19830514 200604 1 001;d
-RUDI HARTONO;19760825 200604 1 001;d
-JULIYONO;19740701 200604 1 001;d
-YOYOK SUGIANTO;19830329 200712 1 002;d
-GANGSAR TRI HANDOYO;19870612 200712 1 001;d
-ADHITYA NUGROHO;19820122 200604 1 002;d
-MUHAMMAD RADIFAN;19960814 202505 1 002;j
-ALPAN ROBBY ISANI;20030614 202505 1 001;j
-ALKNA BAGAS FACHREZY;20031229 202505 1 001;j
-KURNIA SURYA UTAMA;20040512 202505 1 001;j
-FAISAL FAROSA;20050529 202505 1 001;j`],
-    ['A', `YAN YAN KLISTIAN, S. AB;19730331 199803 1 001;f
-AGUS SUPRIYADI, SE, MH;19700902 199011 1 001;g
-SELAMAT ANAKOTTA, A.Md;19730912 199803 1 002;f
-BACHTIAR ARIFIN;19800522 200604 1 003;f
-HARJITO, S.Sos;19800830 200604 1 001;f
-CHANDA JUNIARIO, ST;19880603 200912 1 001;g
-LISCA NOPRIANTI, S.Sos;19891128 201801 2 001;g
-RUSDIANTO KALA LENDE, S.Tr.Pel;20011112 202412 1 001;c
-SATRIA ARIF PERMANA, A.Md.T;20010224 202412 1 001;f
-SINGGIH PURWANTO, A.Md;19750409 200604 1 001;Kepala Kamar Mesin Kapal Kelas 1
-JAMMY OKTAVIANUS, S.E;19811022 200712 1 001;Nakhoda Kapal Kelas 1
-ZULFET;19690301 199303 1 001;Juru Minyak Kapal Kelas 1
-ISWANTO;19700307 199310 1 001;Mandor Kamar Mesin Kapal Kelas 1
-NURCHOLIS;19700415 199303 1 001;Masinis III Kapal Kelas 1
-ARBIN ADI BUNGA SIMBOLON;19851125 200502 1 001;Juru Mudi Kapal Kelas 1
-ADENG ROJUDIN;19810826 200502 1 001;Mualim III Kapal Kelas 1
-YUNI SURURIYAH RATNA FAHMI, SE;19770624 200912 2 001;Kerani Kapal Kelas 1
-MOHAN MUHAMMAD;19781128 200604 1 001;Serang Kapal Kelas 1
-DANIEL MAQHFIRAH. S, S.E.;19910422 201801 1 001;Masinis I Kapal Kelas 1
-ARIF ADHI PRAMANA MULYA DINATA, S.H;19970531 201801 1 003;Mualim II Kapal Kelas 1
-IKHSAN SLAMET RIADI, A.Md.T;20010617 202412 1 001;Masinis II Kapal Kelas 1
-AGE SETIA BUDI, S.PEL;19750224 200312 1 002;Mualim I Kapal Kelas 1
-DEDE ZAENAL ARIPIN, A.Md;19770615 200604 1 001;Nakhoda Kapal Kelas 1
-MISWANTO;19770922 199903 1 001;Kerani Kapal Kelas 1
-NASWANDI;19700526 199303 1 001;Mualim II Kapal Kelas 1
-SUGITO;19721217 199303 1 001;Serang Kapal Kelas 1
-AGUS PURWANTO;19740414 199803 1 002;Jenang Kapal Kelas 1
-AKHMAD SUBKI, SE;19741226 200912 1 003;Kepala Kamar Mesin Kapal Kelas 1
-MUSTAKIM;19820904 200502 1 001;Mandor Mesin Kapal Kelas 1
-MALAN;19751108 200604 1 001;Mualim III Kapal Kelas 1
-PANJI PERSADA NUSWANTORO;19891020 200712 1 001;Juru Mudi Kapal Kelas 1
-DODY ARIEF ISMANTO;19770607 200812 1 001;Masinis III Kapal Kelas 1
-TRI HARDIYANTO;19860602 200812 1 002;Masinis II Kapal Kelas 1
-AZIS MUDHOFAR;19810219 200502 1 001;Juru Mudi Kapal Kelas 1
-AWAL ALIFIAN, A.Md.T;20020916 202310 1 002;Masinis I Kapal Kelas 1
-LEONARDHO SONNY PARSAORAN, A.Md;19801103 200812 1 001;Nakhoda Kapal Kelas III
-EKO SETIADI;19690928 199303 1 001;Masinis II Kapal Kelas III
-ABDUL GANI;19690104 199303 1 001;Kepala Kamar Mesin Kapal Kelas III
-HERI SETIAWAN;19700808 199309 1 001;Mualim I Kapal Kelas III
-RIAWAN TRI SULISTYO;19861110 200812 1 001;Mualim II Kapal Kelas III
-BAMBANG HARYONO;19770923 199803 1 001;Juru Mudi Kapal Kelas III
-SESWANTO;19760315 200812 1 001;Masinis I Kapal Kelas III
-ROJIKI;19701021 199303 1 001;Masinis I Kapal Kelas IV
-LUKMAN SAMIJAN;19740526 199310 1 001;Kepala Kamar Mesin Kapal Kelas IV
-TARNO;19710813 199103 1 002;Mualim I Kapal Kelas IV
-RONNY SURYADI, S.T.;19760718 200604 1 001;c
-HAIDIR, SE;19750904 199703 1 001;Koordinator Bengkel
-SUPARNO;19690715 199103 1 001;c
-GOKME PAULUS HAMONANGAN;19690831 199103 1 002;c
-PRAYOGI;19740514 199803 1 003;Pengawas Keselamatan Pelayaran Pelaksana Lanjutan
-DADANG ARDIYANTO, ST;19801122 200604 1 001;c
-JOKO SANTOSO;19770629 199803 1 001;c
-IMAN SUPRIATNO, S.E.;19740825 200712 1 001;c
-MARDIANTO;19741227 200712 1 001;c
-FERDI AGUSTIANSYAH;19870822 200712 1 001;c
-WINDU SASONGKO;19770729 199803 1 003;c
-AGUS PRISUHARTONO;19690818 199103 1 003;c
-BERNARD;19850313 201503 1 002;c
-SUTARMAN;19920606 201801 1 002;c`],
-    ['S', `DANIEL IRFAN;19871108 202521 1 018;Pengadministrasi Kehumasan
-CHINTYA PUTRI ARTHA;19911018 202521 2 039;Pengadministrasi Perkantoran
-OKTARIA NINDYA CHANDRA;19951012 202521 2 027;Pengadministrasi Perkantoran
-RIDWAN SALAWI;19871203 202521 1 023;Pengadministrasi Umum
-WINI LESTARI;19970128 202521 2 018;Pengadministrasi Kepegawaian
-HARTONO;19791228 202521 1 018;Pengadministrasi Perkantoran
-TARDI;19801126 202521 1 016;Pengelola Umum Operasional`],
-    ['E', `PUPUT YULITA ANDRIA PRABOWO;19960702 202521 2 020;Pengadministrasi Keuangan
-MUHAMMAD NUHAN NAHIDL;19980401 202521 1 026;Pengelola Umum Operasional`],
-    ['R', `MILDA ANGGRAINI;19991003 202521 2 012;Pengadministrasi Umum
-ABDUL ROHIM HAFID;19900920 202521 1 053;Pengadministrasi Perkantoran
-FEBRI WAHYU HIDAYAT;19990214 202521 1 015;Pengelola Layanan Operasional
-HAFIZHAN KASYFIL AZIS;19970910 202521 1 082;Pengelola Layanan Operasional
-ANUGRAH;19880711 202521 1 026;Penjaga Menara Suar
-ARIFAL FIRMANSYAH;19890424 202521 1 035;Penjaga Menara Suar
-DENNY PRATAMA;20000525 202521 1 008;Penjaga Menara Suar
-DONA PUTRA;19821128 202521 1 010;Penjaga Menara Suar
-FAJRI;19850728 202521 1 018;Penjaga Menara Suar
-HAMDI;19861011 202521 1 030;Penjaga Menara Suar
-IMAM MAHDI NURZACTONO;19800108 202521 1 008;Penjaga Menara Suar
-JOKO PURNOMO SIDIK;19921007 202521 1 027;Penjaga Menara Suar
-KHANAFI RAHMAN;19870906 202521 1 020;Penjaga Menara Suar
-M. FAJRI;19930807 202521 1 025;Penjaga Menara Suar
-MUHAMMAD IRWAN;19780707 202521 1 022;Penjaga Menara Suar
-MUSLIM;19810531 202521 1 007;Penjaga Menara Suar
-PRASENO ALHAQ;19950518 202521 1 019;Penjaga Menara Suar
-REPI SURYADI;19961028 202521 1 017;Penjaga Menara Suar
-RODIANSYAH;19910623 202521 1 022;Penjaga Menara Suar
-SAIPUL BAHRI;19880313 202521 1 027;Penjaga Menara Suar
-SIDIK SOBARUDIN;19830110 202521 1 019;Penjaga Menara Suar
-SULAIMAN;19790118 202521 1 018;Penjaga Menara Suar
-TARYONO;19820119 202521 1 016;Penjaga Menara Suar`],
-    ['P', `FAHYU MARESHA NIVELA;19960226 202521 2 020;Penata Layanan Operasional
-LILI AL HASIM;19840608 202521 1 052;Pengadministrasi Perkantoran`],
-    ['A', `AHRIZA FADLI;19840219 202521 1 017;Anak Buah Kapal
-MUHAMMAT FADLY MALAWAT;19960813 202521 1 008;Anak Buah Kapal
-BAGUS SENO AJI;19930729 202521 1 015;Anak Buah Kapal
-EKO MARGIONO SAPUTRO;19910304 202521 1 025;Anak Buah Kapal
-FAHMI HARLIANSYAH;19820410 202521 1 028;Anak Buah Kapal
-FAUZI MALAWAT;19800714 202521 1 021;Anak Buah Kapal
-HERI EBIN EJER SIAHAAN;19900807 202521 1 019;Anak Buah Kapal
-BAGUS WISNU AJI;19930729 202521 1 017;Anak Buah Kapal
-FIRMANSYAH;19950306 202521 1 018;Anak Buah Kapal
-GITA ANDRI SAPUTRA;19930306 202521 1 018;Anak Buah Kapal`],
-    ['M', `A. SANI;19700812 202521 1 018;Operator Radio Pelayaran
-RAFI SUWANDI;19991031 202521 1 005;Operator Radio Pelayaran
-MUHAMMAD FADLI SAOQANI;19941029 202521 1 014;Operator Radio Pelayaran
-ADE AYU ANGGRIANI RIYANTI DEWI, S.Tr. Pel;19950820 202421 2 010;Pengawas Keselamatan Pelayaran Ahli Pertama
-ADE KURNIAWAN;19881202 202521 1 021;Operator Radio Pelayaran
-IRA RYANI;19970502 202521 2 019;Operator Radio Pelayaran
-RISKY H NASUTION;19931209 202521 1 019;Operator Radio Pelayaran
-SITI ZUBAEDAH;19970707 202521 2 032;Operator Radio Pelayaran
-UDIN MURDANI;19970725 202521 1 015;Operator Radio Pelayaran
-HIDAYAH BEKTI NINGSIH;19960113 202521 2 020;Operator Radio Pelayaran
-DONI KURNIAWAN;19950228 202521 1 016;Operator Radio Pelayaran
-ASEP FIRMANSYAH;19940910 202521 1 026;Operator Radio Pelayaran
-TIO PAKUSADEWO;19990501 202521 1 011;Operator Radio Pelayaran
-ZEN PUTRA;19970423 202521 1 017;Operator Radio Pelayaran
-EDO SANJAYA;19821216 202521 1 016;Operator Radio Pelayaran
-GALIH CRISDIANTO;19881014 202521 1 021;Operator Radio Pelayaran
-EVA MARLIANA PRAMUDITA NASUTION;19900525 202521 2 033;Operator Radio Pelayaran
-YASSER OKTAVIAN ARAFAT;19971104 202521 1 014;Operator Radio Pelayaran
-NOVAL FADILAH;19990724 202521 1 015;Operator Radio Pelayaran
-ROMY SASONGKO, A.Md;19910407 202421 1 013;Pengawas Keselamatan Pelayaran Terampil (PPPK)
-NANANG FEBRIYANSAH;19910215 202521 1 021;Operator Radio Pelayaran
-LUKY RIANTO;19910506 202521 1 028;Operator Radio Pelayaran
-TABRITS MAULANI;20010804 202521 2 011;Operator Radio Pelayaran
-TEDDY GUNAWAN;19820331 202521 1 011;Operator Radio Pelayaran
-ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
-  ];
   var EMP = [];
   var UNIT_LABEL = {
     S: 'SUBBAGIAN SDM DAN UMUM',
@@ -1358,7 +1073,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     return groupCode;
   }
   function resolveRoute(employee) {
-    var code = employee.unitCode, head = HEAD[code], first = '', second = '';
+    var code = employee.unitCode, head = HEAD[code] || ['', ''], first = '', second = '';
     if (employee.nip === '19750904 199703 1 001') {
       return {
         first: HEAD.K[0],
@@ -1413,111 +1128,82 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     var person = EMP.filter(function (e) { return e.n === name; })[0];
     return person ? person.j : '';
   }
-  RAW.forEach(function (g) {
-    g[1].split('\n').forEach(function (l) {
-      var f = l.trim().split(';');
-      if (f.length < 3) return;
-      var code = f[3] || g[0], at = null;
-      if (code !== '-') {
-        var h = HEAD[code];
-        if (h && h[1] === f[1]) { code = UP[code]; h = code ? HEAD[code] : null; }
-        at = h || null;
-      }
-      var job = JC[f[2]] || f[2];
-      var unitCode = unitCodeFor(f[1], g[0]);
-      EMP.push({ n: f[0], nip: f[1], j: job, an: at ? at[0] : '', anip: at ? at[1] : '',
-        unitCode: unitCode, unit: UNIT_LABEL[unitCode] || g[0] });
+  var APPROVERS = [];
+  var ADMINS = [];
+  var CORRESPONDENCE = [];
+  var additionalApprovers = [];
+  var additionalAdmins = [];
+  var additionalCorrespondence = [];
+  var directoryLoaded = false;
+  var directoryLoading = null;
+  function loadDirectoryFromServer() {
+    if (!supabaseClient) return Promise.reject(new Error(supabaseInitError || 'Supabase tidak tersedia.'));
+    if (directoryLoaded) return Promise.resolve(EMP);
+    if (directoryLoading) return directoryLoading;
+    directoryLoading = Promise.all([
+      supabaseClient.from('employees').select('nip,name,jabatan,unit_code,atasan_code').order('nip'),
+      supabaseClient.from('staff_members').select('nip,role,name,title,sort').order('sort'),
+      supabaseClient.from('unit_heads').select('code,nip,name')
+    ]).then(function (results) {
+      results.forEach(function (result) { if (result.error) throw result.error; });
+      var employees = results[0].data || [];
+      var staff = results[1].data || [];
+      var heads = results[2].data || [];
+      HEAD = {
+        K: ['', ''], B: ['', ''], H: ['', ''], L: ['', ''], A: ['', ''], R: ['', ''],
+        P: ['', ''], M: ['', ''], S: ['', ''], E: ['', ''], T: ['', ''], I: ['', '']
+      };
+      heads.forEach(function (row) { HEAD[row.code] = [row.name || '', row.nip || '']; });
+      EMP.length = 0;
+      employees.forEach(function (row) {
+        var head = HEAD[row.atasan_code] || ['', ''];
+        EMP.push({
+          n: row.name,
+          nip: row.nip,
+          j: row.jabatan || '',
+          an: head[0],
+          anip: head[1],
+          unitCode: row.unit_code,
+          unit: UNIT_LABEL[row.unit_code] || row.unit_code || '',
+          atasanCode: row.atasan_code,
+          origNip: row.nip
+        });
+      });
+      APPROVERS.length = 0;
+      ADMINS.length = 0;
+      CORRESPONDENCE.length = 0;
+      additionalApprovers.length = 0;
+      additionalAdmins.length = 0;
+      additionalCorrespondence.length = 0;
+      staff.forEach(function (row) {
+        var person = { name: row.name, nip: row.nip, title: row.title || '', sort: row.sort };
+        if (row.role === 'approver') {
+          APPROVERS.push(person);
+          if (row.sort > 11) additionalApprovers.push(person);
+        } else if (row.role === 'admin') {
+          ADMINS.push(person);
+          if (row.sort > 2) additionalAdmins.push(person);
+        } else if (row.role === 'correspondence') {
+          CORRESPONDENCE.push(person);
+          if (row.sort > 5) additionalCorrespondence.push(person);
+        }
+      });
+      BASE_EMP = EMP.map(function (person) { return Object.assign({}, person); });
+      directoryLoaded = true;
+      return EMP;
+    }).catch(function (error) {
+      console.error('Direktori pegawai gagal dimuat dari Supabase:', error);
+      throw error;
+    }).then(function (result) {
+      directoryLoading = null;
+      return result;
+    }, function (error) {
+      directoryLoading = null;
+      throw error;
     });
-  });
-  var APPROVERS = [
-    { name: 'AMIR MAKBUL, M.T., M.Mar', nip: '19760315 200212 1 001', title: 'Kepala Distrik Navigasi Tipe B Tanjung Priok' },
-    { name: 'NI WIDANINGSIH, S.E', nip: '19730730 199803 2 001', title: 'Kepala Bagian Keuangan dan Umum' },
-    { name: 'HENDAVINY KARTOMO, SE, M.Kom', nip: '19730731 199302 2 001', title: 'Kepala Bidang Layanan Alur Pelayaran dan Telkompel' },
-    { name: 'LUSI ANDAYANI, S.T., M.MTr', nip: '19740601 200212 2 001', title: 'Kepala Bidang Layanan SBNP dan Armada' },
-    { name: 'R. ACHMAD ANDRIAZ PRAMUDYA W, ST, M.Si', nip: '19720918 199903 1 003', title: 'Kepala Seksi Layanan Armada' },
-    { name: 'ROHANI ALMUTMAINAH, S.SI, M.M.Tr', nip: '19770801 200502 2 001', title: 'Kepala Seksi Layanan Sarana Bantu Navigasi Pelayaran' },
-    { name: 'Capt. MARDIANTIKA SANGGUR, M.M.Tr.', nip: '19700323 200212 2 002', title: 'Kepala Seksi Layanan Telkompel' },
-    { name: 'JUNI TARULIASI HUTAPEA, S.Psi, M.MTr', nip: '19750626 199703 2 001', title: 'Kepala Sub Bagian Sumber Daya Manusia dan Umum' },
-    { name: 'EVRINA HERMAWATI, S.E., M.B.A.', nip: '19790111 200212 2 001', title: 'Kepala Sub Bagian Perencanaan dan Keuangan' },
-    { name: 'ILMIYAWAN SYAF AGUS, S.T, M.MTr', nip: '19790817 199903 1 002', title: 'Kepala SPI' },
-    { name: 'TAUFIK CHAHYADI, SH, M.H', nip: '19820906 200604 1 005', title: 'Kepala Unit Pengembangan Usaha dan Kerja Sama' }
-  ];
-  var ADDITIONAL_APPROVERS_KEY = 'cuti_additional_approvers_v1';
-  function loadAdditionalApprovers() {
-    try {
-      var saved = JSON.parse(localStorage.getItem(ADDITIONAL_APPROVERS_KEY)) || [];
-      if (!Array.isArray(saved)) return [];
-      return saved.filter(function (person) {
-        return person && person.name && person.nip && person.title;
-      }).map(function (person) {
-        return { name: String(person.name).trim(), nip: String(person.nip).trim(), title: String(person.title).trim() };
-      });
-    } catch (error) {
-      console.error('Data penyetuju tambahan tidak dapat dibaca:', error);
-      return [];
-    }
+    return directoryLoading;
   }
-  var additionalApprovers = loadAdditionalApprovers();
-  additionalApprovers.forEach(function (person) {
-    var nip = person.nip.replace(/\s/g, '');
-    var duplicate = APPROVERS.some(function (existing) {
-      return existing.nip.replace(/\s/g, '') === nip;
-    });
-    if (!duplicate) APPROVERS.push(person);
-  });
-  function saveAdditionalApprovers() {
-    try {
-      localStorage.setItem(ADDITIONAL_APPROVERS_KEY, JSON.stringify(additionalApprovers));
-      pushSetting('additional_approvers', additionalApprovers);
-      return true;
-    } catch (error) {
-      console.error('Data penyetuju tambahan tidak dapat disimpan:', error);
-      return false;
-    }
-  }
-  var ADMINS = [
-    { name: 'HERMANSYAH', nip: '19800204 201503 1 001', title: 'Admin', email: 'Hermansyah0402@kemenhub.go.id' },
-    { name: 'HARTONO', nip: '19791228 202521 1 018', title: 'Admin', email: 'hartonodisnavtgpriok@gmail.com' }
-  ];
-  var CORRESPONDENCE = [
-    { name: 'INTAN MULIA, SE', nip: '19740118 199303 2 001', title: 'Persuratan', email: 'Intan_mulia@kemenhub.go.id' },
-    { name: 'EKA MARTINI, S.E', nip: '19820327 200502 2 002', title: 'Persuratan', email: 'Eka_martini@kemenhub.go.id' },
-    { name: 'OKTARIA NINDYA CHANDRA', nip: '19951012 202521 2 027', title: 'Persuratan', email: 'nindyachandraoktaria@gmail.com' },
-    { name: 'CHINTYA PUTRI ARTHA', nip: '19911018 202521 2 039', title: 'Persuratan', email: 'Chyntya_puti@kemenhub.go.id' },
-    { name: 'MIKE CARLY PERMATASARI', nip: '19901118 201012 2 001', title: 'Persuratan', email: 'Mike_carly@kemenhub.go.id' }
-  ];
-  var ADDITIONAL_CORRESPONDENCE_KEY = 'cuti_additional_correspondence_v1';
-  var ADDITIONAL_ADMINS_KEY = 'cuti_additional_admins_v1';
-  function loadAdditionalStaff(key, existingStaff) {
-    try {
-      var saved = JSON.parse(localStorage.getItem(key)) || [];
-      if (!Array.isArray(saved)) return [];
-      var seenNips = {}, seenEmails = {};
-      existingStaff.forEach(function (person) {
-        seenNips[person.nip.replace(/\s/g, '')] = true;
-        if (person.email) seenEmails[person.email.toLowerCase()] = true;
-      });
-      return saved.filter(function (person) {
-        if (!person || !person.name || !person.nip || !person.title) return false;
-        var nip = String(person.nip).replace(/\s/g, ''), email = person.email ? String(person.email).trim().toLowerCase() : '';
-        if (seenNips[nip] || (email && seenEmails[email])) return false;
-        seenNips[nip] = true;
-        if (email) seenEmails[email] = true;
-        return true;
-      }).map(function (person) {
-        var out = { name: String(person.name).trim(), nip: String(person.nip).trim(), title: String(person.title).trim() };
-        if (person.email) out.email = String(person.email).trim();
-        return out;
-      });
-    } catch (error) {
-      console.error('Data petugas tambahan tidak dapat dibaca:', error);
-      return [];
-    }
-  }
-  var additionalCorrespondence = loadAdditionalStaff(ADDITIONAL_CORRESPONDENCE_KEY, APPROVERS.concat(ADMINS, CORRESPONDENCE));
-  additionalCorrespondence.forEach(function (person) { CORRESPONDENCE.push(person); });
-  var additionalAdmins = loadAdditionalStaff(ADDITIONAL_ADMINS_KEY, APPROVERS.concat(ADMINS, CORRESPONDENCE));
-  additionalAdmins.forEach(function (person) { ADMINS.push(person); });
+
   var SOCIAL_LINKS_KEY = 'cuti_social_links_v1';
   var SOCIAL_SITES = [
     { id: 'youtube', label: 'YouTube', color: 'text-red-600', icon: '<svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2C.5 9.1.5 12 .5 12s0 2.9.5 4.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-4.8.5-4.8s0-2.9-.5-4.8Z"/><path d="m9.7 15.5 5.8-3.5-5.8-3.5v7Z" fill="#ffffff"/></svg>' },
@@ -1607,27 +1293,6 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         console.error('Tautan media sosial gagal dimuat dari server:', error);
       });
   }
-  var STAFF_CONFIG_KEY = 'cuti_staff_config_v1';
-  function loadStaffConfig() {
-    try {
-      return JSON.parse(localStorage.getItem(STAFF_CONFIG_KEY)) || {};
-    } catch (error) {
-      console.error('Data akun petugas tidak dapat dibaca:', error);
-      return {};
-    }
-  }
-  var staffConfig = loadStaffConfig();
-  APPROVERS.forEach(function (person) {
-    var saved = staffConfig[person.nip];
-    if (!saved) return;
-    if (saved.name) person.name = saved.name;
-    Object.keys(HEAD).forEach(function (code) {
-      if (HEAD[code][1] === person.nip) HEAD[code][0] = person.name;
-    });
-    EMP.forEach(function (employee) {
-      if (employee.nip === person.nip) employee.n = person.name;
-    });
-  });
   function staffAccountByEmail(email) {
     var normalizedEmail = String(email || '').trim().toLowerCase();
     if (!normalizedEmail) return null;
@@ -1662,17 +1327,6 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         return person.nip !== nip && person.email && person.email.trim().toLowerCase() === normalizedEmail;
       });
     });
-  }
-  function saveStaffConfig() {
-    try {
-      localStorage.setItem(STAFF_CONFIG_KEY, JSON.stringify(staffConfig));
-      pushSetting('staff_config', staffConfig);
-      return true;
-    } catch (error) {
-      console.error('Data akun petugas tidak dapat disimpan:', error);
-      toast('Perubahan data penyetuju gagal disimpan di browser ini.');
-      return false;
-    }
   }
   function updateApproverNameReferences(oldName, newName, oldNip, newNip) {
     var nipChanged = oldNip !== newNip;
@@ -1738,6 +1392,81 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     }).join('');
     document.getElementById('admin2-approver-table').innerHTML = html;
   }
+  function loadRegistrationRequests() {
+    var section = document.getElementById('registration-requests-section');
+    if (!section) return Promise.resolve();
+    section.classList.toggle('hidden', !isAdmin1Or2());
+    if (!isAdmin1Or2() || !supabaseClient) return Promise.resolve();
+    return supabaseClient.from('registration_requests')
+      .select('id,email,claimed_name,claimed_nip,created_at')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .then(function (result) {
+        if (result.error) throw result.error;
+        var container = document.getElementById('registration-requests-list');
+        var requests = result.data || [];
+        if (!requests.length) {
+          container.innerHTML = '<p class="text-sm text-slate-500">Tidak ada permintaan yang menunggu.</p>';
+          return;
+        }
+        var seenNips = {}, identities = [];
+        EMP.concat(APPROVERS, ADMINS, CORRESPONDENCE).forEach(function (person) {
+          var key = nipKey(person.nip);
+          if (!key || seenNips[key]) return;
+          seenNips[key] = true;
+          identities.push({ name: person.n || person.name, nip: person.nip });
+        });
+        var options = identities.map(function (identity) {
+          return '<option value="' + esc(identity.nip) + '">' + esc(identity.name + ' — ' + identity.nip) + '</option>';
+        }).join('');
+        container.innerHTML = '<table class="min-w-full text-sm"><thead><tr class="text-left bg-slate-100">' +
+          '<th class="p-2">Email</th><th class="p-2">Nama diajukan</th><th class="p-2">NIP diajukan</th>' +
+          '<th class="p-2">Tautkan ke NIP</th><th class="p-2">Tanggal</th><th class="p-2">Aksi</th></tr></thead><tbody>' +
+          requests.map(function (request) {
+            var chosen = identities.filter(function (identity) { return nipKey(identity.nip) === nipKey(request.claimed_nip); })[0];
+            var choices = '<option value="">Pilih pegawai...</option>' + options;
+            var selectedChoices = chosen
+              ? choices.replace('value="' + esc(chosen.nip) + '"', 'value="' + esc(chosen.nip) + '" selected')
+              : choices;
+            return '<tr class="border-t" data-registration-row="' + esc(request.id) + '">' +
+              '<td class="p-2">' + esc(request.email) + '</td><td class="p-2">' + esc(request.claimed_name || '—') + '</td>' +
+              '<td class="p-2">' + esc(request.claimed_nip || '—') + '</td>' +
+              '<td class="p-2"><select class="registration-nip inp min-w-56">' + selectedChoices + '</select></td>' +
+              '<td class="p-2 whitespace-nowrap">' + esc(new Date(request.created_at).toLocaleString('id-ID')) + '</td>' +
+              '<td class="p-2 whitespace-nowrap"><button type="button" data-action="approve-registration" class="mr-2 rounded bg-green-700 px-3 py-1.5 text-xs font-semibold text-white">Setujui</button>' +
+              '<button type="button" data-action="reject-registration" class="rounded bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700">Tolak</button></td></tr>';
+          }).join('') + '</tbody></table>';
+      }).catch(function (error) {
+        console.error('Permintaan penautan akun gagal dimuat:', error);
+        document.getElementById('registration-requests-list').textContent =
+          'Permintaan gagal dimuat (' + (error.code || error.message || 'error') + ').';
+      });
+  }
+  document.getElementById('registration-requests-refresh').addEventListener('click', loadRegistrationRequests);
+  document.getElementById('registration-requests-list').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-action="approve-registration"], [data-action="reject-registration"]');
+    if (!button || !isAdmin1Or2()) return;
+    var row = button.closest('[data-registration-row]');
+    var requestId = row && row.dataset.registrationRow;
+    if (!requestId) return;
+    var approve = button.dataset.action === 'approve-registration';
+    var selectedNip = approve ? row.querySelector('.registration-nip').value : '';
+    if (approve && !selectedNip) { toast('Pilih NIP pegawai sebelum menyetujui.'); return; }
+    if (!confirm(approve
+      ? 'Tautkan akun ini ke NIP ' + selectedNip + '? Pastikan email dan identitas pemohon sudah diverifikasi.'
+      : 'Tolak permintaan penautan akun ini?')) return;
+    var action = approve
+      ? supabaseClient.rpc('admin_approve_registration', { p_request: requestId, p_nip: selectedNip })
+      : supabaseClient.rpc('admin_reject_registration', { p_request: requestId });
+    action.then(function (result) {
+      if (result.error) throw result.error;
+      toast(approve ? 'Akun berhasil ditautkan.' : 'Permintaan ditolak.');
+      return loadRegistrationRequests();
+    }).catch(function (error) {
+      console.error('Keputusan permintaan penautan gagal:', error);
+      toast('Permintaan gagal diproses (' + (error.code || error.message || 'error') + ').');
+    });
+  });
   /* Bagian Admin 2 bisa di-minimize; keadaan terakhir diingat di perangkat ini. */
   document.querySelectorAll('details.adm-sec').forEach(function (d) {
     var k = 'adm2_sec_' + d.dataset.sec;
@@ -1768,25 +1497,6 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
   }
   function samePerson(a, b) {
     return a.nip.replace(/\s/g, '') === b.nip.replace(/\s/g, '') || (!!a.email && !!b.email && a.email.toLowerCase() === b.email.toLowerCase());
-  }
-  function syncStaffList(serverKey, localKey, list, additions, serverValue) {
-    var incoming = (Array.isArray(serverValue) ? serverValue : []).map(cleanPerson).filter(Boolean);
-    incoming.forEach(function (p) {
-      if (!additions.some(function (a) { return samePerson(a, p); })) additions.push(p);
-      if (!list.some(function (a) { return samePerson(a, p); })) list.push(p);
-    });
-    cacheLocal(localKey, additions);
-    var needPush = additions.some(function (a) { return !incoming.some(function (p) { return samePerson(a, p); }); });
-    if (needPush) pushSetting(serverKey, additions);
-  }
-  function applyStaffConfig() {
-    APPROVERS.forEach(function (person) {
-      var saved = staffConfig[person.nip];
-      if (!saved) return;
-      if (saved.name) person.name = saved.name;
-      Object.keys(HEAD).forEach(function (code) { if (HEAD[code][1] === person.nip) HEAD[code][0] = person.name; });
-      EMP.forEach(function (employee) { if (employee.nip === person.nip) employee.n = person.name; });
-    });
   }
   /* ---------- Sisa cuti N, N-1, N-2 (diisi Admin 1, disimpan di tabel leave_balances) ---------- */
   var LEAVE_BAL_KEY = 'cuti_sisa_v2';
@@ -1867,115 +1577,12 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     sec.classList.toggle('hidden', !canExportExcel());
   }
   /* ---------- Nominatif pegawai: edit roster (nama, NIP, jabatan, unit, tambah, hapus) + sisa cuti massal (Admin 1) ---------- */
-  var ROSTER_KEY = 'cuti_roster_v1';
-  var BASE_EMP = EMP.map(function (e) { return Object.assign({}, e); });
-  var HEAD_BASE = JSON.parse(JSON.stringify(HEAD));
-  var APPROVERS_BASE = APPROVERS.map(function (p) { return Object.assign({}, p); });
-  var rosterCfg = (function () {
-    try { var v = JSON.parse(localStorage.getItem(ROSTER_KEY) || '{}'); return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {}; } catch (e) { return {}; }
-  })();
-  function rosterNorm(c) {
-    c = c || {};
-    return { edits: (c.edits && typeof c.edits === 'object') ? c.edits : {}, added: Array.isArray(c.added) ? c.added : [], removed: Array.isArray(c.removed) ? c.removed : [] };
-  }
-  function unitCodeFromLabel(label) {
-    for (var code in UNIT_LABEL) if (UNIT_LABEL[code] === label) return code;
-    return 'K';
-  }
+  var BASE_EMP = [];
   /* Admin 1 dan Admin 2 tidak boleh dihapus / diganti NIP-nya dari nominatif (akun login dan hak aksesnya terikat NIP). */
   function isProtectedNip(nip) {
     var k = nipKey(nip);
     return !!k && ADMINS.slice(0, 2).some(function (p) { return nipKey(p.nip) === k; });
   }
-  function staffGroups() {
-    return [
-      { list: APPROVERS, adds: additionalApprovers, lsKey: ADDITIONAL_APPROVERS_KEY, serverKey: 'additional_approvers' },
-      { list: CORRESPONDENCE, adds: additionalCorrespondence, lsKey: ADDITIONAL_CORRESPONDENCE_KEY, serverKey: 'additional_correspondence' },
-      { list: ADMINS, adds: additionalAdmins, lsKey: ADDITIONAL_ADMINS_KEY, serverKey: 'additional_admins' }
-    ];
-  }
-  /* Pegawai yang dihapus dari nominatif otomatis hilang dari daftar Penyetuju / Persuratan / Admin dan dari kursi kepala unit. */
-  function purgeRemovedStaff(keys) {
-    var dirty = [];
-    if (!keys || !keys.length) return dirty;
-    function gone(p) { return p && keys.indexOf(nipKey(p.nip)) !== -1 && !isProtectedNip(p.nip); }
-    staffGroups().forEach(function (g) {
-      for (var i = g.list.length - 1; i >= 0; i--) if (gone(g.list[i])) g.list.splice(i, 1);
-      var before = g.adds.length;
-      for (var j = g.adds.length - 1; j >= 0; j--) if (gone(g.adds[j])) g.adds.splice(j, 1);
-      if (g.adds.length !== before) dirty.push(g);
-    });
-    Object.keys(HEAD).forEach(function (code) {
-      if (HEAD[code][1] && keys.indexOf(nipKey(HEAD[code][1])) !== -1) HEAD[code] = ['', ''];
-    });
-    return dirty;
-  }
-  /* NIP berubah: perbarui semua rujukan (kursi kepala, penyetuju, persuratan, admin, konfigurasi akun, atasan langsung). */
-  function renameNipInStaff(oldNip, newNip) {
-    var ok = nipKey(oldNip), dirty = [], cfgChanged = false;
-    Object.keys(HEAD).forEach(function (code) { if (nipKey(HEAD[code][1]) === ok) HEAD[code][1] = newNip; });
-    staffGroups().forEach(function (g) {
-      var ch = false;
-      g.adds.forEach(function (p) { if (nipKey(p.nip) === ok) { p.nip = newNip; ch = true; } });
-      g.list.forEach(function (p) { if (nipKey(p.nip) === ok) p.nip = newNip; });
-      if (ch) dirty.push(g);
-    });
-    Object.keys(staffConfig).forEach(function (key) {
-      if (nipKey(key) === ok && nipKey(key) !== nipKey(newNip)) { staffConfig[newNip] = staffConfig[key]; delete staffConfig[key]; cfgChanged = true; }
-    });
-    EMP.forEach(function (e) { if (nipKey(e.anip) === ok) e.anip = newNip; });
-    return { dirty: dirty, cfgChanged: cfgChanged };
-  }
-  function restoreBaseRoles(k, name) {
-    Object.keys(HEAD_BASE).forEach(function (code) {
-      if (HEAD_BASE[code][1] && nipKey(HEAD_BASE[code][1]) === k) HEAD[code] = [name || HEAD_BASE[code][0], HEAD_BASE[code][1]];
-    });
-    APPROVERS_BASE.forEach(function (p) {
-      if (nipKey(p.nip) === k && !APPROVERS.some(function (x) { return nipKey(x.nip) === k; })) APPROVERS.push(Object.assign({}, p, name ? { name: name } : {}));
-    });
-  }
-  function applyRoster() {
-    var c = rosterNorm(rosterCfg), out = [], nipMap = {};
-    BASE_EMP.forEach(function (b) {
-      var k = nipKey(b.nip);
-      if (c.removed.indexOf(k) !== -1) return;
-      var e = Object.assign({}, b), ed = c.edits[k];
-      e.origNip = b.nip;
-      if (ed) {
-        if (ed.n) e.n = ed.n;
-        if (typeof ed.j === 'string') e.j = ed.j;
-        if (ed.unitCode && UNIT_LABEL[ed.unitCode]) { e.unitCode = ed.unitCode; e.unit = UNIT_LABEL[ed.unitCode]; }
-        if (ed.nip && nipKey(ed.nip) !== k) { nipMap[k] = ed.nip; e.nip = ed.nip; }
-      }
-      out.push(e);
-    });
-    c.added.forEach(function (a) {
-      if (!a || !a.n || !a.nip) return;
-      var k = nipKey(a.nip);
-      if (c.removed.indexOf(k) !== -1) return;
-      if (out.some(function (e) { return nipKey(e.nip) === k; })) return;
-      var uc = (a.unitCode && UNIT_LABEL[a.unitCode]) ? a.unitCode : 'K', h = HEAD[uc];
-      out.push({ n: a.n, nip: a.nip, j: a.j || '', an: h ? h[0] : '', anip: h ? h[1] : '', unitCode: uc, unit: UNIT_LABEL[uc], origNip: a.nip });
-    });
-    EMP.length = 0;
-    out.forEach(function (e) { EMP.push(e); });
-    Object.keys(nipMap).forEach(function (k) { renameNipInStaff(k, nipMap[k]); });
-    /* nama/jabatan hasil edit nominatif ikut ke kursi kepala dan daftar penyetuju/persuratan/admin */
-    BASE_EMP.forEach(function (b) {
-      var ed = c.edits[nipKey(b.nip)];
-      if (!ed || c.removed.indexOf(nipKey(b.nip)) !== -1) return;
-      var curNip = ed.nip || b.nip, ck = nipKey(curNip);
-      if (ed.n && ed.n !== b.n) {
-        EMP.forEach(function (x) { if (x.an === b.n) x.an = ed.n; });
-        Object.keys(HEAD).forEach(function (code) { if (nipKey(HEAD[code][1]) === ck) HEAD[code][0] = ed.n; });
-        staffGroups().forEach(function (g) { g.list.forEach(function (p) { if (nipKey(p.nip) === ck) p.name = ed.n; }); });
-      }
-      if (typeof ed.j === 'string' && ed.j) APPROVERS.forEach(function (p) { if (nipKey(p.nip) === ck) p.title = ed.j; });
-    });
-    purgeRemovedStaff(c.removed);
-  }
-  applyRoster();
-
   (function initNominatif() {
     var openBtn = document.getElementById('btn-open-nominatif');
     var panel = document.getElementById('nominatif-panel');
@@ -2099,9 +1706,8 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       if (!canExportExcel()) { toast('Hanya Admin 1 yang dapat menyimpan nominatif.'); return; }
       nomReqs = load();
       var tahun = parseInt(tahunEl.value, 10) || new Date().getFullYear();
-      var cfg = rosterNorm(JSON.parse(JSON.stringify(rosterCfg)));
       var rows = Array.prototype.slice.call(tableEl.querySelectorAll('tr.nom-row'));
-      var balanceRows = [], errors = [], seenKeys = {}, nipChanges = [], removedKeys = [], removedNames = [], readded = [];
+      var balanceRows = [], errors = [], seenKeys = {}, nipChanges = [], removedKeys = [], removedNames = [];
       function cleanNip(tr) { return tr.querySelector('.nom-nipedit').value.trim().replace(/\s+/g, ' '); }
 
       /* 1. Pemeriksaan: NIP tidak boleh kosong / ganda di antara baris yang dipertahankan */
@@ -2123,12 +1729,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         if (tr.dataset.new === '1' || tr.dataset.removed !== '1') return;
         var cur = tr.dataset.nip, ck = nipKey(cur), ok = tr.dataset.orig || ck;
         if (isProtectedNip(cur)) { errors.push('Admin 1 / Admin 2 tidak dapat dihapus dari nominatif.'); return; }
-        [ok, ck].forEach(function (key) {
-          if (cfg.removed.indexOf(key) === -1) cfg.removed.push(key);
-          if (removedKeys.indexOf(key) === -1) removedKeys.push(key);
-        });
-        cfg.added = cfg.added.filter(function (a) { return nipKey(a.nip) !== ck && nipKey(a.nip) !== ok; });
-        delete cfg.edits[ok];
+        [ok, ck].forEach(function (key) { if (removedKeys.indexOf(key) === -1) removedKeys.push(key); });
         removedNames.push(tr.querySelector('.nom-name').value.trim() || cur);
       });
       if (errors.length) { toast(errors[0]); return; }
@@ -2144,26 +1745,9 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         if (isNew && !name && !k) return;
         var vN = tr.querySelector('.nom-n').value, v1 = tr.querySelector('.nom-n1').value, v2 = tr.querySelector('.nom-n2').value;
         var nipChanged = false, oldNip = '';
-        if (isNew) {
-          var baseHit = BASE_EMP.filter(function (x) { return nipKey(x.nip) === k; })[0];
-          cfg.removed = cfg.removed.filter(function (x) { return x !== k; });
-          if (baseHit) { cfg.edits[k] = { n: name, unitCode: unitCode, j: jab }; readded.push({ k: k, name: name }); }
-          else cfg.added.push({ n: name, nip: nip, j: jab, unitCode: unitCode });
-        } else {
+        if (!isNew) {
           oldNip = tr.dataset.nip;
-          var origKey = tr.dataset.orig || nipKey(oldNip);
           nipChanged = k !== nipKey(oldNip);
-          if (tr.dataset.dirty === '1' || nipChanged) {
-            var added = cfg.added.filter(function (a) { return nipKey(a.nip) === nipKey(oldNip); })[0];
-            if (added) { added.n = name; added.unitCode = unitCode; added.j = jab; added.nip = nip; }
-            else {
-              var base = BASE_EMP.filter(function (x) { return nipKey(x.nip) === origKey; })[0];
-              var ed = { n: name, unitCode: unitCode, j: jab };
-              if (base && k !== origKey) ed.nip = nip;
-              if (base && base.n === name && base.unitCode === unitCode && (base.j || '') === jab && !ed.nip) delete cfg.edits[origKey];
-              else cfg.edits[origKey] = ed;
-            }
-          }
           if (nipChanged) nipChanges.push({ oldNip: oldNip, newNip: nip, name: name });
         }
         var existing = effectiveBalance(isNew ? nip : oldNip, null, nomReqs);
@@ -2176,43 +1760,39 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         }
       });
       if (!supabaseClient) { toast('Server belum terhubung, nominatif tidak dapat disimpan.'); return; }
-      var rosterChanged = JSON.stringify(cfg) !== JSON.stringify(rosterNorm(rosterCfg));
+      var rosterChanged = rows.some(function (tr) {
+        return tr.dataset.removed === '1' ||
+          tr.dataset.dirty === '1' ||
+          (tr.dataset.new === '1' && tr.querySelector('.nom-name').value.trim());
+      });
       if (!rosterChanged && !balanceRows.length) { toast('Tidak ada perubahan untuk disimpan.'); return; }
       if (removedNames.length && !confirm('Pegawai berikut akan dihapus dari nominatif dan otomatis dihapus dari seluruh sistem (akun tidak bisa masuk lagi, peran penyetuju/persuratan dicabut):\n\n- ' + removedNames.join('\n- ') + '\n\nAdmin dapat menambahkannya kembali kapan saja. Lanjutkan?')) return;
+      var rosterRows = rows.filter(function (tr) { return tr.dataset.removed !== '1'; }).map(function (tr) {
+        var employee = BASE_EMP.filter(function (person) {
+          return nipKey(person.origNip || person.nip) === nipKey(tr.dataset.orig || tr.dataset.nip);
+        })[0];
+        return {
+          orig_nip: tr.dataset.new === '1' ? '' : (tr.dataset.orig || tr.dataset.nip),
+          nip: cleanNip(tr),
+          name: tr.querySelector('.nom-name').value.trim().replace(/\s+/g, ' '),
+          jabatan: tr.querySelector('.nom-jab').value.trim(),
+          unit_code: tr.querySelector('.nom-unit').value,
+          atasan_code: employee ? (employee.atasanCode || employee.unitCode) : tr.querySelector('.nom-unit').value
+        };
+      });
+      var deletedNips = rows.filter(function (tr) {
+        return tr.dataset.new !== '1' && tr.dataset.removed === '1';
+      }).map(function (tr) { return tr.dataset.orig || tr.dataset.nip; });
       var saveBtn = document.getElementById('nom-save');
       saveBtn.disabled = true;
-      var p1 = rosterChanged ? pushSetting('employee_roster', cfg) : Promise.resolve(true);
-      p1.then(function (ok1) {
-        if (!ok1) return { ok: false, step: 'roster' };
-        if (rosterChanged) {
-          rosterCfg = cfg; cacheLocal(ROSTER_KEY, cfg);
-          var dirtyGroups = [], cfgChanged = false;
-          nipChanges.forEach(function (ch) { var r = renameNipInStaff(ch.oldNip, ch.newNip); dirtyGroups = dirtyGroups.concat(r.dirty); cfgChanged = cfgChanged || r.cfgChanged; });
-          readded.forEach(function (r) { restoreBaseRoles(r.k, r.name); });
-          dirtyGroups = dirtyGroups.concat(purgeRemovedStaff(removedKeys));
-          applyRoster();
-          var pushed = {};
-          dirtyGroups.forEach(function (g) {
-            if (pushed[g.serverKey]) return;
-            pushed[g.serverKey] = true;
-            cacheLocal(g.lsKey, g.adds);
-            pushSetting(g.serverKey, g.adds);
-          });
-          if (cfgChanged) saveStaffConfig();
-          /* riwayat pengajuan ikut pindah ke NIP baru */
-          if (nipChanges.length) {
-            var reqs = load(), reqChanged = false;
-            reqs.forEach(function (r) {
-              nipChanges.forEach(function (ch) {
-                var ok = nipKey(ch.oldNip);
-                if (nipKey(r.nip) === ok) { r.nip = ch.newNip; reqChanged = true; }
-                if (nipKey(r.requestedBy) === ok) { r.requestedBy = ch.newNip; reqChanged = true; }
-                if (nipKey(r.atasanNip) === ok) { r.atasanNip = ch.newNip; reqChanged = true; }
-              });
-            });
-            if (reqChanged) save(reqs);
-          }
-        }
+      var rosterSave = rosterChanged
+        ? supabaseClient.rpc('admin_save_roster', { p_rows: rosterRows, p_delete: deletedNips }).then(function (res) {
+            if (res.error) throw res.error;
+            directoryLoaded = false;
+            return loadDirectoryFromServer();
+          })
+        : Promise.resolve();
+      rosterSave.then(function () {
         /* sisa cuti: hapus data pegawai yang dihapus / berganti NIP */
         var staleKeys = removedKeys.concat(nipChanges.map(function (ch) { return nipKey(ch.oldNip); }));
         var delStale = Promise.resolve();
@@ -2243,7 +1823,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         }
       }).catch(function (error) {
         console.error('Nominatif gagal disimpan:', error);
-        toast('Sisa cuti gagal disimpan (' + (error.code || error.message || 'error') + '). Pastikan akun Anda terdaftar sebagai Admin 1.');
+        toast('Nominatif atau sisa cuti gagal disimpan (' + (error.code || error.message || 'error') + '). Pastikan akun Anda terdaftar sebagai Admin 1.');
       }).then(function () { saveBtn.disabled = false; });
     });
   })();
@@ -2256,9 +1836,6 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       if (result.error) throw result.error;
       var s = {};
       (result.data || []).forEach(function (row) { s[row.key] = row.value; });
-      syncStaffList('additional_approvers', ADDITIONAL_APPROVERS_KEY, APPROVERS, additionalApprovers, s.additional_approvers);
-      syncStaffList('additional_correspondence', ADDITIONAL_CORRESPONDENCE_KEY, CORRESPONDENCE, additionalCorrespondence, s.additional_correspondence);
-      syncStaffList('additional_admins', ADDITIONAL_ADMINS_KEY, ADMINS, additionalAdmins, s.additional_admins);
       var serverLinks = s.social_links || {};
       var mergedLinks = SOCIAL_SITES.reduce(function (links, site) {
         links[site.id] = normalizeSocialUrl(serverLinks[site.id]) || socialLinks[site.id] || '';
@@ -2268,14 +1845,6 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       socialLinks = mergedLinks;
       cacheLocal(SOCIAL_LINKS_KEY, mergedLinks);
       if (linksDiffer) pushSetting('social_links', mergedLinks);
-      var serverCfg = s.staff_config || {};
-      var mergedCfg = Object.assign({}, staffConfig, serverCfg);
-      staffConfig = mergedCfg;
-      cacheLocal(STAFF_CONFIG_KEY, mergedCfg);
-      if (JSON.stringify(mergedCfg) !== JSON.stringify(serverCfg)) pushSetting('staff_config', mergedCfg);
-      applyStaffConfig();
-      if (s.employee_roster) { rosterCfg = s.employee_roster; cacheLocal(ROSTER_KEY, rosterCfg); applyRoster(); }
-      else purgeRemovedStaff(rosterNorm(rosterCfg).removed);
       /* Pulihkan sesi lokal agar user tetap bisa keluar-masuk Beranda tanpa login ulang */
   try {
     var cached = restoreSessionUser();
@@ -2293,9 +1862,9 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     return settingsLoading;
   }
   var additionalStaffRoles = {
-    approver: { label: 'Penyetuju', list: APPROVERS, additions: additionalApprovers, save: saveAdditionalApprovers },
-    correspondence: { label: 'Persuratan', list: CORRESPONDENCE, additions: additionalCorrespondence, key: ADDITIONAL_CORRESPONDENCE_KEY, serverKey: 'additional_correspondence' },
-    admin: { label: 'Admin', list: ADMINS, additions: additionalAdmins, key: ADDITIONAL_ADMINS_KEY, serverKey: 'additional_admins' }
+    approver: { label: 'Penyetuju', list: APPROVERS, additions: additionalApprovers },
+    correspondence: { label: 'Persuratan', list: CORRESPONDENCE, additions: additionalCorrespondence },
+    admin: { label: 'Admin', list: ADMINS, additions: additionalAdmins }
   };
   function closeAddStaffForm() {
     addStaffRole = '';
@@ -2322,7 +1891,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       document.getElementById('admin2-add-staff-email-wrap').classList.toggle('hidden', byNip);
       document.getElementById('admin2-add-staff-email').required = !byNip;
       document.getElementById('admin2-add-staff-note').textContent = byNip
-        ? 'Petugas dikenali dari NIP. Setelah petugas mendaftar dengan NIP ini, akunnya otomatis menjadi ' + additionalStaffRoles[role].label.toLowerCase() + '. Tidak perlu mengisi email.'
+        ? 'Setelah petugas mendaftar dengan NIP ini dan memverifikasi email, Admin perlu menyetujui penautan akun.'
         : '';
       document.getElementById('admin2-add-staff-name').focus();
     });
@@ -2365,28 +1934,25 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       fail('Email tersebut sudah terdaftar untuk petugas lain.');
       return;
     }
-    roleConfig.additions.push(person);
-    var saved;
-    if (roleConfig.save) saved = roleConfig.save();
-    else {
-      try {
-        localStorage.setItem(roleConfig.key, JSON.stringify(roleConfig.additions));
-        pushSetting(roleConfig.serverKey, roleConfig.additions);
-        saved = true;
-      } catch (error) {
-        console.error('Data petugas tambahan tidak dapat disimpan:', error);
-        saved = false;
-      }
-    }
-    if (!saved) {
-      roleConfig.additions.pop();
-      fail('Data petugas gagal disimpan di browser ini.');
-      return;
-    }
-    roleConfig.list.push(person);
-    closeAddStaffForm();
-    renderAll();
-    toast(roleConfig.label + ' berhasil ditambahkan.');
+    var saveButton = document.getElementById('btn-save-add-staff');
+    saveButton.disabled = true;
+    supabaseClient.rpc('admin_add_staff', {
+      p_role: addStaffRole,
+      p_name: person.name,
+      p_nip: person.nip,
+      p_title: person.title
+    }).then(function (result) {
+      if (result.error) throw result.error;
+      directoryLoaded = false;
+      return loadDirectoryFromServer();
+    }).then(function () {
+      closeAddStaffForm();
+      renderAll();
+      toast(roleConfig.label + ' berhasil ditambahkan.');
+    }).catch(function (error) {
+      console.error('Data petugas gagal disimpan:', error);
+      fail('Data petugas gagal disimpan (' + (error.code || error.message || 'error') + ').');
+    }).then(function () { saveButton.disabled = false; });
   });
   /* Profil pemohon cuti: pegawai biasa memakai profilnya; penyetuju/admin/persuratan dicocokkan lewat NIP ke daftar pegawai. */
   function applicantProfile(user) {
@@ -2501,19 +2067,6 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
   populateTestActors();
   /* ---------- Login & pendaftaran mandiri (Supabase Auth) ---------- */
   var pendingUser = null, authRestored = false;
-  var empList = document.getElementById('emp-list');
-  /* Saran nama/NIP hanya ditampilkan saat menghubungkan akun di halaman Masuk. */
-  empList.innerHTML = '';
-  function updateEmpList(q) {
-    var t = String(q || '').trim().toLowerCase(), tn = t.replace(/\s+/g, '');
-    if (t.length < 3) { empList.innerHTML = ''; return; }
-    empList.innerHTML = EMP.filter(function (e) {
-      return e.n.toLowerCase().indexOf(t) !== -1 || e.nip.replace(/\s+/g, '').indexOf(tn) === 0;
-    }).slice(0, 8).map(function (e) {
-      return '<option value="' + esc(e.n + ' - ' + e.nip) + '"></option>';
-    }).join('');
-  }
-  document.getElementById('login-link').addEventListener('input', function () { updateEmpList(this.value); });
   function normId(v) { return String(v || '').toLowerCase().replace(/\s+/g, ''); }
   function findEmployee(q) {
     var n = normId(q);
@@ -2558,21 +2111,46 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     return messages[error.code] || 'Terjadi kesalahan (' + (error.code || 'unknown') + ').';
   }
 
-  /* NIP di metadata akun menentukan peran (penyetuju/admin/persuratan); email lama tetap dikenali sebagai cadangan. */
+  /* Peran ditentukan dari NIP tertaut di Supabase, bukan metadata akun yang dapat diubah pengguna. */
+  var currentLinkedNip = '';
   function buildUser(user) {
-    var staff = staffAccountByNip(user.user_metadata && user.user_metadata.nip) || staffAccountByEmail(user.email);
+    var staff = staffAccountByNip(currentLinkedNip);
     if (staff) {
       return { role: staff.role, name: staff.person.name, nip: staff.person.nip, title: staff.person.title,
                uid: user.id, email: user.email };
     }
-    var profile = findEmployee(user.user_metadata && user.user_metadata.nip);
+    var profile = findEmployee(currentLinkedNip);
     if (profile) {
       return { role: 'employee', name: profile.n, nip: profile.nip, profile: profile, uid: user.id, email: user.email };
     }
     return null;
   }
   function finishLogin(user, silent) {
-    return Promise.all([loadSettingsFromServer(), loadLeaveBalancesFromServer()]).then(function () { return finishLoginCore(user, silent); });
+    return supabaseClient.rpc('claim_employee_link').then(function (linkResult) {
+      if (linkResult.error) throw linkResult.error;
+      if (linkResult.data !== 'linked') {
+        var messages = {
+          pending: 'Akun belum terhubung. Masukkan NIP pegawai untuk mengajukan penautan; permintaan yang belum cocok perlu diverifikasi Admin.',
+          rejected: 'Permintaan pendaftaran ditolak. Hubungi Admin untuk bantuan.',
+          unconfirmed: 'Email belum diverifikasi. Buka tautan verifikasi di email Anda, lalu masuk lagi.'
+        };
+        currentUser = null;
+        currentLinkedNip = '';
+        clearSessionUser();
+        if (linkResult.data === 'pending') document.getElementById('login-link-wrap').classList.remove('hidden');
+        authMsg('login-error', messages[linkResult.data] || 'Akun belum dapat ditautkan ke data pegawai.');
+        return false;
+      }
+      return supabaseClient.from('employee_links').select('nip').eq('user_id', user.id).maybeSingle()
+        .then(function (link) {
+          if (link.error) throw link.error;
+          if (!link.data || !link.data.nip) throw new Error('Akun belum terhubung ke NIP pegawai.');
+          currentLinkedNip = link.data.nip;
+          return loadDirectoryFromServer();
+        })
+        .then(function () { return Promise.all([loadSettingsFromServer(), loadLeaveBalancesFromServer()]); })
+        .then(function () { return finishLoginCore(user, silent); });
+    });
   }
   function finishLoginCore(user, silent) {
     var resendBtn = document.getElementById('btn-resend');
@@ -2588,13 +2166,15 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
       pendingUser = { email: user.email };
       if (!silent) {
         linkWrap.classList.remove('hidden');
-        authMsg('login-error', 'Akun ini belum terhubung ke data pegawai. Isi Nama / NIP Pegawai di bawah, lalu klik Masuk lagi.');
+        linkWrap.classList.remove('hidden');
+        authMsg('login-error', 'Akun belum terhubung ke data pegawai. Masukkan NIP pegawai di bawah, lalu klik Masuk lagi.');
       }
       return Promise.resolve(false);
     }
     pendingUser = null;
     currentUser = u;
     saveSessionUser(u);
+    if (isAdmin1Or2()) loadRegistrationRequests();
     startRequestsSync();
     registerPush(false);
     updatePushButton();
@@ -2624,10 +2204,9 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     supabaseClient.auth.signInWithPassword({ email: email, password: password }).then(function (result) {
       if (result.error) throw result.error;
       var user = result.data.user;
-      if (linkVisible && linkInput.value.trim() && !staffAccountByEmail(user.email) && !staffAccountByNip(user.user_metadata && user.user_metadata.nip)) {
-        var p = findEmployee(linkInput.value);
-        if (!p) { authMsg('login-error', 'Nama/NIP tidak ditemukan. Pilih dari saran yang muncul atau ketik NIP lengkap.'); return; }
-        return supabaseClient.auth.updateUser({ data: { nip: p.nip } }).then(function (updateResult) {
+      if (linkVisible && linkInput.value.trim() && !staffAccountByEmail(user.email) && !staffAccountByNip(user.user_metadata && user.user_metadata.claimed_nip)) {
+        var claimedNip = linkInput.value.trim().replace(/\s+/g, ' ');
+        return supabaseClient.auth.updateUser({ data: { claimed_nip: claimedNip } }).then(function (updateResult) {
           if (updateResult.error) throw updateResult.error;
           return finishLogin(updateResult.data.user);
         });
@@ -2656,15 +2235,9 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     var pw2 = document.getElementById('signup-password2').value;
     var nameVal = document.getElementById('signup-name').value;
     if (!email) { authMsg('signup-error', 'Email wajib diisi.'); return; }
-    var staff = staffAccountByEmail(email), nip;
-    if (staff) {
-      nip = staff.person.nip;
-    } else {
-      var emp = findEmployee(nameVal);
-      var npr = !emp ? staffAccountByNip(nameVal.trim()) : null;
-      if (!emp && !npr) { authMsg('signup-error', 'Nama lengkap atau NIP tidak ditemukan di daftar pegawai. Periksa kembali data yang Anda masukkan.'); return; }
-      nip = emp ? emp.nip : npr.person.nip;
-    }
+    var staff = staffAccountByEmail(email);
+    var nip = staff ? staff.person.nip : nameVal.trim().replace(/\s+/g, ' ');
+    if (!nip) { authMsg('signup-error', 'NIP pegawai wajib diisi.'); return; }
     if (pw.length < 8) { authMsg('signup-error', 'Kata sandi minimal 8 karakter.'); return; }
     if (pw !== pw2) { authMsg('signup-error', 'Kata sandi dan pengulangannya tidak sama.'); return; }
     var btn = document.getElementById('signup-submit');
@@ -2673,7 +2246,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     supabaseClient.auth.signUp({
       email: email,
       password: pw,
-      options: { data: { nip: nip }, emailRedirectTo: window.location.href.split('#')[0] }
+      options: { data: { claimed_nip: nip }, emailRedirectTo: window.location.href.split('#')[0] }
     }).then(function (result) {
       if (result.error) throw result.error;
       signupHadSession = !!result.data.session;
@@ -2727,7 +2300,7 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     };
     var client = supabaseClient;
     try { stopRequestsSync(); } catch (e) { console.error('Hentikan sinkronisasi gagal:', e); }
-    currentUser = null; testUser = null; pendingUser = null;
+    currentUser = null; currentLinkedNip = ''; testUser = null; pendingUser = null;
     clearSessionUser();
     try {
       document.getElementById('login-form').reset();
@@ -2768,7 +2341,12 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
     supabaseClient.auth.onAuthStateChange(function (event, session) {
       if (event !== 'INITIAL_SESSION' || authRestored) return;
       authRestored = true;
-      if (session && session.user) setTimeout(function () { finishLogin(session.user, true); }, 0);
+      if (session && session.user) setTimeout(function () {
+        finishLogin(session.user, true).catch(function (error) {
+          console.error('Pemulihan sesi gagal:', error);
+          authMsg('login-error', authErrorMessage(error));
+        });
+      }, 0);
     });
   }
   /* ---------- Timeline pengajuan terakhir ---------- */
@@ -3749,44 +3327,26 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
           });
           if (svDup) { toast('NIP tersebut sudah digunakan petugas lain.'); break; }
         }
-        var svOldCfg = staffConfig[svOldNip];
-        if (svNipChanged) {
-          delete staffConfig[svOldNip];
-          staffConfig[svNextNip] = svOldCfg || { name: svNextName };
-        } else {
-          staffConfig[svNextNip] = { name: svNextName };
-        }
-        if (!saveStaffConfig()) break;
-        svPerson.name = svNextName;
-        if (svNipChanged) svPerson.nip = svNextNip;
-        var svRoleConfig = additionalStaffRoles[svRole];
-        if (svRoleConfig) {
-          var svAddIdx = -1;
-          for (var sai = 0; sai < svRoleConfig.additions.length; sai++) {
-            if (svRoleConfig.additions[sai].nip.replace(/\s/g, '') === svOldNip.replace(/\s/g, '')) { svAddIdx = sai; break; }
-          }
-          if (svAddIdx !== -1) {
-            svRoleConfig.additions[svAddIdx].name = svNextName;
-            if (svNipChanged) svRoleConfig.additions[svAddIdx].nip = svNextNip;
-            if (svRoleConfig.save) svRoleConfig.save();
-            else {
-              try {
-                localStorage.setItem(svRoleConfig.key, JSON.stringify(svRoleConfig.additions));
-                pushSetting(svRoleConfig.serverKey, svRoleConfig.additions);
-              } catch (svErr) { console.error('Gagal simpan data petugas tambahan:', svErr); }
-            }
-          }
-        }
-        if (svRole === 'approver') {
-          if (!updateApproverNameReferences(svOldName, svNextName, svOldNip, svNextNip)) {
-            toast('Nama/NIP tersimpan, tetapi antrean pengajuan belum diperbarui. Coba simpan lagi.');
+        supabaseClient.rpc('admin_update_staff', {
+          p_role: svRole,
+          p_old_nip: svOldNip,
+          p_name: svNextName,
+          p_nip: svNextNip
+        }).then(function (result) {
+          if (result.error) throw result.error;
+          var requestsUpdated = svRole !== 'approver' ||
+            updateApproverNameReferences(svOldName, svNextName, svOldNip, svNextNip);
+          directoryLoaded = false;
+          return loadDirectoryFromServer().then(function () {
             renderAll();
-            break;
-          }
-        }
-        if (testUser && testUser.nip === svOldNip) { testUser.name = svNextName; if (svNipChanged) testUser.nip = svNextNip; }
-        renderAll();
-        toast('Data petugas berhasil diperbarui.');
+            toast(requestsUpdated
+              ? 'Data petugas berhasil diperbarui.'
+              : 'Data petugas tersimpan, tetapi antrean pengajuan belum diperbarui.');
+          });
+        }).catch(function (error) {
+          console.error('Data petugas gagal diperbarui:', error);
+          toast('Data petugas gagal diperbarui (' + (error.code || error.message || 'error') + ').');
+        });
         break;
       case 'delete-staff':
         if (!canManageAdmin2Settings()) { toast('Hanya Admin 2 yang dapat menghapus petugas.'); break; }
@@ -3795,42 +3355,27 @@ ARIS SYAFRANDO;19920316 202521 1 022;Operator Radio Pelayaran`]
         var dlRoleConfig = additionalStaffRoles[dlRole];
         if (!dlRoleConfig) break;
         var dlKey = String(dlNip).replace(/\s/g, '');
-        var dlAdditions = dlRoleConfig.additions;
-        var dlIdx = -1;
-        for (var di = 0; di < dlAdditions.length; di++) {
-          if (dlAdditions[di].nip.replace(/\s/g, '') === dlKey) { dlIdx = di; break; }
-        }
-        if (dlIdx === -1) { toast('Petugas data bawaan tidak dapat dihapus.'); break; }
-        var dlPerson = dlAdditions[dlIdx];
-        if (!confirm('Hapus ' + dlRoleConfig.label + ' "' + dlPerson.name + '" dari daftar?')) break;
-        dlAdditions.splice(dlIdx, 1);
-        var dlList = dlRoleConfig.list;
-        var dlListIdx = -1;
-        for (var li = 0; li < dlList.length; li++) {
-          if (dlList[li].nip.replace(/\s/g, '') === dlKey) { dlListIdx = li; break; }
-        }
-        if (dlListIdx !== -1) dlList.splice(dlListIdx, 1);
-        var dlSaved;
-        if (dlRoleConfig.save) dlSaved = dlRoleConfig.save();
-        else {
-          try {
-            localStorage.setItem(dlRoleConfig.key, JSON.stringify(dlAdditions));
-            pushSetting(dlRoleConfig.serverKey, dlAdditions);
-            dlSaved = true;
-          } catch (dlErr) {
-            console.error('Data petugas tambahan tidak dapat disimpan:', dlErr);
-            dlSaved = false;
-          }
-        }
-        if (!dlSaved) {
-          dlAdditions.splice(dlIdx, 0, dlPerson);
-          if (dlListIdx !== -1) dlList.splice(dlListIdx, 0, dlPerson);
-          toast('Gagal menghapus petugas.');
+        var dlPerson = dlRoleConfig.list.filter(function (person) {
+          return person.nip.replace(/\s/g, '') === dlKey;
+        })[0];
+        if (!dlPerson || dlRoleConfig.additions.indexOf(dlPerson) === -1) {
+          toast('Petugas data bawaan tidak dapat dihapus.');
           break;
         }
-        if (testUser && testUser.nip === dlNip) stopTestMode();
-        renderAll();
-        toast(dlRoleConfig.label + ' berhasil dihapus.');
+        if (!confirm('Hapus ' + dlRoleConfig.label + ' "' + dlPerson.name + '" dari daftar?')) break;
+        supabaseClient.rpc('admin_delete_staff', { p_role: dlRole, p_nip: dlNip })
+          .then(function (result) {
+            if (result.error) throw result.error;
+            if (testUser && testUser.nip === dlNip) stopTestMode();
+            directoryLoaded = false;
+            return loadDirectoryFromServer();
+          }).then(function () {
+            renderAll();
+            toast(dlRoleConfig.label + ' berhasil dihapus.');
+          }).catch(function (error) {
+            console.error('Data petugas gagal dihapus:', error);
+            toast('Petugas gagal dihapus (' + (error.code || error.message || 'error') + ').');
+          });
         break;
       case 'password-reset':
         if (!canManageAdmin2Settings()) { toast('Hanya Admin 2 yang dapat meminta reset password.'); break; }
