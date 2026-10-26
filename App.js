@@ -1609,8 +1609,8 @@
       return '<tr class="nom-row border-t" data-nip="' + esc(e.nip) + '" data-orig="' + esc(orig) + '" data-base="' + (isBase ? '1' : '0') + '">' +
         '<td class="p-2 text-center text-slate-500 nom-no">' + idx + '</td>' +
         '<td class="p-2"><input type="text" class="nom-name w-56 rounded border border-slate-300 px-2 py-1 text-sm" value="' + esc(e.n) + '"></td>' +
-        '<td class="p-2"><input type="text" class="nom-nipedit w-48 rounded border border-slate-300 px-2 py-1 text-xs"' + (prot ? ' readonly title="NIP Admin tidak dapat diubah dari nominatif" style="background:#f1f5f9"' : '') + ' value="' + esc(e.nip) + '"></td>' +
         '<td class="p-2"><input type="text" class="nom-jab w-72 rounded border border-slate-300 px-2 py-1 text-xs" placeholder="Jabatan" value="' + esc(e.j || '') + '"></td>' +
+        '<td class="p-2"><input type="text" class="nom-nipedit w-48 rounded border border-slate-300 px-2 py-1 text-xs"' + (prot ? ' readonly title="NIP Admin tidak dapat diubah dari nominatif" style="background:#f1f5f9"' : '') + ' value="' + esc(e.nip) + '"></td>' +
         '<td class="p-2">' + unitSelect(e.unitCode) + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n2', b.n2) + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n1', b.n1) + '</td>' +
@@ -1621,8 +1621,8 @@
       return '<tr class="nom-row nom-new border-t bg-yellow-50" data-nip="" data-orig="" data-base="0" data-new="1">' +
         '<td class="p-2 text-center text-slate-500 nom-no">+</td>' +
         '<td class="p-2"><input type="text" class="nom-name w-56 rounded border border-slate-300 px-2 py-1 text-sm" placeholder="Nama lengkap"></td>' +
-        '<td class="p-2"><input type="text" class="nom-nipedit w-48 rounded border border-slate-300 px-2 py-1 text-xs" placeholder="NIP"></td>' +
         '<td class="p-2"><input type="text" class="nom-jab w-72 rounded border border-slate-300 px-2 py-1 text-xs" placeholder="Jabatan (opsional)"></td>' +
+        '<td class="p-2"><input type="text" class="nom-nipedit w-48 rounded border border-slate-300 px-2 py-1 text-xs" placeholder="NIP"></td>' +
         '<td class="p-2">' + unitSelect('K') + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n2', '') + '</td>' +
         '<td class="p-2 text-center">' + numInput('nom-n1', '') + '</td>' +
@@ -1641,7 +1641,7 @@
     }
     function renderNominatif() {
       nomReqs = load();
-      var head = '<table class="min-w-full text-sm"><thead class="sticky top-0 bg-slate-100 z-10"><tr class="text-left"><th class="p-2 text-center">No</th><th class="p-2">Nama</th><th class="p-2">NIP</th><th class="p-2">Jabatan</th><th class="p-2">Unit Kerja</th><th class="p-2 text-center">N-2</th><th class="p-2 text-center">N-1</th><th class="p-2 text-center">N</th><th class="p-2">Aksi</th></tr></thead><tbody id="nom-body">';
+      var head = '<table class="min-w-full text-sm"><thead class="sticky top-0 bg-slate-100 z-10"><tr class="text-left"><th class="p-2 text-center">No</th><th class="p-2">Nama</th><th class="p-2">Jabatan</th><th class="p-2">NIP</th><th class="p-2">Unit Kerja</th><th class="p-2 text-center">N-2</th><th class="p-2 text-center">N-1</th><th class="p-2 text-center">N</th><th class="p-2">Aksi</th></tr></thead><tbody id="nom-body">';
       tableEl.innerHTML = head + EMP.map(function (e, i) { return rowHtml(e, i + 1); }).join('') + '</tbody></table>';
       tahunEl.value = tahunEl.value || new Date().getFullYear();
       renumber();
